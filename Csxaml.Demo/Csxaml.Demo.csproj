@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>Csxaml.Demo</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <Platforms>x64</Platforms>
+    <Nullable>enable</Nullable>
+    <CsxamlGeneratedDirectory>$(MSBuildProjectDirectory)\obj\GeneratedCsxaml</CsxamlGeneratedDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\Csxaml.Runtime\\Csxaml.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <CsxamlSource Include="**\\*.csxaml" Exclude="bin\\**;obj\\**" />
+  </ItemGroup>
+
+  <Target Name="GenerateCsxaml" BeforeTargets="BeforeBuild" Condition="'@(CsxamlSource)' != ''">
+    <RemoveDir Directories="$(CsxamlGeneratedDirectory)" Condition="Exists('$(CsxamlGeneratedDirectory)')" />
+    <MakeDir Directories="$(CsxamlGeneratedDirectory)" />
+    <Exec
+      Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\\..\\Csxaml.Generator\\Csxaml.Generator.csproj&quot; -- --out &quot;$(CsxamlGeneratedDirectory)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
+      WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <ItemGroup>
+      <Compile Include="$(CsxamlGeneratedDirectory)\\**\\*.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

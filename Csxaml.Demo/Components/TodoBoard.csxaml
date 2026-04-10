@@ -1,0 +1,20 @@
+component Element TodoBoard {
+    State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(
+        new List<TodoItemModel>
+        {
+            new TodoItemModel("todo-1", "Draft plan", false),
+            new TodoItemModel("todo-2", "Wire runtime", true),
+            new TodoItemModel("todo-3", "Write tests", false)
+        });
+
+    return <StackPanel>
+        <TextBlock Text="Todo Board" />
+        foreach (var item in Items.Value) {
+            <TodoCard
+                Key={item.Id}
+                Title={item.Title}
+                IsDone={item.IsDone}
+                OnToggle={() => Items.Value = Items.Value.Select(todo => todo.Id == item.Id ? todo with { IsDone = !todo.IsDone } : todo).ToList()} />
+        }
+    </StackPanel>;
+}

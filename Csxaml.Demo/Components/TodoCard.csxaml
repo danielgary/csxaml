@@ -1,0 +1,9 @@
+component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
+    return <StackPanel>
+        <TextBlock Text={Title} />
+        if (IsDone) {
+            <TextBlock Text="Done" />
+        }
+        <Button Content="Toggle" OnClick={OnToggle} />
+    </StackPanel>;
+}
