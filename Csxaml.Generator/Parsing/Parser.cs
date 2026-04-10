@@ -21,7 +21,7 @@ internal sealed class Parser
         context.ReadSymbol("{", invalidDeclaration);
         var stateFields = ParseStateFields(context);
         context.ReadIdentifier("return", "missing return block");
-        var root = childNodeParser.ParseRootStackPanel();
+        var root = childNodeParser.ParseRootNode();
         context.ReadSymbol(";", "missing return block");
         var closeBrace = context.ReadSymbol("}", invalidDeclaration);
         context.ReadEndOfFile("only one component per file is supported");

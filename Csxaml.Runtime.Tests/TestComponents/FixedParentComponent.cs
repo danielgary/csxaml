@@ -11,10 +11,19 @@ internal sealed class FixedParentComponent : ComponentInstance
 
     public override Node Render()
     {
-        return new StackPanelNode(
-        [
-            new TextBlockNode($"Version:{Version.Value}"),
-            new ComponentNode(typeof(CardViewComponent), new CardViewProps("Fixed", false), "fixed-child", null)
-        ]);
+        return new NativeElementNode(
+            "StackPanel",
+            null,
+            Array.Empty<NativePropertyValue>(),
+            Array.Empty<NativeEventValue>(),
+            [
+                new NativeElementNode(
+                    "TextBlock",
+                    null,
+                    [new NativePropertyValue("Text", $"Version:{Version.Value}")],
+                    Array.Empty<NativeEventValue>(),
+                    Array.Empty<Node>()),
+                new ComponentNode(typeof(CardViewComponent), new CardViewProps("Fixed", false), "fixed-child", null)
+            ]);
     }
 }

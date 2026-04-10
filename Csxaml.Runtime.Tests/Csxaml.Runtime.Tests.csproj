@@ -6,14 +6,33 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <DemoGeneratedDirectory>$(MSBuildProjectDirectory)\obj\GeneratedDemoCsxaml</DemoGeneratedDirectory>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
     <PackageReference Include="MSTest" Version="4.0.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\\Csxaml.Runtime\\Csxaml.Runtime.csproj" />
+    <ProjectReference Include="..\\Csxaml.Runtime\\Csxaml.Runtime.csproj" SkipGetTargetFrameworkProperties="true" />
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
+
+  <ItemGroup>
+    <DemoCsxamlSource Include="..\\Csxaml.Demo\\Components\\*.csxaml" />
+    <Compile Include="..\\Csxaml.Demo\\Models\\TodoItemModel.cs" Link="Demo\\TodoItemModel.cs" />
+    <Compile Include="..\\Csxaml.Demo\\Support\\TodoColors.cs" Link="Demo\\TodoColors.cs" />
+  </ItemGroup>
+
+  <Target Name="GenerateDemoCsxaml" BeforeTargets="BeforeBuild" Condition="'@(DemoCsxamlSource)' != ''">
+    <RemoveDir Directories="$(DemoGeneratedDirectory)" Condition="Exists('$(DemoGeneratedDirectory)')" />
+    <MakeDir Directories="$(DemoGeneratedDirectory)" />
+    <Exec
+      Command="dotnet run --no-restore --project &quot;$(MSBuildProjectDirectory)\..\Csxaml.Generator\Csxaml.Generator.csproj&quot; -- --out &quot;$(DemoGeneratedDirectory)&quot; @(DemoCsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
+      WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <ItemGroup>
+      <Compile Include="$(DemoGeneratedDirectory)\**\*.g.cs" />
+    </ItemGroup>
+  </Target>
 </Project>

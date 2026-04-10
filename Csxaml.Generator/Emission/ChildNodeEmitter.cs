@@ -5,6 +5,8 @@ namespace Csxaml.Generator;
 internal sealed class ChildNodeEmitter
 {
     private readonly ComponentCatalog _catalog;
+    private readonly LocalNameGenerator _localNameGenerator = new();
+    private readonly NativeAttributeEmitter _nativeAttributeEmitter = new();
     private readonly SlotNameGenerator _slotNameGenerator = new();
     private readonly IndentedCodeWriter _writer;
 
@@ -16,16 +18,24 @@ internal sealed class ChildNodeEmitter
 
     public void EmitRenderBody(MarkupNode root)
     {
-        _writer.WriteLine("var children = new List<Node>();");
-        EmitChildStatements(root.Children, "children");
-        _writer.WriteLine("return new StackPanelNode(children);");
+        EmitMarkupNodeDeclaration(root, "rootNode");
+        _writer.WriteLine("return rootNode;");
     }
 
-    private void EmitButtonNode(MarkupNode markupNode, string listName)
+    private string BuildComponentPropsExpression(MarkupNode markupNode)
     {
-        var content = FormatValue(GetRequiredProperty(markupNode, "Content"));
-        var onClick = FormatValue(GetRequiredProperty(markupNode, "OnClick"));
-        _writer.WriteLine($"{listName}.Add(new ButtonNode({content}, {onClick}));");
+        var component = _catalog.GetComponent(markupNode.TagName);
+        if (component.Parameters.Count == 0)
+        {
+            return "null";
+        }
+
+        var arguments = component.Parameters
+            .Select(parameter => FormatValue(GetRequiredProperty(markupNode, parameter.Name)));
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"new {markupNode.TagName}Props({string.Join(", ", arguments)})");
     }
 
     private void EmitChildStatements(IReadOnlyList<ChildNode> childNodes, string listName)
@@ -43,21 +53,20 @@ internal sealed class ChildNodeEmitter
                     break;
 
                 case MarkupNode markupNode:
-                    EmitMarkupNode(markupNode, listName);
+                    EmitMarkupNodeAppend(markupNode, listName);
                     break;
             }
         }
     }
 
-    private void EmitComponentNode(MarkupNode markupNode, string listName)
+    private void EmitComponentNodeDeclaration(MarkupNode markupNode, string variableName)
     {
-        var key = markupNode.Properties.SingleOrDefault(property => property.Name == "Key");
-        var propsExpression = BuildPropsExpression(markupNode);
-        var keyExpression = key is null ? "null" : FormatValue(key);
+        var propsExpression = BuildComponentPropsExpression(markupNode);
+        var keyExpression = _nativeAttributeEmitter.BuildKeyExpression(markupNode);
         var slotName = _slotNameGenerator.Next();
 
         _writer.WriteLine(
-            $"{listName}.Add(new ComponentNode(typeof({markupNode.TagName}Component), {propsExpression}, \"{slotName}\", {keyExpression}));");
+            $"var {variableName} = new ComponentNode(typeof({markupNode.TagName}Component), {propsExpression}, \"{slotName}\", {keyExpression});");
     }
 
     private void EmitForEachBlock(ForEachBlockNode forEachBlock, string listName)
@@ -80,43 +89,41 @@ internal sealed class ChildNodeEmitter
         _writer.WriteLine("}");
     }
 
-    private void EmitMarkupNode(MarkupNode markupNode, string listName)
+    private void EmitMarkupNodeAppend(MarkupNode markupNode, string listName)
     {
-        if (string.Equals(markupNode.TagName, "Button", StringComparison.Ordinal))
+        var variableName = _localNameGenerator.Next("childNode");
+        EmitMarkupNodeDeclaration(markupNode, variableName);
+        _writer.WriteLine($"{listName}.Add({variableName});");
+    }
+
+    private void EmitMarkupNodeDeclaration(MarkupNode markupNode, string variableName)
+    {
+        if (ControlMetadataRegistry.IsNativeTag(markupNode.TagName))
         {
-            EmitButtonNode(markupNode, listName);
+            EmitNativeNodeDeclaration(markupNode, variableName);
             return;
         }
 
-        if (string.Equals(markupNode.TagName, "TextBlock", StringComparison.Ordinal))
-        {
-            EmitTextBlockNode(markupNode, listName);
-            return;
-        }
-
-        EmitComponentNode(markupNode, listName);
+        EmitComponentNodeDeclaration(markupNode, variableName);
     }
 
-    private void EmitTextBlockNode(MarkupNode markupNode, string listName)
+    private void EmitNativeNodeDeclaration(MarkupNode markupNode, string variableName)
     {
-        var text = FormatValue(GetRequiredProperty(markupNode, "Text"));
-        _writer.WriteLine($"{listName}.Add(new TextBlockNode({text}));");
-    }
+        var keyExpression = _nativeAttributeEmitter.BuildKeyExpression(markupNode);
+        var propertiesExpression = _nativeAttributeEmitter.BuildPropertiesExpression(markupNode);
+        var eventsExpression = _nativeAttributeEmitter.BuildEventsExpression(markupNode);
+        var childrenExpression = "Array.Empty<Node>()";
 
-    private string BuildPropsExpression(MarkupNode markupNode)
-    {
-        var component = _catalog.GetComponent(markupNode.TagName);
-        if (component.Parameters.Count == 0)
+        if (markupNode.Children.Count > 0)
         {
-            return "null";
+            var childrenVariableName = _localNameGenerator.Next("children");
+            _writer.WriteLine($"var {childrenVariableName} = new List<Node>();");
+            EmitChildStatements(markupNode.Children, childrenVariableName);
+            childrenExpression = childrenVariableName;
         }
 
-        var arguments = component.Parameters
-            .Select(parameter => FormatValue(GetRequiredProperty(markupNode, parameter.Name)));
-
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"new {markupNode.TagName}Props({string.Join(", ", arguments)})");
+        _writer.WriteLine(
+            $"var {variableName} = new NativeElementNode(\"{markupNode.TagName}\", {keyExpression}, {propertiesExpression}, {eventsExpression}, {childrenExpression});");
     }
 
     private static string EscapeString(string value)

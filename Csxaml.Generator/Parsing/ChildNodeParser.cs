@@ -9,15 +9,9 @@ internal sealed class ChildNodeParser
         _context = context;
     }
 
-    public MarkupNode ParseRootStackPanel()
+    public MarkupNode ParseRootNode()
     {
-        var node = ParseMarkupNode("missing return block");
-        if (!string.Equals(node.TagName, "StackPanel", StringComparison.Ordinal))
-        {
-            throw _context.CreateException(node.Span, $"unsupported tag name '{node.TagName}'");
-        }
-
-        return node;
+        return ParseMarkupNode("missing return block");
     }
 
     private IReadOnlyList<ChildNode> ParseBlockChildren(string message)
@@ -89,9 +83,10 @@ internal sealed class ChildNodeParser
         }
 
         var tagName = _context.ReadIdentifier("unsupported tag name");
-        return string.Equals(tagName.Text, "StackPanel", StringComparison.Ordinal)
-            ? ParseStackPanelNode(openAngle, tagName)
-            : ParseSelfClosingNode(openAngle, tagName);
+        var properties = ParseProperties(tagName);
+        return _context.TryReadSymbol("/")
+            ? ParseSelfClosingNode(openAngle, tagName, properties)
+            : ParseElementNode(openAngle, tagName, properties);
     }
 
     private PropertyNode ParseProperty()
@@ -118,15 +113,23 @@ internal sealed class ChildNodeParser
             new TextSpan(propertyName.Span.Start, stringToken.Span.End - propertyName.Span.Start));
     }
 
-    private MarkupNode ParseSelfClosingNode(Token openAngle, Token tagName)
+    private IReadOnlyList<PropertyNode> ParseProperties(Token tagName)
     {
         var properties = new List<PropertyNode>();
-        while (!(_context.PeekSymbol("/") && _context.PeekSymbol(">", 1)))
+        while (!_context.PeekSymbol(">") &&
+               !(_context.PeekSymbol("/") && _context.PeekSymbol(">", 1)))
         {
             properties.Add(ParseProperty());
         }
 
-        _context.ReadSymbol("/", $"unsupported tag name '{tagName.Text}'");
+        return properties;
+    }
+
+    private MarkupNode ParseSelfClosingNode(
+        Token openAngle,
+        Token tagName,
+        IReadOnlyList<PropertyNode> properties)
+    {
         var closeAngle = _context.ReadSymbol(">", $"unsupported tag name '{tagName.Text}'");
         return new MarkupNode(
             tagName.Text,
@@ -135,7 +138,10 @@ internal sealed class ChildNodeParser
             new TextSpan(openAngle.Span.Start, closeAngle.Span.End - openAngle.Span.Start));
     }
 
-    private MarkupNode ParseStackPanelNode(Token openAngle, Token tagName)
+    private MarkupNode ParseElementNode(
+        Token openAngle,
+        Token tagName,
+        IReadOnlyList<PropertyNode> properties)
     {
         _context.ReadSymbol(">", $"unsupported tag name '{tagName.Text}'");
         var children = new List<ChildNode>();
@@ -150,7 +156,7 @@ internal sealed class ChildNodeParser
         var closeAngle = _context.ReadSymbol(">", $"unsupported tag name '{tagName.Text}'");
         return new MarkupNode(
             tagName.Text,
-            Array.Empty<PropertyNode>(),
+            properties,
             children,
             new TextSpan(openAngle.Span.Start, closeAngle.Span.End - openAngle.Span.Start));
     }

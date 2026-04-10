@@ -10,13 +10,15 @@ public sealed class CodeEmitterTests
             "TodoCard.csxaml",
             """
             component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-                return <StackPanel>
-                    <TextBlock Text={Title} />
+                return <Border Background={IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground} Padding={TodoColors.CardPadding}>
+                    <StackPanel Spacing={8}>
+                    <TextBlock Text={Title} Foreground={TodoColors.CardForeground} />
                     if (IsDone) {
                         <TextBlock Text="Done" />
                     }
                     <Button Content="Toggle" OnClick={OnToggle} />
-                </StackPanel>;
+                    </StackPanel>
+                </Border>;
             }
             """);
 
@@ -39,14 +41,21 @@ public sealed class CodeEmitterTests
 
                 public override Node Render()
                 {
-                    var children = new List<Node>();
-                    children.Add(new TextBlockNode(Title));
+                    var children0 = new List<Node>();
+                    var children2 = new List<Node>();
+                    var childNode3 = new NativeElementNode("TextBlock", null, new NativePropertyValue[] { new NativePropertyValue("Text", Title, global::Csxaml.ControlMetadata.ValueKindHint.String), new NativePropertyValue("Foreground", TodoColors.CardForeground, global::Csxaml.ControlMetadata.ValueKindHint.Brush) }, Array.Empty<NativeEventValue>(), Array.Empty<Node>());
+                    children2.Add(childNode3);
                     if (IsDone)
                     {
-                        children.Add(new TextBlockNode("Done"));
+                        var childNode4 = new NativeElementNode("TextBlock", null, new NativePropertyValue[] { new NativePropertyValue("Text", "Done", global::Csxaml.ControlMetadata.ValueKindHint.String) }, Array.Empty<NativeEventValue>(), Array.Empty<Node>());
+                        children2.Add(childNode4);
                     }
-                    children.Add(new ButtonNode("Toggle", OnToggle));
-                    return new StackPanelNode(children);
+                    var childNode5 = new NativeElementNode("Button", null, new NativePropertyValue[] { new NativePropertyValue("Content", "Toggle", global::Csxaml.ControlMetadata.ValueKindHint.Object) }, new NativeEventValue[] { new NativeEventValue("OnClick", OnToggle) }, Array.Empty<Node>());
+                    children2.Add(childNode5);
+                    var childNode1 = new NativeElementNode("StackPanel", null, new NativePropertyValue[] { new NativePropertyValue("Spacing", 8, global::Csxaml.ControlMetadata.ValueKindHint.Double) }, Array.Empty<NativeEventValue>(), children2);
+                    children0.Add(childNode1);
+                    var rootNode = new NativeElementNode("Border", null, new NativePropertyValue[] { new NativePropertyValue("Background", IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground, global::Csxaml.ControlMetadata.ValueKindHint.Brush), new NativePropertyValue("Padding", TodoColors.CardPadding, global::Csxaml.ControlMetadata.ValueKindHint.Thickness) }, Array.Empty<NativeEventValue>(), children0);
+                    return rootNode;
                 }
             }
             """;

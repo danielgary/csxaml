@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\\Csxaml.ControlMetadata\\Csxaml.ControlMetadata.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Csxaml.Generator.Tests" />
   </ItemGroup>
 </Project>

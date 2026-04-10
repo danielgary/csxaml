@@ -1,560 +1,648 @@
-# Milestone 2 Plan - React-like Component Model for C#/XAML
+Milestone 3 - Metadata-Driven Native Props and Stronger Component Props
+Objective
 
-This milestone should prove that CSXAML is more than file-to-code generation. It needs to prove the beginnings of a real component model: props, composition, conditional rendering, repeated rendering, and identity preservation.
+Implement a metadata-driven property system for native controls and tighten the generated component prop model so CSXAML can:
 
-Milestone 1 proved the build pipeline, runtime element tree, WinUI rendering, and state-triggered rerendering. Milestone 2 should build directly on that foundation rather than widening into lots of new controls.
+expose a broader set of native control properties in markup
+expose native events in a consistent way
+validate props/events against control metadata
+generate runtime nodes from generic attributes rather than hardcoded control-specific constructors
+pass typed props from parent components to child components cleanly
+patch supported native properties at runtime
+update the Todo demo to support green/red visual state for done/not done cards
 
----
+This milestone is complete when the Todo demo expresses card coloring through CSXAML props using the new metadata-driven native property system, and component props are generated/passed in a strongly typed and maintainable way.
 
-## Milestone 2 objective
+Non-Negotiable Constraints
+Keep using C# for generator, runtime, and metadata tooling.
+Do not use runtime reflection as the primary runtime property application mechanism.
+Use reflection at build time to generate stable metadata tables.
+Do not expose all WinUI surface area blindly. Discover broadly, then filter to a curated supported subset.
+Do not expand the syntax with unrelated features.
+Do not collapse parser, validator, metadata generation, emitter, and runtime patching into large files.
+Keep event metadata separate from ordinary property metadata.
+Preserve explicit framework-reserved props such as Key outside the native prop bag.
+Prefer a metadata-driven generic native element model over endlessly expanding specialized constructors.
+Keep the Todo demo simple. Do not turn Milestone 3 into a styling framework milestone.
+Core Success Criteria
 
-Implement the smallest credible React-like component model for C#/XAML platforms with support for:
+Milestone 3 is complete only when all of these are true:
 
-- typed props
-- nested component composition
-- conditional rendering
-- repeated child rendering from collections
-- explicit keys for repeated children
-- preservation of child component instance identity across rerenders
+Native markup attributes are parsed generically for supported native elements.
+A reflection-based metadata generation step produces stable control/property/event metadata tables.
+Generator validation uses those metadata tables to validate native props and native events.
+Runtime uses emitted prop/event data plus control adapters to create and patch native controls.
+Parent components pass typed props to child components using generated prop types or equivalent strongly typed structures.
+Native events are exposed consistently, such as OnClick.
+The Todo demo updates TodoCard visuals using color/styling props:
+green when done
+red when not done
+Invalid props surface clear diagnostics during generation/build.
+Code remains split into small, understandable files.
+Scope
+In Scope
+generic attribute parsing for native elements
+reflection-based metadata generation for a curated set of WinUI controls
+validation of native props and events using metadata tables
+generic native property/event bags in runtime nodes
+runtime control adapters that create and patch supported properties/events
+typed component props generation and parent-to-child prop passing cleanup
+Todo demo visual update using native props for color/styling
+tests for metadata, validation, prop passing, and runtime property application
+Out of Scope
+complete WinUI property parity
+arbitrary object graph construction from markup
+advanced converters for every WinUI type
+styling DSL
+resource dictionaries
+data templates
+implicit styles
+triggers/visual states
+Roslyn source generators
+IDE tooling implementation
+full language server implementation
+runtime reflection-driven property patching in the hot path
+broad theme system
+Key Design Decisions
 
-This milestone is complete when a small app can be written fully in CSXAML using parent and child components, and child-local state is preserved when key and type are preserved.
+1. Reflection is a metadata source, not the runtime execution model
 
----
+Reflection should be used in a build-time metadata generator to inspect selected WinUI types and emit stable metadata tables.
 
-## Target demo
+Runtime property application should use those metadata tables and explicit control adapters.
 
-Build a small **Todo Board** demo.
+2. Native elements should use a generic prop/event model
 
-### `TodoBoard`
+Do not keep expanding specialized node constructors like:
 
-Owns a collection of todo items in state and renders a list of `TodoCard` children.
+TextBlockNode(string Text)
+ButtonNode(string Content, Action OnClick)
 
-### `TodoCard`
+Move toward a generic native element model:
 
-Receives props, renders title, conditionally shows a done badge, and exposes a toggle button.
+native type/tag name
+reserved framework props like Key
+property bag
+event bag
+children 3. Component props stay strongly typed
 
-### Required demo behavior
+Do not move component props to dynamic dictionaries.
 
-- parent renders repeated child components
-- child gets typed props
-- child can render conditionally
-- repeated children use explicit keys
-- toggling an item rerenders correctly
-- if child local state is added, it survives rerenders when identity is preserved
+Each generated component should still have strongly typed props or equivalent generated parameter handling.
 
-Do not pick a broader demo. This one forces the right semantics.
+4. Native props and native events are distinct
 
----
+A native event is not just another property.
 
-## Scope rules
+Treat them separately in metadata, validation, emission, and runtime binding.
 
-The agent must keep Milestone 2 narrow.
+5. Support a curated native control set first
 
-### In scope
+Metadata generation should focus first on a small set of controls needed now:
 
-- typed component parameters
-- child component usage in markup
-- `if (...) { ... }` conditional blocks
-- constrained `foreach (var x in y) { ... }` blocks
-- explicit `Key={...}` support
-- component identity preservation at component boundaries
+StackPanel
+Border if needed for card coloring
+TextBlock
+Button
 
-### Out of scope
+Optional if already present or trivial to support:
 
-- general WinUI parity
-- styling system
-- slots / child content
-- fragments
-- `else`
-- hooks/effects
-- context/provider model
-- async rendering
-- refs
-- Roslyn source generators
-- design-time tooling
-- generalized diff engine for all native controls
+TextBox
+CheckBox
 
----
+Do not attempt all WinUI controls in this milestone.
 
-## Architectural direction
+Architectural Changes Required
 
-Milestone 1 likely treated everything as a native element tree and rebuilt subtrees eagerly. That is acceptable for the counter POC. It is not enough for a React-like model.
+1. Add a metadata generation project or assembly
 
-Milestone 2 needs a logical runtime tree with a distinction between:
+Create a new project or clear sub-area responsible for generating control metadata from reflection.
 
-- **native nodes** that map to WinUI controls
-- **component nodes** that represent CSXAML child component instances
+Recommended name:
 
-The runtime must start preserving component instance identity, even if native UI inside those boundaries is still rebuilt.
+Csxaml.ControlMetadata.Generator
 
-That is the right compromise here. Do not attempt full retained native-control diffing yet.
+This tool should inspect selected WinUI types and emit a stable artifact consumed by generator/runtime.
 
----
+2. Introduce a shared metadata model
 
-## Key design decisions
+Create a shared model for:
 
-### 1. Use typed props, not dictionaries
+control metadata
+property metadata
+event metadata
+type/conversion hints
 
-Each component with parameters should generate a typed props record or equivalent strongly typed structure.
+This model should be consumed by:
 
-Example target shape:
+metadata generator
+code generator validator
+runtime control adapter layer
+future tooling 3. Update the parser/AST to treat native attributes generically
 
-```csharp
+For native elements, parser should capture attributes generically rather than hardcoding per-control props.
+
+4. Add a validation layer based on metadata tables
+
+The generator should validate whether a given native property or event is supported for a given native tag.
+
+5. Replace or evolve native node emission
+
+Generated code should emit generic native prop/event structures rather than specialized constructor arguments only.
+
+6. Add runtime control adapters
+
+Runtime should create and patch native controls using adapter classes informed by supported metadata.
+
+7. Tighten component prop generation
+
+If Milestone 2 introduced typed props, this milestone should clean up any awkwardness and standardize component prop generation/emission so parent-to-child passing is obvious and maintainable.
+
+Required Metadata Model
+
+Create a stable metadata representation with at least the following concepts.
+
+ControlMetadata
+
+Fields should include:
+
+TagName
+ClrTypeName
+BaseTypeName or inheritance chain
+Properties
+Events
+PropertyMetadata
+
+Fields should include:
+
+Name
+ClrTypeName
+IsWritable
+IsDependencyProperty if discoverable
+IsAttached
+ExposedInCsxaml
+ValueKindHint
+EventMetadata
+
+Fields should include:
+
+ClrEventName
+ExposedName such as OnClick
+HandlerTypeName
+ExposedInCsxaml
+ValueKindHint
+
+Include enough hints for validation/coercion planning, such as:
+
+String
+Bool
+Int
+Double
+Enum
+Object
+Brush
+Thickness
+Unknown
+
+This does not need to solve all conversions. It only needs enough for the supported milestone surface.
+
+Metadata Generation Requirements
+Inputs
+
+A curated list of WinUI control CLR types, such as:
+
+Microsoft.UI.Xaml.Controls.StackPanel
+Microsoft.UI.Xaml.Controls.TextBlock
+Microsoft.UI.Xaml.Controls.Button
+Microsoft.UI.Xaml.Controls.Border if needed
+Discovery behavior
+
+Use reflection to inspect:
+
+public writable CLR properties
+public events
+optionally dependency properties when easy to correlate
+Filtering behavior
+
+The generator must not expose everything automatically.
+
+It should filter to a supported subset using rules such as:
+
+public writable property
+declarative-safe
+not explicitly excluded
+type is supported or allowed as Object
+event is supported for the current runtime/event model
+Outputs
+
+Emit one stable metadata artifact.
+
+Recommended output options:
+
+generated C# metadata tables in a shared assembly
+JSON metadata artifact loaded by generator/runtime
+
+Preferred for Milestone 3: generated C# source because it is easy to consume from both generator/runtime without additional loading complexity.
+
+Syntax and Parsing Rules
+Native attributes
+
+The parser should capture native element attributes generically.
+
+Example:
+
+<Button
+    Content="Toggle"
+    Background={SomeBrush}
+    Foreground={SomeOtherBrush}
+    FontSize={18}
+    OnClick={Toggle} />
+
+Parser should capture:
+
+tag name
+attribute list
+for each attribute:
+name
+value kind
+raw value / parsed expression payload
+Attribute value kinds
+
+Support at least:
+
+string literal: "Done"
+expression: {item.IsDone ? DoneBrush : NotDoneBrush}
+numeric literal inside expression is acceptable
+boolean expression via {...}
+
+Do not add extra literal syntaxes unless already present.
+
+Reserved props
+
+Keep framework-reserved props separate from native props:
+
+Key
+any future framework-only reserved names
+
+Reserved props should not flow into the native property bag.
+
+Event naming
+
+Native events exposed in CSXAML should use normalized names such as:
+
+OnClick
+
+The metadata layer should map:
+
+OnClick -> WinUI Click
+Component Props Requirements
+
+Milestone 3 must also standardize component prop passing.
+
+Requirements
+Each component with parameters must generate a stable typed props structure or equivalent.
+Parent components must pass child component props through generated strongly typed construction, not dynamic bags.
+Generator output for component prop passing should be readable and deterministic.
+Validation should catch:
+missing required props
+duplicate props
+unknown props on component tags
+Preferred shape
+
+A generated props record is acceptable and recommended:
+
 public sealed record TodoCardProps(
-    string Title,
-    bool IsDone,
-    Action OnToggle
+string Title,
+bool IsDone,
+Action OnToggle
 );
-```
 
-Avoid string-keyed property bags.
+And generated parent usage should lower cleanly into that props type.
 
-### 2. Distinguish native tags from component tags
+If your current shape is already similar, keep it and tighten it rather than redesigning for novelty.
 
-The parser/generator must treat native elements and component references differently.
+Runtime Model Changes
+Native element node
 
-Examples:
+Introduce or standardize a generic native element node shape.
 
-- `StackPanel`, `TextBlock`, `Button` -> native nodes
-- `TodoCard` -> component node
+It should contain at least:
 
-### 3. Preserve component identity by type + key
-
-For repeated child components:
-
-- if key matches and type matches, preserve instance
-- otherwise create a new instance
-
-For non-repeated fixed children:
-
-- position-based matching is acceptable for this milestone
-
-### 4. Rebuild native subtrees within a component if needed
-
-Do not try to optimize native projection too early. Preserve identity at component boundaries first.
-
----
-
-# Milestone 2 implementation phases
-
-## Phase 1 - Upgrade runtime model
-
-### Goal
-
-Move from a flat native element tree to a logical tree that can represent child components.
-
-### Required work
-
-Introduce or replace the existing `Element` model with a `Node` model.
-
-Suggested conceptual types:
-
-- `Node`
-- `NativeNode`
-- `ComponentNode`
-- `StackPanelNode`
-- `TextBlockNode`
-- `ButtonNode`
-
-`ComponentNode` should represent a child component reference plus props and optional key.
+TagName
+Key
+Properties
+Events
+Children
 
 Example conceptual shape:
 
-```csharp
-public sealed record ComponentNode(
-    Type ComponentType,
-    object Props,
-    string? Key
-) : Node;
-```
-
-Also introduce a runtime coordinator that can:
-
-- mount the root component
-- manage a logical component instance tree
-- rerender a component subtree when invalidated
-- preserve child component instances by type/key or type/position
-
-### Deliverables
-
-- logical node model
-- component node type
-- root render coordinator
-- updated component base abstraction that can participate in component-instance management
-
-### Acceptance criteria
-
-- root component can render a child component node
-- runtime can instantiate and render a child component
-- rerender still works through state invalidation
-
----
-
-## Phase 2 - Add typed props support
-
-### Goal
-
-Allow components to declare typed parameters and receive them at render time.
-
-### Required syntax support
-
-Component declaration with typed parameter list.
-
-Example target:
-
-```csharp
-component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-    return <StackPanel>
-        <TextBlock Text={Title} />
-        <Button Content="Toggle" OnClick={OnToggle} />
-    </StackPanel>;
+public sealed class NativeElementNode : Node
+{
+public required string TagName { get; init; }
+public string? Key { get; init; }
+public IReadOnlyList<NativePropValue> Properties { get; init; } = [];
+public IReadOnlyList<NativeEventValue> Events { get; init; } = [];
+public IReadOnlyList<Node> Children { get; init; } = [];
 }
-```
+Prop values
 
-### Generator changes
+Each property should capture:
 
-The generator must:
+Name
+Value
+optional ValueKindHint
+Event values
 
-- parse component parameter list
-- emit a typed props record or equivalent
-- emit component class that stores/uses typed props
-- lower parent-provided props into the generated props structure
+Each event should capture:
 
-### Deliverables
+exposed name such as OnClick
+handler delegate
+Component nodes
 
-- parser support for component parameters
-- AST support for parameters
-- emitter support for generated props type
-- runtime support for passing props into child instances
+Keep component nodes strongly typed and separate from native element nodes.
 
-### Acceptance criteria
+Runtime Control Adapter Layer
 
-- a child component can receive and use typed props
-- generated code compiles cleanly
-- no weakly typed prop bag is used
+Add a control adapter layer that owns native control creation and patching.
 
----
+Responsibilities
 
-## Phase 3 - Add nested component composition
+For each supported native tag:
 
-### Goal
+create native control instance
+apply supported properties
+wire supported events
+patch changed properties during reconciliation
+patch or rebind events safely
+Recommended shape
 
-Allow components to render other components.
+One adapter per supported control type, for example:
 
-### Required syntax support
+ButtonControlAdapter
+TextBlockControlAdapter
+StackPanelControlAdapter
+BorderControlAdapter
 
-Parent markup can include child component usage:
+Or a small adapter registry plus per-type implementations.
 
-```csharp
-<TodoCard Title={item.Title} IsDone={item.IsDone} OnToggle={() => Toggle(item.Id)} />
-```
+Do not do this
 
-### Generator changes
+Do not put all property application in one massive switch statement file.
 
-The generator must:
+Validation Requirements
 
-- recognize component tags vs native tags
-- lower child component usage to `ComponentNode`
-- validate required props are present
+Generator validation must use metadata tables to validate native tags, props, and events.
 
-### Runtime changes
+Validate
+known native tag
+prop exists on supported control metadata
+event exists on supported control metadata
+reserved props are used only where legal
+duplicate native props are rejected
+duplicate events are rejected
+Error examples
+unknown prop on native control
+unsupported event on control
+reserved prop misused
+invalid component prop
+duplicate attribute name
 
-The runtime must:
+Diagnostics can be plain build errors for now.
 
-- instantiate child component instances from `ComponentNode`
-- assign props
-- render child output
-- preserve child identity where appropriate
+Todo Demo Changes
 
-### Deliverables
+Update the Todo demo so cards visually reflect done/not done.
 
-- parser support for child component tags
-- component node emission
-- runtime child-component instantiation and reuse
+Goal
 
-### Acceptance criteria
+Use the new native property system to pass color/styling props in CSXAML.
 
-- parent component renders child component
-- child receives props and renders correctly
-- rerender updates flow through parent and child correctly
+Recommended implementation
 
----
+Use Border around each todo card and set its background or border brush based on IsDone.
 
-## Phase 4 - Add conditional rendering
+Done card
+green background or green border
+Not done card
+red background or red border
 
-### Goal
+Keep it simple and obvious.
 
-Support simple conditional UI.
+Example target authoring shape
 
-### Required syntax support
+TodoCard.csxaml should be able to express something like:
 
-```csharp
+component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
+return <Border Background={IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground}>
+<StackPanel>
+<TextBlock Text={Title} Foreground={TodoColors.CardForeground} />
 if (IsDone) {
-    <TextBlock Text="Done" />
+<TextBlock Text="Done" Foreground={TodoColors.DoneForeground} />
 }
-```
-
-### Generator strategy
-
-Do not introduce a complicated runtime conditional abstraction unless necessary. Lower conditionals into generated node inclusion/exclusion.
-
-The simplest acceptable lowering is:
-
-- include child node when condition true
-- omit child node when false
-
-### Deliverables
-
-- parser support for `if (...) { ... }`
-- AST representation for conditional block
-- emitter support for conditional child inclusion
-
-### Acceptance criteria
-
-- done badge appears only when `IsDone` is true
-- toggling state updates conditional output correctly
-
----
-
-## Phase 5 - Add repeated rendering with keys
-
-### Goal
-
-Support list rendering and identity preservation.
-
-### Required syntax support
-
-```csharp
-foreach (var item in Items.Value) {
-    <TodoCard
-        Key={item.Id.ToString()}
-        Title={item.Title}
-        IsDone={item.IsDone}
-        OnToggle={() => Toggle(item.Id)} />
+if (!IsDone) {
+<TextBlock Text="Not Done" Foreground={TodoColors.NotDoneForeground} />
 }
-```
-
-### Generator changes
-
-The generator must:
-
-- parse constrained `foreach`
-- lower repeated blocks into node lists
-- capture `Key={...}` when present
-
-### Runtime changes
-
-The runtime must:
-
-- reconcile repeated child components by key + type
-- preserve matching child instances
-- create/remove instances when collection changes
-
-Native controls inside a child may still be rebuilt. That is acceptable.
-
-### Deliverables
-
-- parser support for `foreach`
-- AST support for repeated blocks
-- emitter support for list lowering
-- runtime keyed child-instance preservation
-
-### Acceptance criteria
-
-- multiple `TodoCard` children render from a collection
-- toggling one item does not scramble identity of other items
-- keyed components preserve local state when still present
-
----
-
-## Phase 6 - Final demo wiring
-
-### Goal
-
-Express the whole Todo Board demo in CSXAML.
-
-### Required demo pieces
-
-#### `TodoItemModel.cs`
-
-Plain C# model with at least:
-
-- `Id`
-- `Title`
-- `IsDone`
-
-#### `TodoCard.csxaml`
-
-Receives props and conditionally shows the done badge.
-
-#### `TodoBoard.csxaml`
-
-Owns list state and renders repeated `TodoCard` children.
-
-### Example target shape
-
-`TodoCard.csxaml`
-
-```csharp
-component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-    return <StackPanel>
-        <TextBlock Text={Title} />
-        if (IsDone) {
-            <TextBlock Text="Done" />
-        }
-        <Button Content="Toggle" OnClick={OnToggle} />
-    </StackPanel>;
+<Button Content="Toggle" OnClick={OnToggle} />
+</StackPanel>
+</Border>;
 }
-```
 
-`TodoBoard.csxaml`
+Exact syntax can vary slightly depending on your current grammar, but the demo must visibly show green/red based on state.
 
-```csharp
-component Element TodoBoard {
-    State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(CreateSeedItems());
+Supporting code
 
-    return <StackPanel>
-        foreach (var item in Items.Value) {
-            <TodoCard
-                Key={item.Id.ToString()}
-                Title={item.Title}
-                IsDone={item.IsDone}
-                OnToggle={() => Toggle(item.Id)} />
-        }
-    </StackPanel>;
-}
-```
+It is acceptable to add a small C# helper such as TodoColors with static brushes if brush literal syntax is not yet supported.
 
-Exact syntax can vary slightly if needed, but the semantics must remain the same.
+That is preferable to inventing a brush-construction language in this milestone.
 
-### Acceptance criteria
+Implementation Phases
+Phase 1 - Introduce control metadata generator
+Deliverables
+new metadata generation project or clear module
+reflection over curated WinUI control list
+generated metadata artifact
+shared metadata model
+Acceptance criteria
+metadata tables are generated deterministically
+metadata can answer:
+what props exist for Button
+what events exist for Button
+what props exist for Border
+what props exist for TextBlock
+Phase 2 - Update parser and AST for generic native attributes
+Deliverables
+native element attributes parsed generically
+reserved props separated conceptually
+attribute value kinds preserved
+Acceptance criteria
+native element tags can carry arbitrary supported attributes in syntax
+parser no longer depends on control-specific prop hardcoding for supported native tags
+Phase 3 - Add metadata-driven validation
+Deliverables
+validator consumes metadata tables
+native prop validation
+native event validation
+native tag validation
+duplicate attribute checks
+Acceptance criteria
+invalid native props fail build with clear diagnostics
+invalid native events fail build with clear diagnostics
+valid native props/events pass
+Phase 4 - Update emission model for generic native props/events
+Deliverables
+generated code emits generic native prop structures
+generated code emits generic native event structures
+reserved props like Key handled separately
+component prop emission standardized/tightened
+Acceptance criteria
+generated code remains readable and deterministic
+parent-to-child component prop passing is strongly typed and clear
+native element emission no longer depends only on specialized constructor signatures
+Phase 5 - Add runtime control adapter layer
+Deliverables
+adapter registry
+adapters for:
+StackPanel
+TextBlock
+Button
+Border if used in the Todo demo
+property application logic
+event binding logic
+minimal patch/update logic for supported properties
+Acceptance criteria
+supported native properties apply correctly
+supported events bind correctly
+rerender/patch works for changed supported props
+Phase 6 - Update Todo demo
+Deliverables
+Todo demo updated to use native prop syntax for visual styling
+done/not done cards clearly green/red
+TodoColors helper or similar if needed
+no hand-authored custom rendering path outside the normal CSXAML flow
+Acceptance criteria
+green when done
+red when not done
+toggle still works
+demo is expressed through the new metadata-driven prop model
+Phase 7 - Tests and cleanup
+Deliverables
+metadata generation tests
+validator tests
+emitter snapshot/golden tests
+runtime property application tests
+component prop passing tests
+todo demo smoke test if available
+Acceptance criteria
+regressions in metadata/validation/emission are covered
+bug fixes follow failing-test-first discipline
+Required Project/File Structure
 
-- no hand-authored child component C# is required for the demo
-- demo runs from generated code
-- repeated child components behave correctly
+Keep responsibilities split.
 
----
+Suggested project layout
+/Csxaml.ControlMetadata
+/Model
+ControlMetadata.cs
+PropertyMetadata.cs
+EventMetadata.cs
+ValueKindHint.cs
 
-# Required code structure rules for the agent
+/Csxaml.ControlMetadata.Generator
+/Discovery
+/Filtering
+/Emission
 
-Since maintainability is already a concern, the milestone plan needs explicit structure rules.
+/Csxaml.Generator
+/Cli
+/Syntax
+/Parsing
+/Ast
+/Validation
+/Emission
+/Diagnostics
 
-## Generator project
+/Csxaml.Runtime
+/Nodes
+/Components
+/Rendering
+/Adapters
+/Hosting
+/Reconciliation
 
-Keep these responsibilities separate:
+/Csxaml.Demo
+/Components
+/Models
+/Support
 
-- `Cli/Program.cs`
-- `Cli/GeneratorRunner.cs`
-- `Syntax/Token.cs`
-- `Syntax/Tokenizer.cs`
-- `Parsing/Parser.cs`
-- `Parsing/ParserContext.cs`
-- `Ast/...` split into small files
-- `Validation/...`
-- `Emission/...`
-- `Diagnostics/...`
+If you do not want a separate metadata project, at least keep metadata model and metadata generation clearly separated from runtime and generator logic.
 
-Do not allow tokenizer, parser, AST, diagnostics, and emitter to collapse into one or two large files.
+File-Size and Maintainability Rules
 
-## Runtime project
+Because maintainability is already a concern, enforce these during implementation:
 
-Keep these responsibilities separate:
+preferred file size: under 200 lines
+warning threshold: 300 lines
+hard stop: 400 lines
 
-- `Nodes/...`
-- `Components/...`
-- `State/...`
-- `Reconciliation/...`
-- `Rendering/...`
-- `Hosting/...`
+Do not allow:
 
-Do not let the runtime coordinator, reconciliation rules, WinUI rendering, and state handling merge into a single giant file.
+tokenizer + parser + validator in one file
+metadata discovery + filtering + emission in one file
+runtime node definitions + adapter logic + control patching in one file
 
-## File-size rule
+Split early.
 
-- preferred: under 200 lines
-- warning: over 300
-- hard stop: over 400
+Testing Requirements
+Metadata generator tests
+discovers expected props for curated controls
+discovers expected events for curated controls
+filtering behaves as expected
+generated metadata artifact is stable
+Generator/validator tests
+valid native props accepted
+invalid native props rejected
+valid native events accepted
+invalid native events rejected
+reserved props handled correctly
+component prop passing validates correctly
+Emitter tests
+generated native prop/event emission snapshots
+generated component prop emission snapshots
+Runtime tests
+adapter creates correct native control type
+supported properties apply
+supported properties patch correctly
+events bind and rebind safely
+Demo-level tests
+todo card green when done
+todo card red when not done
+toggle preserves expected visual updates
+Stop Conditions
 
-If a file crosses the warning threshold, split it before continuing.
+The agent must stop and refactor before continuing if any of these happen:
 
----
+Reflection logic is being copied into runtime hot paths.
+Native props and native events are being treated as one undifferentiated bag.
+Component props are drifting toward dynamic dictionaries.
+Property application is becoming one giant switch file.
+Metadata generation, validation, and runtime application are being mixed together.
+The Todo demo change requires special-case code outside the normal CSXAML pipeline.
+Files grow into large, multi-responsibility implementations.
+Definition of Done
 
-# Testing requirements
+Milestone 3 is done when:
 
-Milestone 2 will get harder to reason about very quickly without tests.
+reflection-based metadata tables exist for the supported native control set
+parser captures native attributes generically
+validator uses metadata tables for native prop/event validation
+generated code emits generic native prop/event structures
+runtime uses control adapters to create/patch native controls
+parent-to-child component prop passing is strongly typed and clean
+Todo cards visually show green for done and red for not done using CSXAML props
+invalid native props/events fail with clear diagnostics
+the implementation remains split into small, understandable files
+Final Instruction to the Agent
 
-## Generator tests
+Implement this as a focused infrastructure milestone. The primary goal is to establish a maintainable metadata-driven native property system and solid component prop passing. Do not broaden the language unnecessarily. Do not chase full WinUI coverage. Use the Todo demo as the proof that the new native prop system works by coloring cards green/red based on done state.
 
-Add tests for:
-
-- parsing component parameter lists
-- parsing child component usage
-- parsing `if` blocks
-- parsing `foreach` blocks
-- prop validation failures
-- emitted-code snapshots for representative components
-
-## Runtime tests
-
-Add tests for:
-
-- child component instance preservation by key
-- replacement when key changes
-- position-based reuse for fixed children
-- conditional node appearance/disappearance
-- repeated child ordering
-- local child state preserved across parent rerender
-
-## Regression rule
-
-Any bug fix must start with a failing test.
-
----
-
-# Milestone 2 stop conditions
-
-The agent should stop and report if any of these happen:
-
-- parser, AST, diagnostics, and emission logic are being mixed together
-- runtime and WinUI rendering are being mixed together
-- identity preservation rules are becoming unclear
-- props are drifting toward string-keyed dynamic bags
-- files are growing into large multi-responsibility files
-- the implementation is starting to chase WinUI breadth instead of component semantics
-
-If one of those occurs, refactor before continuing.
-
----
-
-# Definition of done
-
-Milestone 2 is done when all of these are true:
-
-- parent CSXAML components can render child CSXAML components
-- child components can receive typed props
-- conditional rendering works
-- repeated rendering works
-- repeated child components support explicit keys
-- child component instances are preserved when key and type are preserved
-- child-local state survives parent rerenders when identity is preserved
-- the Todo Board demo runs fully from generated CSXAML code
-- code remains split into small, understandable files
-
----
-
-# Recommended implementation order
-
-Use this order exactly:
-
-1. Upgrade runtime model to support `ComponentNode`
-2. Add typed props support
-3. Add child component composition
-4. Add conditional rendering
-5. Add repeated rendering with keys
-6. Build Todo Board demo
-7. Tighten diagnostics and tests
-8. Refactor any files that became too large
-
-That sequence keeps the work centered on React-like semantics rather than drifting into unrelated framework work.
-
-If you want, I can turn this into a copy-paste `implementation-plan.md` with explicit file-by-file deliverables and checkpoints for the agent.
+If you want, I can also turn this into a tighter implementation-plan.md with explicit file-by-file deliverables and suggested commit breakdowns.s

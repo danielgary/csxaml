@@ -17,15 +17,37 @@ internal sealed class CardViewComponent : ComponentInstance<CardViewProps>
     {
         var children = new List<Node>
         {
-            new TextBlockNode($"{Label}:{LocalCount.Value}")
+            CreateTextBlock($"{Label}:{LocalCount.Value}")
         };
 
         if (IsDone)
         {
-            children.Add(new TextBlockNode("Done"));
+            children.Add(CreateTextBlock("Done"));
         }
 
-        children.Add(new ButtonNode("Increment", () => LocalCount.Value++));
-        return new StackPanelNode(children);
+        children.Add(
+            new NativeElementNode(
+                "Button",
+                null,
+                [new NativePropertyValue("Content", "Increment")],
+                [new NativeEventValue("OnClick", (Action)(() => LocalCount.Value++))],
+                Array.Empty<Node>()));
+
+        return new NativeElementNode(
+            "StackPanel",
+            null,
+            Array.Empty<NativePropertyValue>(),
+            Array.Empty<NativeEventValue>(),
+            children);
+    }
+
+    private static NativeElementNode CreateTextBlock(string text)
+    {
+        return new NativeElementNode(
+            "TextBlock",
+            null,
+            [new NativePropertyValue("Text", text)],
+            Array.Empty<NativeEventValue>(),
+            Array.Empty<Node>());
     }
 }

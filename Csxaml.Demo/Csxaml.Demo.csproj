@@ -28,7 +28,7 @@
     <RemoveDir Directories="$(CsxamlGeneratedDirectory)" Condition="Exists('$(CsxamlGeneratedDirectory)')" />
     <MakeDir Directories="$(CsxamlGeneratedDirectory)" />
     <Exec
-      Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\\..\\Csxaml.Generator\\Csxaml.Generator.csproj&quot; -- --out &quot;$(CsxamlGeneratedDirectory)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
+      Command="dotnet run --no-restore --project &quot;$(MSBuildProjectDirectory)\\..\\Csxaml.Generator\\Csxaml.Generator.csproj&quot; -- --out &quot;$(CsxamlGeneratedDirectory)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
       WorkingDirectory="$(MSBuildProjectDirectory)" />
     <ItemGroup>
       <Compile Include="$(CsxamlGeneratedDirectory)\\**\\*.g.cs" />

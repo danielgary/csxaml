@@ -7,8 +7,8 @@ component Element TodoBoard {
             new TodoItemModel("todo-3", "Write tests", false)
         });
 
-    return <StackPanel>
-        <TextBlock Text="Todo Board" />
+    return <StackPanel Orientation={global::Microsoft.UI.Xaml.Controls.Orientation.Horizontal} Spacing={12}>
+        <TextBlock Text="Todo Board" Foreground={TodoColors.BoardForeground} FontSize={24} />
         foreach (var item in Items.Value) {
             <TodoCard
                 Key={item.Id}

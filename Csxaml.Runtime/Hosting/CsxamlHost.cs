@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Csxaml.Runtime;
@@ -7,6 +8,7 @@ public sealed class CsxamlHost
     private readonly Panel _hostPanel;
     private readonly ComponentTreeCoordinator _treeCoordinator;
     private readonly WinUiNodeRenderer _renderer;
+    private UIElement? _rootElement;
 
     public CsxamlHost(Panel hostPanel, ComponentInstance rootComponent)
     {
@@ -23,7 +25,21 @@ public sealed class CsxamlHost
 
     private void UpdateHostPanel(NativeNode tree)
     {
+        var element = _renderer.Render(tree);
+        if (_hostPanel.Children.Count == 0)
+        {
+            _hostPanel.Children.Add(element);
+            _rootElement = element;
+            return;
+        }
+
+        if (ReferenceEquals(_rootElement, element))
+        {
+            return;
+        }
+
         _hostPanel.Children.Clear();
-        _hostPanel.Children.Add(_renderer.Render(tree));
+        _hostPanel.Children.Add(element);
+        _rootElement = element;
     }
 }

@@ -36,10 +36,8 @@ public sealed class ComponentTreeCoordinator
     {
         return node switch
         {
-            ButtonNode buttonNode => buttonNode,
             ComponentNode componentNode => RenderChildComponent(owner, componentNode),
-            StackPanelNode stackPanelNode => ExpandStackPanel(owner, stackPanelNode),
-            TextBlockNode textBlockNode => textBlockNode,
+            NativeElementNode nativeElementNode => ExpandNativeElement(owner, nativeElementNode),
             _ => throw new NotSupportedException(
                 $"Unsupported node type '{node.GetType().Name}'.")
         };
@@ -55,16 +53,21 @@ public sealed class ComponentTreeCoordinator
         return RenderComponent(child);
     }
 
-    private StackPanelNode ExpandStackPanel(
+    private NativeElementNode ExpandNativeElement(
         ComponentInstance owner,
-        StackPanelNode stackPanelNode)
+        NativeElementNode nativeElementNode)
     {
-        var children = new List<Node>(stackPanelNode.Children.Count);
-        foreach (var child in stackPanelNode.Children)
+        var children = new List<Node>(nativeElementNode.Children.Count);
+        foreach (var child in nativeElementNode.Children)
         {
             children.Add(ExpandNode(owner, child));
         }
 
-        return new StackPanelNode(children);
+        return new NativeElementNode(
+            nativeElementNode.TagName,
+            nativeElementNode.Key,
+            nativeElementNode.Properties,
+            nativeElementNode.Events,
+            children);
     }
 }

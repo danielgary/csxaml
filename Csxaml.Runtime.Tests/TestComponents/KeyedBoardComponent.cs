@@ -22,6 +22,11 @@ internal sealed class KeyedBoardComponent : ComponentInstance
                     item.Id));
         }
 
-        return new StackPanelNode(children);
+        return new NativeElementNode(
+            "StackPanel",
+            null,
+            Array.Empty<NativePropertyValue>(),
+            Array.Empty<NativeEventValue>(),
+            children);
     }
 }

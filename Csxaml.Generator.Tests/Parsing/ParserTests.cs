@@ -8,17 +8,20 @@ public sealed class ParserTests
     {
         const string sourceText = """
             component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-                return <StackPanel>
-                    <TextBlock Text={Title} />
+                return <Border Background={TodoColors.DoneBackground} Padding={TodoColors.CardPadding}>
+                    <StackPanel Spacing={8}>
+                    <TextBlock Text={Title} Foreground={TodoColors.CardForeground} />
                     if (IsDone) {
                         <TextBlock Text="Done" />
                     }
                     <Button Content="Toggle" OnClick={OnToggle} />
-                </StackPanel>;
+                    </StackPanel>
+                </Border>;
             }
             """;
 
         var component = GeneratorTestHarness.Parse("TodoCard.csxaml", sourceText).Definition;
+        var rootChild = (MarkupNode)component.Root.Children[0];
 
         Assert.AreEqual("TodoCard", component.Name);
         Assert.HasCount(3, component.Parameters);
@@ -28,7 +31,11 @@ public sealed class ParserTests
         Assert.AreEqual("IsDone", component.Parameters[1].Name);
         Assert.AreEqual("Action", component.Parameters[2].TypeName);
         Assert.AreEqual("OnToggle", component.Parameters[2].Name);
-        Assert.IsInstanceOfType<IfBlockNode>(component.Root.Children[1]);
+        Assert.AreEqual("Border", component.Root.TagName);
+        Assert.AreEqual("Background", component.Root.Properties[0].Name);
+        Assert.AreEqual("StackPanel", rootChild.TagName);
+        Assert.AreEqual("Spacing", rootChild.Properties[0].Name);
+        Assert.IsInstanceOfType<IfBlockNode>(rootChild.Children[1]);
     }
 
     [TestMethod]
@@ -38,8 +45,8 @@ public sealed class ParserTests
             component Element TodoBoard {
                 State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(CreateItems());
 
-                return <StackPanel>
-                    <TextBlock Text="Todo Board" />
+                return <StackPanel Spacing={12}>
+                    <TextBlock Text="Todo Board" Foreground={TodoColors.BoardForeground} />
                     foreach (var item in Items.Value) {
                         <TodoCard Key={item.Id} Title={item.Title} IsDone={item.IsDone} OnToggle={OnToggle} />
                     }
@@ -55,6 +62,7 @@ public sealed class ParserTests
         Assert.AreEqual("Items", component.StateFields[0].Name);
         Assert.AreEqual("item", loop.ItemName);
         Assert.AreEqual("Items.Value", loop.CollectionExpression);
+        Assert.AreEqual("Spacing", component.Root.Properties[0].Name);
         Assert.AreEqual("TodoCard", child.TagName);
         Assert.HasCount(4, child.Properties);
         Assert.AreEqual("Key", child.Properties[0].Name);
