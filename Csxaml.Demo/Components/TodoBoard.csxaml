@@ -2,19 +2,31 @@ component Element TodoBoard {
     State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(
         new List<TodoItemModel>
         {
-            new TodoItemModel("todo-1", "Draft plan", false),
-            new TodoItemModel("todo-2", "Wire runtime", true),
-            new TodoItemModel("todo-3", "Write tests", false)
+            new TodoItemModel("todo-1", "Draft plan", "Sketch the interaction model for controlled inputs.", false),
+            new TodoItemModel("todo-2", "Wire runtime", "Reconcile the renderer and adapter flow.", true),
+            new TodoItemModel("todo-3", "Write tests", "Cover metadata, generator, and runtime behavior.", false)
         });
+    State<string> SelectedItemId = new State<string>("todo-1");
 
     return <StackPanel Orientation={global::Microsoft.UI.Xaml.Controls.Orientation.Horizontal} Spacing={12}>
-        <TextBlock Text="Todo Board" Foreground={TodoColors.BoardForeground} FontSize={24} />
-        foreach (var item in Items.Value) {
-            <TodoCard
-                Key={item.Id}
-                Title={item.Title}
-                IsDone={item.IsDone}
-                OnToggle={() => Items.Value = Items.Value.Select(todo => todo.Id == item.Id ? todo with { IsDone = !todo.IsDone } : todo).ToList()} />
-        }
+        <StackPanel Spacing={12}>
+            <TextBlock Text="Todo Board" Foreground={TodoColors.BoardForeground} FontSize={24} />
+            foreach (var item in Items.Value) {
+                <TodoCard
+                    Key={item.Id}
+                    Title={item.Title}
+                    IsDone={item.IsDone}
+                    IsSelected={item.Id == SelectedItemId.Value}
+                    OnSelect={() => SelectedItemId.Value = item.Id}
+                    OnToggle={() => Items.Value = Items.Value.Select(existingItem => existingItem.Id == item.Id ? existingItem with { IsDone = !existingItem.IsDone } : existingItem).ToList()} />
+            }
+        </StackPanel>
+        <TodoEditor
+            Title={Items.Value.Single(item => item.Id == SelectedItemId.Value).Title}
+            Notes={Items.Value.Single(item => item.Id == SelectedItemId.Value).Notes}
+            IsDone={Items.Value.Single(item => item.Id == SelectedItemId.Value).IsDone}
+            OnTitleChanged={value => Items.Value = Items.Value.Select(item => item.Id == SelectedItemId.Value ? item with { Title = value } : item).ToList()}
+            OnNotesChanged={value => Items.Value = Items.Value.Select(item => item.Id == SelectedItemId.Value ? item with { Notes = value } : item).ToList()}
+            OnDoneChanged={value => Items.Value = Items.Value.Select(item => item.Id == SelectedItemId.Value ? item with { IsDone = value } : item).ToList()} />
     </StackPanel>;
 }

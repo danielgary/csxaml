@@ -6,10 +6,12 @@ internal sealed class RenderedNativeElement : IDisposable
 
     public RenderedNativeElement(
         string tagName,
+        string? key,
         object element,
         INativeControlAdapter adapter)
     {
         TagName = tagName;
+        Key = key;
         Element = element;
         Adapter = adapter;
     }
@@ -21,6 +23,8 @@ internal sealed class RenderedNativeElement : IDisposable
     public object Element { get; }
 
     public NativeEventBindingStore EventBindings { get; } = new();
+
+    public string? Key { get; private set; }
 
     public string TagName { get; }
 
@@ -36,5 +40,10 @@ internal sealed class RenderedNativeElement : IDisposable
     public void ReplaceChildren(IReadOnlyList<RenderedNativeElement> children)
     {
         _children = children;
+    }
+
+    public void UpdateKey(string? key)
+    {
+        Key = key;
     }
 }

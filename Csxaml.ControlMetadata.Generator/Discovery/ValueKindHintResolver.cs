@@ -7,6 +7,8 @@ internal static class ValueKindHintResolver
 {
     public static ValueKindHint Resolve(Type type)
     {
+        type = Nullable.GetUnderlyingType(type) ?? type;
+
         if (type == typeof(string))
         {
             return ValueKindHint.String;

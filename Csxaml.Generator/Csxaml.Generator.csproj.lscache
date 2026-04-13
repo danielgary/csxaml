@@ -80,7 +80,10 @@ Emission/
  CodeEmitter.cs
  ComponentEmitter.cs
  IndentedCodeWriter.cs
+ LocalNameGenerator.cs
+ NativeAttributeEmitter.cs
  SlotNameGenerator.cs
+GlobalUsings.cs
 IO/
  GeneratedFile.cs
  OutputWriter.cs
@@ -101,9 +104,15 @@ Syntax/
  TokenKind.cs
 Validation/
  ComponentCatalog.cs
+ ComponentCatalogBuilder.cs
+ ComponentDefinitionValidator.cs
+ ComponentTagValidator.cs
+ MarkupValidator.cs
+ NativeElementValidator.cs
  Validator.cs
 
 [metadataReferences]
+../Csxaml.ControlMetadata/obj/Debug/net10.0/ref/Csxaml.ControlMetadata.dll
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.5/ref/net10.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll

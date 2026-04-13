@@ -4,4 +4,4 @@ internal sealed record CuratedControlDefinition(
     Type ControlType,
     ControlChildKind ChildKind,
     IReadOnlyList<string> PropertyNames,
-    IReadOnlyDictionary<string, string> EventMappings);
+    IReadOnlyList<CuratedEventDefinition> Events);

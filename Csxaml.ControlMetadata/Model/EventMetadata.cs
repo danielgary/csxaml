@@ -1,8 +1,9 @@
 namespace Csxaml.ControlMetadata;
 
 public sealed record EventMetadata(
-    string ClrEventName,
+    string? ClrEventName,
     string ExposedName,
     string HandlerTypeName,
     bool ExposedInCsxaml,
-    ValueKindHint ValueKindHint);
+    ValueKindHint ValueKindHint,
+    EventBindingKind BindingKind);

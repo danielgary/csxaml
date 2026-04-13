@@ -23,7 +23,13 @@ internal sealed class BorderControlAdapter : ControlAdapter<Border>
             throw new InvalidOperationException("Border supports only one child.");
         }
 
-        control.Child = children.Count == 0 ? null : children[0];
+        var nextChild = children.Count == 0 ? null : children[0];
+        if (ReferenceEquals(control.Child, nextChild))
+        {
+            return;
+        }
+
+        control.Child = nextChild;
     }
 
     private static void ApplyBackground(Border control, NativeElementNode node)

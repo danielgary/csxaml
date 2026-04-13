@@ -372,6 +372,20 @@ When fixing a bug:
 
 ---
 
+## Roadmap Discipline
+
+Keep [ROADMAP.md](/c:/Users/DanielGary/source/repos/csxaml/ROADMAP.md) current as work lands.
+
+Rules:
+
+- When a meaningful change lands, update the relevant milestone status or checklist in `ROADMAP.md` in the same change.
+- If work completes a milestone, mark it complete only when the milestone exit criteria are actually met.
+- If work starts a milestone but does not finish it, mark it `in progress` or add a dated note describing what changed.
+- If implementation uncovers a blocker, scope change, or architectural risk, record it in `ROADMAP.md` rather than leaving it implicit.
+- Do not silently mark roadmap items complete just because code exists; reflect real project status, including known gaps.
+
+---
+
 ## PR / Change Discipline
 
 For every non-trivial change, the agent should ask:
@@ -382,6 +396,7 @@ For every non-trivial change, the agent should ask:
 4. Can a new reader find the entry point quickly?
 5. Can a bug be isolated to one small area?
 6. Did I add tests for the behavior?
+7. Did I update `ROADMAP.md` if this change materially moved milestone status, scope, or known risks?
 
 If the answer to any of these is "no", restructure before moving on.
 

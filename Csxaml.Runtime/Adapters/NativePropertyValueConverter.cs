@@ -21,8 +21,36 @@ internal static class NativePropertyValueConverter
             return true;
         }
 
+        if (TryConvertBool(property, out value))
+        {
+            return true;
+        }
+
+        if (TryConvertNullableBool(property, out value))
+        {
+            return true;
+        }
+
         value = default!;
         return false;
+    }
+
+    private static bool TryConvertBool<T>(NativePropertyValue property, out T value)
+    {
+        if (typeof(T) != typeof(bool) || property.ValueKindHint != ValueKindHint.Bool)
+        {
+            value = default!;
+            return false;
+        }
+
+        if (!TryReadBool(property.Value, out var boolValue))
+        {
+            value = default!;
+            return false;
+        }
+
+        value = (T)(object)boolValue;
+        return true;
     }
 
     private static bool TryConvertDouble<T>(NativePropertyValue property, out T value)
@@ -41,6 +69,37 @@ internal static class NativePropertyValueConverter
 
         value = (T)(object)number;
         return true;
+    }
+
+    private static bool TryConvertNullableBool<T>(NativePropertyValue property, out T value)
+    {
+        if (typeof(T) != typeof(bool?) || property.ValueKindHint != ValueKindHint.Bool)
+        {
+            value = default!;
+            return false;
+        }
+
+        if (!TryReadBool(property.Value, out var boolValue))
+        {
+            value = default!;
+            return false;
+        }
+
+        value = (T)(object)(bool?)boolValue;
+        return true;
+    }
+
+    private static bool TryReadBool(object? value, out bool boolValue)
+    {
+        switch (value)
+        {
+            case bool typedValue:
+                boolValue = typedValue;
+                return true;
+            default:
+                boolValue = default;
+                return false;
+        }
     }
 
     private static bool TryReadDouble(object value, out double number)

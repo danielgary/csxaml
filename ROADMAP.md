@@ -43,6 +43,18 @@ The project has already established early groundwork in these areas:
 - conditional rendering
 - repeated rendering with keyed identity
 - Todo demo proving component semantics
+- shared control metadata and metadata generation for curated WinUI controls
+- generic native prop and event emission with metadata-driven validation
+- runtime control adapters for `Border`, `Button`, `StackPanel`, and `TextBlock`
+- Todo demo styling through CSXAML props for done/not-done state
+- metadata, generator, and runtime regression coverage for the Milestone 3 path
+- controlled `TextBox` and `CheckBox` support through metadata-driven validation and runtime adapters
+- projected `OnTextChanged` and `OnCheckedChanged` events with C# delegate handlers
+- Todo Editor demo proving controlled input state flow through CSXAML
+- runtime coverage for controlled input suppression, native input reuse, and editor interaction flows
+- retained native reconciliation for keyed and unkeyed native trees
+- in-place `StackPanel` child patching to preserve retained native controls during reorder and sibling churn
+- `TextBox` caret and selection restoration during controlled value patches
 
 This roadmap starts from that point and moves toward a credible v1.
 
@@ -195,7 +207,19 @@ component Element TodoBoard {
 
 # Milestone 3 - Metadata-Driven Native Props and Stronger Component Props
 
-**Status:** [ ]
+**Status:** [x]
+
+## Status note
+
+Core Milestone 3 infrastructure is in place.
+
+- shared metadata model exists
+- build-time reflection metadata generation exists
+- parser/validator/emitter use the metadata-driven native prop model
+- runtime uses generic native nodes plus explicit control adapters
+- Todo demo styling flows through CSXAML props instead of a hand-authored rendering path
+
+Remaining rough edges around launch configuration, restore behavior, and inner-loop build stability belong to Milestone 10 rather than blocking Milestone 3 itself.
 
 ## Purpose
 
@@ -237,23 +261,23 @@ Without this, every native control becomes a hand-authored one-off. That does no
 
 ## Checklist
 
-- [ ] add shared control metadata model
-- [ ] add build-time reflection metadata generator
-- [ ] emit stable metadata artifact
-- [ ] parse native attributes generically
-- [ ] validate native props against metadata
-- [ ] validate native events against metadata
-- [ ] standardize component prop generation and passing
-- [ ] add runtime control adapter layer
-- [ ] support `Border`, `TextBlock`, `Button`, `StackPanel` through metadata path
-- [ ] update Todo demo for green/red done state
-- [ ] add tests for metadata generation, validation, and runtime application
+- [x] add shared control metadata model
+- [x] add build-time reflection metadata generator
+- [x] emit stable metadata artifact
+- [x] parse native attributes generically
+- [x] validate native props against metadata
+- [x] validate native events against metadata
+- [x] standardize component prop generation and passing
+- [x] add runtime control adapter layer
+- [x] support `Border`, `TextBlock`, `Button`, `StackPanel` through metadata path
+- [x] update Todo demo for green/red done state
+- [x] add tests for metadata generation, validation, and runtime application
 
 ---
 
 # Milestone 4 - Interactive Controls and Controlled Input Model
 
-**Status:** [ ]
+**Status:** [x]
 
 ## Purpose
 
@@ -296,20 +320,20 @@ A Todo Editor app with:
 
 ## Checklist
 
-- [ ] add metadata support for `TextBox`
-- [ ] add metadata support for `CheckBox`
-- [ ] add runtime adapters for input controls
-- [ ] define controlled input conventions
-- [ ] support `OnTextChanged`
-- [ ] support `OnCheckedChanged`
-- [ ] build editor-style demo
-- [ ] test focus and typing stability on ordinary rerenders
+- [x] add metadata support for `TextBox`
+- [x] add metadata support for `CheckBox`
+- [x] add runtime adapters for input controls
+- [x] define controlled input conventions
+- [x] support `OnTextChanged`
+- [x] support `OnCheckedChanged`
+- [x] build editor-style demo
+- [x] test focus and typing stability on ordinary rerenders
 
 ---
 
 # Milestone 5 - Retained Native Reconciliation and Patching
 
-**Status:** [ ]
+**Status:** [x]
 
 ## Purpose
 
@@ -332,14 +356,14 @@ If a selected todo is open in a `TextBox`, toggling another item in the sidebar 
 
 ## Checklist
 
-- [ ] introduce mounted native instance model
-- [ ] define native identity matching rules
-- [ ] patch supported properties in place
-- [ ] rebind events safely on retained controls
-- [ ] preserve focus when possible
-- [ ] preserve caret/selection when possible
-- [ ] test keyed reorder behavior
-- [ ] test retained editor behavior under rerender
+- [x] introduce mounted native instance model
+- [x] define native identity matching rules
+- [x] patch supported properties in place
+- [x] rebind events safely on retained controls
+- [x] preserve focus when possible
+- [x] preserve caret/selection when possible
+- [x] test keyed reorder behavior
+- [x] test retained editor behavior under rerender
 
 ---
 
@@ -733,7 +757,7 @@ A coherent design still fails if typing, rerendering, or metadata processing bec
 
 # Milestone 15 - Packaging, Templates, Docs, and V1 Release
 
-**Status:** [ ]
+**Status:** [~]
 
 ## Purpose
 
@@ -762,7 +786,7 @@ A production-ready v1 needs packaging, samples, templates, docs, and a clear sup
 - [ ] define package boundaries
 - [ ] publish NuGet packaging plan
 - [ ] add starter template or example app
-- [ ] write syntax guide
+- [x] write syntax guide
 - [ ] write native props/events guide
 - [ ] write external control interop guide
 - [ ] write debugging and diagnostics guide
@@ -862,3 +886,11 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - Add dated notes here as architecture or tooling decisions evolve.
 - Record when milestones are split or re-scoped.
 - Record which milestones are considered blockers for v1.
+- 2026-04-10: Milestone 3 core implementation completed. Metadata-driven native props/events, generic native node emission, runtime control adapters, and Todo demo red/green styling are all in place. Remaining demo launch/build friction is being treated as project-system maturity work under Milestone 10.
+- 2026-04-10: Added a draft language specification focused on C# compatibility, XAML familiarity, parseability, and developer experience. This is real progress toward Milestone 15, but it does not close the broader documentation and release-preparation work.
+- 2026-04-10: Added a `VSCodeExtension` scaffold for CSXAML syntax highlighting. It uses a hybrid TextMate grammar with XML/XAML-style markup scopes and embedded C# regions. This helps experimentation and editor usability, but it does not replace the Milestone 11 Visual Studio tooling goals.
+- 2026-04-10: Extended `VSCodeExtension` with snippets and a lightweight semantic token provider that distinguishes native tags, component tags, native props, native events, component props, and the reserved `Key` attribute. This improves VS Code experimentation, but it is still not a substitute for full Milestone 11 tooling.
+- 2026-04-10: Added a detailed Milestone 4 execution plan in `docs/plans/milestone-4-interactive-controls.md`. The plan locks the milestone to a syntax-preserving controlled-input slice centered on `TextBox`, `CheckBox`, projected input events, runtime adapter stability, and a Todo Editor demo.
+- 2026-04-10: Milestone 4 completed. `TextBox` and `CheckBox` now flow through shared metadata, projected `OnTextChanged` and `OnCheckedChanged` events, runtime input adapters, and a Todo Editor demo. Input-stability coverage is provided by controlled-write suppression tests plus retained native reuse tests for `TextBox` and `CheckBox`.
+- 2026-04-11: Fixed a live Milestone 4 regression where typing into a `TextBox` immediately destabilized input focus. The cause was container adapters reassigning identical retained children on each rerender. `StackPanel` and `Border` now preserve unchanged child references instead of tearing down and reattaching the same subtree.
+- 2026-04-11: Milestone 5 completed. Native reconciliation now retains mounted controls by tag plus key, rejects duplicate sibling keys, patches `StackPanel` child collections in place for reorder scenarios, and restores `TextBox` selection when controlled writes change the underlying value. Runtime coverage now includes keyed native reorder tests plus an editor-retention scenario where unrelated sidebar changes do not replace the selected editor field.

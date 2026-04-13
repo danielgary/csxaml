@@ -10,24 +10,55 @@ internal static class CuratedControlSet
             typeof(Border),
             ControlChildKind.Single,
             ["Background", "BorderBrush", "BorderThickness", "Padding"],
-            new Dictionary<string, string>(StringComparer.Ordinal)),
+            []),
         new(
             typeof(Button),
             ControlChildKind.None,
             ["Background", "Content", "FontSize", "Foreground"],
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["Click"] = "OnClick"
-            }),
+            [
+                new CuratedEventDefinition(
+                    ["Click"],
+                    "Click",
+                    "OnClick",
+                    "System.Action",
+                    ValueKindHint.Unknown,
+                    EventBindingKind.Direct)
+            ]),
+        new(
+            typeof(CheckBox),
+            ControlChildKind.None,
+            ["Content", "IsChecked"],
+            [
+                new CuratedEventDefinition(
+                    ["Checked", "Unchecked", "Indeterminate"],
+                    null,
+                    "OnCheckedChanged",
+                    "System.Action<bool>",
+                    ValueKindHint.Bool,
+                    EventBindingKind.BoolValueChanged)
+            ]),
         new(
             typeof(StackPanel),
             ControlChildKind.Multiple,
             ["Background", "Orientation", "Spacing"],
-            new Dictionary<string, string>(StringComparer.Ordinal)),
+            []),
         new(
             typeof(TextBlock),
             ControlChildKind.None,
             ["FontSize", "Foreground", "Text"],
-            new Dictionary<string, string>(StringComparer.Ordinal))
+            []),
+        new(
+            typeof(TextBox),
+            ControlChildKind.None,
+            ["AcceptsReturn", "MinHeight", "PlaceholderText", "Text", "TextWrapping", "Width"],
+            [
+                new CuratedEventDefinition(
+                    ["TextChanged"],
+                    "TextChanged",
+                    "OnTextChanged",
+                    "System.Action<string>",
+                    ValueKindHint.String,
+                    EventBindingKind.TextValueChanged)
+            ])
     ];
 }

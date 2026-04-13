@@ -1,0 +1,66 @@
+{
+  "name": "csxaml-vscode-extension",
+  "displayName": "CSXAML",
+  "description": "Syntax highlighting, snippets, and lightweight semantic tokens for CSXAML.",
+  "version": "0.0.1",
+  "publisher": "csxaml",
+  "license": "UNLICENSED",
+  "main": "./extension.js",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "activationEvents": [
+    "onLanguage:csxaml"
+  ],
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "csxaml",
+    "winui",
+    "xaml",
+    "csharp"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "csxaml",
+        "aliases": [
+          "CSXAML",
+          "csxaml"
+        ],
+        "extensions": [
+          ".csxaml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "csxaml",
+        "path": "./snippets/csxaml.code-snippets"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "csxaml",
+        "scopeName": "source.csxaml",
+        "path": "./syntaxes/csxaml.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.expression.csxaml": "csharp",
+          "meta.embedded.header.csxaml": "csharp",
+          "meta.embedded.parameters.csxaml": "csharp",
+          "meta.embedded.state.csxaml": "csharp"
+        }
+      },
+      {
+        "scopeName": "source.csxaml.embedded.csharp",
+        "path": "./syntaxes/csxaml-embedded-csharp.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.expression.csxaml": "csharp"
+        }
+      }
+    ]
+  }
+}

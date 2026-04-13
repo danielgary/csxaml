@@ -1,5 +1,5 @@
-component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-    return <Border Background={IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground} Padding={TodoColors.CardPadding}>
+component Element TodoCard(string Title, bool IsDone, bool IsSelected, Action OnSelect, Action OnToggle) {
+    return <Border Background={IsSelected ? TodoColors.SelectedCardBackground : (IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground)} Padding={TodoColors.CardPadding}>
         <StackPanel Spacing={8}>
         <TextBlock Text={Title} Foreground={TodoColors.CardForeground} FontSize={18} />
         if (IsDone) {
@@ -8,7 +8,8 @@ component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
         if (!IsDone) {
             <TextBlock Text="Not Done" Foreground={TodoColors.NotDoneForeground} />
         }
-        <Button Content="Toggle" OnClick={OnToggle} />
+        <Button Content={IsSelected ? "Editing" : "Edit"} OnClick={OnSelect} />
+        <Button Content={IsDone ? "Mark Not Done" : "Mark Done"} OnClick={OnToggle} />
         </StackPanel>
     </Border>;
 }

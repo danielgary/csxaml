@@ -57,18 +57,39 @@ TemporaryDependencyNodeTargetIdentifier=net10.0-windows10.0.19041.0
 /warnaserror+:NU1605,SYSLIB0011
 
 [sourceFiles]
+Adapters/
+ BorderControlAdapter.cs
+ BrushValueConverter.cs
+ ButtonControlAdapter.cs
+ CheckBoxControlAdapter.cs
+ ControlAdapter.cs
+ ControlAdapterRegistry.cs
+ ControlledBoolInputState.cs
+ ControlledTextInputState.cs
+ INativeControlAdapter.cs
+ NativeElementReader.cs
+ NativeEventBindingStore.cs
+ NativePropertyValueConverter.cs
+ ReferenceEqualityList.cs
+ RenderedNativeElement.cs
+ StackPanelControlAdapter.cs
+ TextBlockControlAdapter.cs
+ TextBoxControlAdapter.cs
+ TextSelectionRange.cs
+ UiElementCollectionPatcher.cs
 Components/
  ChildComponentStore.cs
  ComponentInstance.cs
  ComponentInstanceOfT.cs
+GlobalUsings.cs
 Hosting/CsxamlHost.cs
 Nodes/
- ButtonNode.cs
  ComponentNode.cs
+ NativeElementNode.cs
+ NativeEventValue.cs
  NativeNode.cs
+ NativePropertyValue.cs
  Node.cs
- StackPanelNode.cs
- TextBlockNode.cs
 obj/Debug/net10.0-windows10.0.19041.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
  Csxaml.Runtime.AssemblyInfo.cs
@@ -76,10 +97,14 @@ obj/Debug/net10.0-windows10.0.19041.0/
 Reconciliation/
  ComponentSlot.cs
  ComponentTreeCoordinator.cs
-Rendering/WinUiNodeRenderer.cs
+Rendering/
+ RenderedChildMatcher.cs
+ WinUiNodeRenderer.cs
 State/State.cs
+Values/ArgbColor.cs
 
 [metadataReferences]
+../Csxaml.ControlMetadata/obj/Debug/net10.0/ref/Csxaml.ControlMetadata.dll
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.5/ref/net10.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll

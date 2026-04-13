@@ -33,19 +33,19 @@ internal static class RuntimeTreeHelpers
         return element;
     }
 
-    private static TDelegate GetEventHandler<TDelegate>(NativeElementNode node, string name)
+    public static TDelegate GetEventHandler<TDelegate>(NativeElementNode node, string name)
         where TDelegate : Delegate
     {
         var handler = node.Events.Single(eventValue => eventValue.Name == name).Handler;
         return (TDelegate)handler;
     }
 
-    private static NativeElementNode GetChildElement(NativeElementNode node, int index)
+    public static NativeElementNode GetChildElement(NativeElementNode node, int index)
     {
         return (NativeElementNode)node.Children[index];
     }
 
-    private static T? GetProperty<T>(NativeElementNode node, string name)
+    public static T? GetProperty<T>(NativeElementNode node, string name)
     {
         var property = node.Properties.Single(propertyValue => propertyValue.Name == name).Value;
         return property is null ? default : (T)property;

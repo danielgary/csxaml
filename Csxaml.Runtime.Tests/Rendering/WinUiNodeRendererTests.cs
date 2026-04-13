@@ -75,6 +75,56 @@ public sealed class WinUiNodeRendererTests
         Assert.AreEqual("Replaced", secondRoot.Properties["Text"]);
     }
 
+    [TestMethod]
+    public void Render_TextBox_ReusesElementAcrossControlledUpdates()
+    {
+        var renderer = CreateRenderer(new FakeControlAdapter("TextBox", supportsChildren: false));
+
+        var firstTextBox = (FakeElement)renderer.RenderProjectedRoot(
+            new NativeElementNode(
+                "TextBox",
+                null,
+                [new NativePropertyValue("Text", "Draft", global::Csxaml.ControlMetadata.ValueKindHint.String)],
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>()));
+
+        var secondTextBox = (FakeElement)renderer.RenderProjectedRoot(
+            new NativeElementNode(
+                "TextBox",
+                null,
+                [new NativePropertyValue("Text", "Updated", global::Csxaml.ControlMetadata.ValueKindHint.String)],
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>()));
+
+        Assert.AreSame(firstTextBox, secondTextBox);
+        Assert.AreEqual("Updated", secondTextBox.Properties["Text"]);
+    }
+
+    [TestMethod]
+    public void Render_CheckBox_ReusesElementAcrossControlledUpdates()
+    {
+        var renderer = CreateRenderer(new FakeControlAdapter("CheckBox", supportsChildren: false));
+
+        var firstCheckBox = (FakeElement)renderer.RenderProjectedRoot(
+            new NativeElementNode(
+                "CheckBox",
+                null,
+                [new NativePropertyValue("IsChecked", false, global::Csxaml.ControlMetadata.ValueKindHint.Bool)],
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>()));
+
+        var secondCheckBox = (FakeElement)renderer.RenderProjectedRoot(
+            new NativeElementNode(
+                "CheckBox",
+                null,
+                [new NativePropertyValue("IsChecked", true, global::Csxaml.ControlMetadata.ValueKindHint.Bool)],
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>()));
+
+        Assert.AreSame(firstCheckBox, secondCheckBox);
+        Assert.IsTrue((bool)secondCheckBox.Properties["IsChecked"]!);
+    }
+
     private static WinUiNodeRenderer CreateRenderer(params INativeControlAdapter[] adapters)
     {
         return new WinUiNodeRenderer(new ControlAdapterRegistry(adapters));

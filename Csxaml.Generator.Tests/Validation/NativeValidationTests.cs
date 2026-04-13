@@ -65,4 +65,42 @@ public sealed class NativeValidationTests
             exception.Diagnostic.Message,
             "native event 'OnClick' on 'Button' requires an expression value");
     }
+
+    [TestMethod]
+    public void Validate_TextBoxAndCheckBoxProjectedEvents_AreRecognized()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoEditor.csxaml",
+            """
+            component Element TodoEditor(string Title, bool IsDone, Action<string> OnTitleChanged, Action<bool> OnDoneChanged) {
+                return <StackPanel>
+                    <TextBox Text={Title} OnTextChanged={OnTitleChanged} />
+                    <CheckBox IsChecked={IsDone} OnCheckedChanged={OnDoneChanged} />
+                </StackPanel>;
+            }
+            """);
+
+        GeneratorTestHarness.Validate(component);
+    }
+
+    [TestMethod]
+    public void Validate_TextBoxStringLiteralEventValue_ThrowsDiagnostic()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoEditor.csxaml",
+            """
+            component Element TodoEditor {
+                return <StackPanel>
+                    <TextBox Text="Draft" OnTextChanged="ChangeTitle" />
+                </StackPanel>;
+            }
+            """);
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Validate(component));
+
+        StringAssert.Contains(
+            exception.Diagnostic.Message,
+            "native event 'OnTextChanged' on 'TextBox' requires an expression value");
+    }
 }

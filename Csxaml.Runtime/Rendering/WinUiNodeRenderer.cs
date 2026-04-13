@@ -40,10 +40,8 @@ public sealed class WinUiNodeRenderer
     {
         var adapter = _registry.Get(node.TagName);
         var element = adapter.Create();
-        var rendered = new RenderedNativeElement(node.TagName, element, adapter);
-        adapter.ApplyProperties(element, node);
-        adapter.ApplyEvents(element, node, rendered.EventBindings);
-        UpdateChildren(rendered, node);
+        var rendered = new RenderedNativeElement(node.TagName, node.Key, element, adapter);
+        ApplyElement(rendered, node);
         return rendered;
     }
 
@@ -51,45 +49,93 @@ public sealed class WinUiNodeRenderer
         RenderedNativeElement? existing,
         NativeElementNode node)
     {
-        if (existing is null ||
-            !string.Equals(existing.TagName, node.TagName, StringComparison.Ordinal))
+        if (!CanReuse(existing, node))
         {
             existing?.Dispose();
             return CreateElement(node);
         }
 
-        existing.Adapter.ApplyProperties(existing.Element, node);
-        existing.Adapter.ApplyEvents(existing.Element, node, existing.EventBindings);
-        UpdateChildren(existing, node);
-        return existing;
+        var retained = existing ?? throw new InvalidOperationException(
+            "Retained render path requires an existing native element.");
+        retained.UpdateKey(node.Key);
+        ApplyElement(retained, node);
+        return retained;
+    }
+
+    private static bool CanReuse(RenderedNativeElement? existing, NativeElementNode node)
+    {
+        return existing is not null &&
+            string.Equals(existing.TagName, node.TagName, StringComparison.Ordinal) &&
+            string.Equals(existing.Key, node.Key, StringComparison.Ordinal);
+    }
+
+    private static List<NativeElementNode> GetNativeChildren(NativeElementNode node)
+    {
+        var nativeChildren = new List<NativeElementNode>(node.Children.Count);
+        foreach (var child in node.Children)
+        {
+            if (child is not NativeElementNode nativeChild)
+            {
+                throw new NotSupportedException(
+                    $"Unsupported child node type '{child.GetType().Name}'.");
+            }
+
+            nativeChildren.Add(nativeChild);
+        }
+
+        return nativeChildren;
+    }
+
+    private static List<object> ProjectChildElements(IReadOnlyList<RenderedNativeElement> children)
+    {
+        var projectedChildren = new List<object>(children.Count);
+        foreach (var child in children)
+        {
+            projectedChildren.Add(child.Element);
+        }
+
+        return projectedChildren;
+    }
+
+    private static void ValidateUniqueChildKeys(IReadOnlyList<NativeElementNode> nativeChildren)
+    {
+        var seenKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var child in nativeChildren)
+        {
+            if (child.Key is null)
+            {
+                continue;
+            }
+
+            if (!seenKeys.Add(child.Key))
+            {
+                throw new InvalidOperationException(
+                    $"Sibling native elements cannot share the key '{child.Key}'.");
+            }
+        }
+    }
+
+    private void ApplyElement(RenderedNativeElement rendered, NativeElementNode node)
+    {
+        rendered.Adapter.ApplyProperties(rendered.Element, node);
+        rendered.Adapter.ApplyEvents(rendered.Element, node, rendered.EventBindings);
+        UpdateChildren(rendered, node);
     }
 
     private void UpdateChildren(RenderedNativeElement rendered, NativeElementNode node)
     {
-        var nativeChildren = node.Children
-            .Select(child => child as NativeElementNode ??
-                throw new NotSupportedException(
-                    $"Unsupported child node type '{child.GetType().Name}'."))
-            .ToList();
+        var nativeChildren = GetNativeChildren(node);
+        ValidateUniqueChildKeys(nativeChildren);
 
+        var matcher = new RenderedChildMatcher(rendered.Children);
         var updatedChildren = new List<RenderedNativeElement>(nativeChildren.Count);
-        for (var index = 0; index < nativeChildren.Count; index++)
+        foreach (var child in nativeChildren)
         {
-            var existingChild = index < rendered.Children.Count
-                ? rendered.Children[index]
-                : null;
-
-            updatedChildren.Add(RenderElement(existingChild, nativeChildren[index]));
+            updatedChildren.Add(RenderElement(matcher.TakeMatch(child), child));
         }
 
-        for (var index = nativeChildren.Count; index < rendered.Children.Count; index++)
-        {
-            rendered.Children[index].Dispose();
-        }
-
+        matcher.DisposeUnmatched();
         rendered.ReplaceChildren(updatedChildren);
-        rendered.Adapter.SetChildren(
-            rendered.Element,
-            updatedChildren.Select(child => child.Element).ToList());
+        rendered.Adapter.SetChildren(rendered.Element, ProjectChildElements(updatedChildren));
     }
 }

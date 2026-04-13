@@ -21,29 +21,34 @@ internal sealed class SupportedControlFilter
         CuratedControlDefinition definition,
         DiscoveredControl discoveredControl)
     {
-        return definition.EventMappings
-            .OrderBy(entry => entry.Value, StringComparer.Ordinal)
-            .Select(entry => BuildEventMetadata(discoveredControl, entry.Key, entry.Value))
+        return definition.Events
+            .OrderBy(eventDefinition => eventDefinition.ExposedName, StringComparer.Ordinal)
+            .Select(eventDefinition => BuildEventMetadata(discoveredControl, eventDefinition))
             .ToList();
     }
 
     private static EventMetadata BuildEventMetadata(
         DiscoveredControl discoveredControl,
-        string clrEventName,
-        string exposedName)
+        CuratedEventDefinition eventDefinition)
     {
-        if (!discoveredControl.Events.TryGetValue(clrEventName, out var eventInfo))
+        foreach (var clrEventName in eventDefinition.RequiredClrEventNames)
         {
+            if (discoveredControl.Events.ContainsKey(clrEventName))
+            {
+                continue;
+            }
+
             throw new InvalidOperationException(
                 $"Curated event '{clrEventName}' was not found on '{discoveredControl.TagName}'.");
         }
 
         return new EventMetadata(
-            clrEventName,
-            exposedName,
-            eventInfo.EventHandlerType?.FullName ?? "System.Delegate",
+            eventDefinition.ClrEventName,
+            eventDefinition.ExposedName,
+            eventDefinition.HandlerTypeName,
             true,
-            ValueKindHint.Unknown);
+            eventDefinition.ValueKindHint,
+            eventDefinition.BindingKind);
     }
 
     private static bool IsDependencyProperty(DiscoveredControl discoveredControl, string propertyName)

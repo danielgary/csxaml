@@ -1,0 +1,45 @@
+{
+  "CSXAML Component": {
+    "prefix": "csxaml-component",
+    "body": [
+      "component Element ${1:ComponentName}(${2}) {",
+      "\treturn <StackPanel>",
+      "\t\t$0",
+      "\t</StackPanel>;",
+      "}"
+    ],
+    "description": "Create a CSXAML component declaration."
+  },
+  "CSXAML State": {
+    "prefix": "csxaml-state",
+    "body": [
+      "State<${1:int}> ${2:Value} = new State<${1:int}>(${3:default});"
+    ],
+    "description": "Insert a State<T> field."
+  },
+  "CSXAML If": {
+    "prefix": "csxaml-if",
+    "body": [
+      "if (${1:condition}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Insert a CSXAML if block."
+  },
+  "CSXAML Foreach": {
+    "prefix": "csxaml-foreach",
+    "body": [
+      "foreach (var ${1:item} in ${2:Items}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Insert a CSXAML foreach block."
+  },
+  "CSXAML Button": {
+    "prefix": "csxaml-button",
+    "body": [
+      "<Button Content=\"${1:Label}\" OnClick={${2:OnClick}} />"
+    ],
+    "description": "Insert a Button element."
+  }
+}

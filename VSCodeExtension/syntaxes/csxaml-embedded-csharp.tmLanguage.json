@@ -1,0 +1,100 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "CSXAML Embedded C#",
+  "scopeName": "source.csxaml.embedded.csharp",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#parenGroup"
+    },
+    {
+      "include": "#bracketGroup"
+    },
+    {
+      "include": "#braceGroup"
+    },
+    {
+      "include": "source.cs"
+    }
+  ],
+  "repository": {
+    "braceGroup": {
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.block.begin.cs"
+        }
+      },
+      "contentName": "meta.embedded.expression.csxaml",
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.block.end.cs"
+        }
+      },
+      "applyEndPatternLast": 1,
+      "patterns": [
+        {
+          "include": "source.csxaml.embedded.csharp"
+        }
+      ]
+    },
+    "bracketGroup": {
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.brackets.begin.cs"
+        }
+      },
+      "contentName": "meta.embedded.expression.csxaml",
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.brackets.end.cs"
+        }
+      },
+      "applyEndPatternLast": 1,
+      "patterns": [
+        {
+          "include": "source.csxaml.embedded.csharp"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.csxaml",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.csxaml",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "parenGroup": {
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.group.begin.cs"
+        }
+      },
+      "contentName": "meta.embedded.expression.csxaml",
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.group.end.cs"
+        }
+      },
+      "applyEndPatternLast": 1,
+      "patterns": [
+        {
+          "include": "source.csxaml.embedded.csharp"
+        }
+      ]
+    }
+  }
+}

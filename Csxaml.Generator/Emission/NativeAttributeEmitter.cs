@@ -45,7 +45,7 @@ internal sealed class NativeAttributeEmitter
 
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"new NativeEventValue(\"{eventMetadata.ExposedName}\", {FormatValue(property)})");
+            $"new NativeEventValue(\"{eventMetadata.ExposedName}\", {FormatValue(property)}, {FormatValueKindHint(eventMetadata.ValueKindHint)})");
     }
 
     private static string BuildPropertyValue(ControlMetadataModel control, PropertyNode property)

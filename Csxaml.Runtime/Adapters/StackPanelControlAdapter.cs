@@ -17,11 +17,7 @@ internal sealed class StackPanelControlAdapter : ControlAdapter<StackPanel>
 
     protected override void SetChildren(StackPanel control, IReadOnlyList<UIElement> children)
     {
-        control.Children.Clear();
-        foreach (var child in children)
-        {
-            control.Children.Add(child);
-        }
+        UiElementCollectionPatcher.Update(control.Children, children);
     }
 
     private static void ApplyBackground(StackPanel control, NativeElementNode node)

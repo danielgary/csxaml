@@ -30,7 +30,20 @@ internal static class GeneratedControlMetadata
                 new PropertyMetadata("Foreground", "Microsoft.UI.Xaml.Media.Brush", true, false, false, true, ValueKindHint.Brush),
             ],
             [
-                new EventMetadata("Click", "OnClick", "Microsoft.UI.Xaml.RoutedEventHandler", true, ValueKindHint.Unknown),
+                new EventMetadata("Click", "OnClick", "System.Action", true, ValueKindHint.Unknown, EventBindingKind.Direct),
+            ]
+        ),
+        new ControlMetadata(
+            "CheckBox",
+            "Microsoft.UI.Xaml.Controls.CheckBox",
+            "Microsoft.UI.Xaml.Controls.Primitives.ToggleButton",
+            ControlChildKind.None,
+            [
+                new PropertyMetadata("Content", "System.Object", true, false, false, true, ValueKindHint.Object),
+                new PropertyMetadata("IsChecked", "System.Nullable`1[[System.Boolean, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]", true, false, false, true, ValueKindHint.Bool),
+            ],
+            [
+                new EventMetadata(null, "OnCheckedChanged", "System.Action<bool>", true, ValueKindHint.Bool, EventBindingKind.BoolValueChanged),
             ]
         ),
         new ControlMetadata(
@@ -57,6 +70,23 @@ internal static class GeneratedControlMetadata
                 new PropertyMetadata("Text", "System.String", true, false, false, true, ValueKindHint.String),
             ],
             [
+            ]
+        ),
+        new ControlMetadata(
+            "TextBox",
+            "Microsoft.UI.Xaml.Controls.TextBox",
+            "Microsoft.UI.Xaml.Controls.Control",
+            ControlChildKind.None,
+            [
+                new PropertyMetadata("AcceptsReturn", "System.Boolean", true, false, false, true, ValueKindHint.Bool),
+                new PropertyMetadata("MinHeight", "System.Double", true, false, false, true, ValueKindHint.Double),
+                new PropertyMetadata("PlaceholderText", "System.String", true, false, false, true, ValueKindHint.String),
+                new PropertyMetadata("Text", "System.String", true, false, false, true, ValueKindHint.String),
+                new PropertyMetadata("TextWrapping", "Microsoft.UI.Xaml.TextWrapping", true, false, false, true, ValueKindHint.Enum),
+                new PropertyMetadata("Width", "System.Double", true, false, false, true, ValueKindHint.Double),
+            ],
+            [
+                new EventMetadata("TextChanged", "OnTextChanged", "System.Action<string>", true, ValueKindHint.String, EventBindingKind.TextValueChanged),
             ]
         ),
     ];

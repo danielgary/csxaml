@@ -51,7 +51,7 @@ internal sealed class MetadataSourceEmitter
             writer.WriteLine(
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"new EventMetadata({Quote(eventMetadata.ClrEventName)}, {Quote(eventMetadata.ExposedName)}, {Quote(eventMetadata.HandlerTypeName)}, {eventMetadata.ExposedInCsxaml.ToString().ToLowerInvariant()}, ValueKindHint.{eventMetadata.ValueKindHint}),"));
+                    $"new EventMetadata({QuoteOrNull(eventMetadata.ClrEventName)}, {Quote(eventMetadata.ExposedName)}, {Quote(eventMetadata.HandlerTypeName)}, {eventMetadata.ExposedInCsxaml.ToString().ToLowerInvariant()}, ValueKindHint.{eventMetadata.ValueKindHint}, EventBindingKind.{eventMetadata.BindingKind}),"));
         }
 
         writer.PopIndent();
@@ -79,5 +79,10 @@ internal sealed class MetadataSourceEmitter
     private static string Quote(string value)
     {
         return "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+    }
+
+    private static string QuoteOrNull(string? value)
+    {
+        return value is null ? "null" : Quote(value);
     }
 }

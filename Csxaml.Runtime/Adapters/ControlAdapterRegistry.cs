@@ -9,8 +9,10 @@ internal sealed class ControlAdapterRegistry
         [
             new BorderControlAdapter(),
             new ButtonControlAdapter(),
+            new CheckBoxControlAdapter(),
             new StackPanelControlAdapter(),
-            new TextBlockControlAdapter()
+            new TextBlockControlAdapter(),
+            new TextBoxControlAdapter()
         ])
     {
     }

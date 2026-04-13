@@ -1,0 +1,239 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "CSXAML",
+  "scopeName": "source.csxaml",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#componentDeclaration"
+    },
+    {
+      "include": "#stateDeclaration"
+    },
+    {
+      "include": "#controlFlow"
+    },
+    {
+      "include": "#markup"
+    },
+    {
+      "include": "#keywords"
+    }
+  ],
+  "repository": {
+    "attributeExpression": {
+      "begin": "(=)\\s*(\\{)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.operator.assignment.csxaml"
+        },
+        "2": {
+          "name": "punctuation.section.embedded.begin.csxaml"
+        }
+      },
+      "contentName": "meta.embedded.expression.csxaml",
+      "end": "(\\})",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.section.embedded.end.csxaml"
+        }
+      },
+      "applyEndPatternLast": 1,
+      "patterns": [
+        {
+          "include": "source.csxaml.embedded.csharp"
+        }
+      ]
+    },
+    "attributeString": {
+      "match": "(=)\\s*(\"(?:\\\\.|[^\"])*\")",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.assignment.csxaml"
+        },
+        "2": {
+          "name": "string.quoted.double.xml"
+        }
+      }
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.csxaml",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.csxaml",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "componentDeclaration": {
+      "begin": "\\b(component)\\b\\s+(Element)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration.component.csxaml"
+        },
+        "2": {
+          "name": "storage.type.component-kind.csxaml"
+        },
+        "3": {
+          "name": "entity.name.type.class.csxaml"
+        },
+        "4": {
+          "name": "punctuation.section.parameters.begin.csxaml"
+        }
+      },
+      "end": "(\\))",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.section.parameters.end.csxaml"
+        }
+      },
+      "contentName": "meta.embedded.parameters.csxaml",
+      "patterns": [
+        {
+          "include": "source.csxaml.embedded.csharp"
+        }
+      ]
+    },
+    "controlFlow": {
+      "patterns": [
+        {
+          "begin": "\\b(if)\\b\\s*(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.conditional.csxaml"
+            },
+            "2": {
+              "name": "punctuation.section.group.begin.csxaml"
+            }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.section.group.end.csxaml"
+            }
+          },
+          "contentName": "meta.embedded.header.csxaml",
+          "applyEndPatternLast": 1,
+          "patterns": [
+            {
+              "include": "source.csxaml.embedded.csharp"
+            }
+          ]
+        },
+        {
+          "begin": "\\b(foreach)\\b\\s*(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.loop.csxaml"
+            },
+            "2": {
+              "name": "punctuation.section.group.begin.csxaml"
+            }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.section.group.end.csxaml"
+            }
+          },
+          "contentName": "meta.embedded.header.csxaml",
+          "applyEndPatternLast": 1,
+          "patterns": [
+            {
+              "include": "source.csxaml.embedded.csharp"
+            }
+          ]
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.return.csxaml",
+          "match": "\\breturn\\b"
+        },
+        {
+          "name": "keyword.control.loop.csxaml",
+          "match": "\\b(var|in)\\b"
+        }
+      ]
+    },
+    "markup": {
+      "patterns": [
+        {
+          "name": "meta.tag.xml",
+          "match": "(</)([A-Za-z_][A-Za-z0-9_:]*)(>)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.xml"
+            },
+            "2": {
+              "name": "entity.name.tag.xml"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.xml"
+            }
+          }
+        },
+        {
+          "begin": "(<)([A-Za-z_][A-Za-z0-9_:]*)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.xml"
+            },
+            "2": {
+              "name": "entity.name.tag.xml"
+            }
+          },
+          "end": "(/?>)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.end.xml"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "name": "entity.other.attribute-name.xml",
+              "match": "\\b[A-Za-z_][A-Za-z0-9_:.]*\\b(?=\\s*=)"
+            },
+            {
+              "include": "#attributeString"
+            },
+            {
+              "include": "#attributeExpression"
+            }
+          ]
+        }
+      ]
+    },
+    "stateDeclaration": {
+      "begin": "\\b(State)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.state.csxaml"
+        }
+      },
+      "end": "(;)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.terminator.statement.csxaml"
+        }
+      },
+      "contentName": "meta.embedded.state.csxaml",
+      "patterns": [
+        {
+          "include": "source.csxaml.embedded.csharp"
+        }
+      ]
+    }
+  }
+}

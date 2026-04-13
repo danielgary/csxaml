@@ -50,7 +50,7 @@ public sealed class CodeEmitterTests
                         var childNode4 = new NativeElementNode("TextBlock", null, new NativePropertyValue[] { new NativePropertyValue("Text", "Done", global::Csxaml.ControlMetadata.ValueKindHint.String) }, Array.Empty<NativeEventValue>(), Array.Empty<Node>());
                         children2.Add(childNode4);
                     }
-                    var childNode5 = new NativeElementNode("Button", null, new NativePropertyValue[] { new NativePropertyValue("Content", "Toggle", global::Csxaml.ControlMetadata.ValueKindHint.Object) }, new NativeEventValue[] { new NativeEventValue("OnClick", OnToggle) }, Array.Empty<Node>());
+                    var childNode5 = new NativeElementNode("Button", null, new NativePropertyValue[] { new NativePropertyValue("Content", "Toggle", global::Csxaml.ControlMetadata.ValueKindHint.Object) }, new NativeEventValue[] { new NativeEventValue("OnClick", OnToggle, global::Csxaml.ControlMetadata.ValueKindHint.Unknown) }, Array.Empty<Node>());
                     children2.Add(childNode5);
                     var childNode1 = new NativeElementNode("StackPanel", null, new NativePropertyValue[] { new NativePropertyValue("Spacing", 8, global::Csxaml.ControlMetadata.ValueKindHint.Double) }, Array.Empty<NativeEventValue>(), children2);
                     children0.Add(childNode1);
@@ -99,5 +99,29 @@ public sealed class CodeEmitterTests
         StringAssert.Contains(emitted, "foreach (var item in Items.Value)");
         StringAssert.Contains(emitted, "new ComponentNode(typeof(TodoCardComponent)");
         StringAssert.Contains(emitted, "\"slot0\", item.Id");
+    }
+
+    [TestMethod]
+    public void Emit_TodoEditor_IncludesProjectedInputEventHints()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoEditor.csxaml",
+            """
+            component Element TodoEditor(string Title, bool IsDone, Action<string> OnTitleChanged, Action<bool> OnDoneChanged) {
+                return <StackPanel>
+                    <TextBox Text={Title} OnTextChanged={OnTitleChanged} />
+                    <CheckBox IsChecked={IsDone} OnCheckedChanged={OnDoneChanged} />
+                </StackPanel>;
+            }
+            """);
+
+        var emitted = GeneratorTestHarness.Emit(component);
+
+        StringAssert.Contains(
+            emitted,
+            "new NativeEventValue(\"OnTextChanged\", OnTitleChanged, global::Csxaml.ControlMetadata.ValueKindHint.String)");
+        StringAssert.Contains(
+            emitted,
+            "new NativeEventValue(\"OnCheckedChanged\", OnDoneChanged, global::Csxaml.ControlMetadata.ValueKindHint.Bool)");
     }
 }
