@@ -1,0 +1,3 @@
+<Project>
+  <Import Project="build\Csxaml.props" Condition="Exists('build\Csxaml.props')" />
+</Project>

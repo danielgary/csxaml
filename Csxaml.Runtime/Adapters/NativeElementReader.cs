@@ -53,4 +53,31 @@ internal static class NativeElementReader
         value = default!;
         return false;
     }
+
+    public static bool TryGetAttachedPropertyValue<T>(
+        NativeElementNode node,
+        string ownerName,
+        string propertyName,
+        out T value)
+    {
+        foreach (var property in node.AttachedProperties)
+        {
+            if (!string.Equals(property.OwnerName, ownerName, StringComparison.Ordinal) ||
+                !string.Equals(property.PropertyName, propertyName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (NativeAttachedPropertyValueConverter.TryConvert(property, out value))
+            {
+                return true;
+            }
+
+            throw new InvalidOperationException(
+                $"Attached property '{property.QualifiedName}' on '{node.TagName}' expected value type '{typeof(T).Name}'.");
+        }
+
+        value = default!;
+        return false;
+    }
 }

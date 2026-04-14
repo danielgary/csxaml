@@ -57,18 +57,37 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 
 [sourceFiles]
 <NUGET>/microsoft.net.test.sdk/18.0.1/build/net8.0/Microsoft.NET.Test.Sdk.Program.cs
-Emission/CodeEmitterTests.cs
+Cli/GeneratorOptionsParserTests.cs
+Emission/
+ AttachedPropertyEmissionTests.cs
+ CodeEmitterTests.cs
+ ExternalControlEmissionTests.cs
+ HelperCodeEmissionTests.cs
+ SlotEmissionTests.cs
 GeneratorTestHarness.cs
 GlobalUsings.cs
+IO/OutputWriterTests.cs
 MSTestSettings.cs
 obj/Debug/net10.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
  Csxaml.Generator.Tests.AssemblyInfo.cs
  Csxaml.Generator.Tests.GlobalUsings.g.cs
-Parsing/ParserTests.cs
+Parsing/
+ AttachedPropertyParserTests.cs
+ HelperCodeParserTests.cs
+ ParserTests.cs
+ SlotParserTests.cs
+Semantics/
+ ExternalControlMetadataBuilderTests.cs
+ ExternalControlMetadataIntegrationTests.cs
+ ReferenceAssemblyTypeResolverIntegrationTests.cs
 Syntax/TokenizerTests.cs
+TestAstAssertions.cs
 Validation/
+ AttachedPropertyValidationTests.cs
+ ExternalControlValidationTests.cs
  NativeValidationTests.cs
+ SlotValidationTests.cs
  ValidatorTests.cs
 
 [metadataReferences]

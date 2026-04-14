@@ -2,12 +2,15 @@ namespace Csxaml.Generator;
 
 internal sealed class ComponentTagValidator
 {
+    private readonly AttachedPropertyValidator _attachedPropertyValidator = new();
+
     public void Validate(
         SourceDocument source,
         MarkupNode node,
-        ComponentDefinition definition)
+        ComponentCatalogEntry component,
+        string? parentTagName)
     {
-        if (node.Children.Count > 0)
+        if (node.Children.Count > 0 && !component.SupportsDefaultSlot)
         {
             throw DiagnosticFactory.FromSpan(
                 source,
@@ -31,7 +34,13 @@ internal sealed class ComponentTagValidator
                 continue;
             }
 
-            if (definition.Parameters.All(parameter => parameter.Name != property.Name))
+            if (property.IsAttached)
+            {
+                _attachedPropertyValidator.Validate(source, node, property, parentTagName);
+                continue;
+            }
+
+            if (component.Parameters.All(parameter => parameter.Name != property.Name))
             {
                 throw DiagnosticFactory.FromSpan(
                     source,
@@ -40,7 +49,7 @@ internal sealed class ComponentTagValidator
             }
         }
 
-        foreach (var parameter in definition.Parameters)
+        foreach (var parameter in component.Parameters)
         {
             if (node.Properties.All(property => property.Name != parameter.Name))
             {

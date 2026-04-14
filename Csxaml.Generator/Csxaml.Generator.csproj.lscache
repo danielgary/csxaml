@@ -59,18 +59,26 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 Ast/
  ChildNode.cs
  ComponentDefinition.cs
+ ComponentHelperCodeBlock.cs
  ComponentParameter.cs
+ CsxamlFileDefinition.cs
+ FileHelperCodeBlock.cs
+ FileScopedNamespaceDefinition.cs
  ForEachBlockNode.cs
  IfBlockNode.cs
  MarkupNode.cs
+ MarkupTagName.cs
  PropertyNode.cs
  PropertyValueKind.cs
+ SlotOutletNode.cs
  StateFieldDefinition.cs
+ UsingDirectiveDefinition.cs
 Cli/
  GeneratorOptions.cs
  GeneratorOptionsParser.cs
  GeneratorRunner.cs
  Program.cs
+ ReferenceListFileReader.cs
 Diagnostics/
  Diagnostic.cs
  DiagnosticException.cs
@@ -79,10 +87,12 @@ Emission/
  ChildNodeEmitter.cs
  CodeEmitter.cs
  ComponentEmitter.cs
+ GeneratedComponentManifestEmitter.cs
+ GeneratedExternalControlRegistrationEmitter.cs
  IndentedCodeWriter.cs
  LocalNameGenerator.cs
  NativeAttributeEmitter.cs
- SlotNameGenerator.cs
+ RenderPositionIdGenerator.cs
 GlobalUsings.cs
 IO/
  GeneratedFile.cs
@@ -95,20 +105,46 @@ obj/Debug/net10.0/
  Csxaml.Generator.GlobalUsings.g.cs
 Parsing/
  ChildNodeParser.cs
+ ComponentFileScanResult.cs
+ ComponentHelperCodeParser.cs
+ CSharpTextScanner.cs
+ FileMemberBoundaryScanner.cs
+ NamespaceDirectiveParser.cs
  Parser.cs
  ParserContext.cs
+ RenderReturnLocator.cs
+ UsingDirectiveParser.cs
+Semantics/
+ CompilationContext.cs
+ ExternalControlCandidateCollector.cs
+ ExternalControlCatalogBuilder.cs
+ ExternalControlChildKindResolver.cs
+ ExternalControlMetadataBuilder.cs
+ ExternalControlValueKindResolver.cs
+ ImportScope.cs
+ MarkupTagResolver.cs
+ NativeControlCatalog.cs
+ ProjectGenerationContext.cs
+ ReferenceAssemblyLoadContext.cs
+ ReferenceAssemblyTypeResolver.cs
+ ReferencedComponentCatalogBuilder.cs
+ ResolvedTag.cs
+ ResolvedTagKind.cs
 Syntax/
  TextSpan.cs
  Token.cs
  Tokenizer.cs
  TokenKind.cs
 Validation/
+ AttachedPropertyValidator.cs
  ComponentCatalog.cs
  ComponentCatalogBuilder.cs
+ ComponentCatalogEntry.cs
  ComponentDefinitionValidator.cs
  ComponentTagValidator.cs
  MarkupValidator.cs
  NativeElementValidator.cs
+ SlotDefinitionValidator.cs
  Validator.cs
 
 [metadataReferences]

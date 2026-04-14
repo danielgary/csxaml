@@ -2,12 +2,15 @@ namespace Csxaml.Generator;
 
 internal sealed class NativeElementValidator
 {
+    private readonly AttachedPropertyValidator _attachedPropertyValidator = new();
+
     public void Validate(
         SourceDocument source,
         MarkupNode node,
-        ControlMetadataModel control)
+        ControlMetadataModel control,
+        string? parentTagName)
     {
-        ValidateAttributes(source, node, control);
+        ValidateAttributes(source, node, control, parentTagName, _attachedPropertyValidator);
         ValidateChildren(source, node, control);
     }
 
@@ -19,7 +22,9 @@ internal sealed class NativeElementValidator
     private static void ValidateAttributes(
         SourceDocument source,
         MarkupNode node,
-        ControlMetadataModel control)
+        ControlMetadataModel control,
+        string? parentTagName,
+        AttachedPropertyValidator attachedPropertyValidator)
     {
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in node.Properties)
@@ -34,6 +39,12 @@ internal sealed class NativeElementValidator
 
             if (string.Equals(property.Name, "Key", StringComparison.Ordinal))
             {
+                continue;
+            }
+
+            if (property.IsAttached)
+            {
+                attachedPropertyValidator.Validate(source, node, property, parentTagName);
                 continue;
             }
 

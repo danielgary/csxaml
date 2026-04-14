@@ -1,0 +1,10 @@
+component Element PanelSurface(string HeaderText) {
+    return <Border AutomationProperties.Name="Panel Surface">
+        <StackPanel>
+            <TextBlock
+                AutomationProperties.Name="Panel Header"
+                Text={HeaderText} />
+            <Slot />
+        </StackPanel>
+    </Border>;
+}

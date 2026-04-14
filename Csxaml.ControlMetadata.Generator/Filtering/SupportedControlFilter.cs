@@ -63,6 +63,17 @@ internal sealed class SupportedControlFilter
             {
                 return true;
             }
+
+            var dependencyProperty = currentType.GetProperty(
+                $"{propertyName}Property",
+                BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            if (string.Equals(
+                    dependencyProperty?.PropertyType.FullName,
+                    "Microsoft.UI.Xaml.DependencyProperty",
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
         }
 
         return false;

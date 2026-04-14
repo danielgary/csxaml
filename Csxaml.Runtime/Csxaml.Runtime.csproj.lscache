@@ -58,6 +58,8 @@ TemporaryDependencyNodeTargetIdentifier=net10.0-windows10.0.19041.0
 
 [sourceFiles]
 Adapters/
+ AttachedPropertyApplicator.cs
+ AutomationPropertiesAttachedPropertyApplicator.cs
  BorderControlAdapter.cs
  BrushValueConverter.cs
  ButtonControlAdapter.cs
@@ -66,12 +68,27 @@ Adapters/
  ControlAdapterRegistry.cs
  ControlledBoolInputState.cs
  ControlledTextInputState.cs
+ ExternalChildSetter.cs
+ ExternalControlAdapter.cs
+ ExternalControlDescriptor.cs
+ ExternalControlRegistry.cs
+ ExternalEventBinder.cs
+ ExternalPropertyAccessor.cs
+ ExternalPropertyValueConverter.cs
+ FrameworkElementLayoutPropertyApplicator.cs
+ FrameworkElementStylePropertyApplicator.cs
+ GridAttachedPropertyApplicator.cs
+ GridControlAdapter.cs
+ GridDefinitionUpdater.cs
+ GridLengthParser.cs
  INativeControlAdapter.cs
+ NativeAttachedPropertyValueConverter.cs
  NativeElementReader.cs
  NativeEventBindingStore.cs
  NativePropertyValueConverter.cs
  ReferenceEqualityList.cs
  RenderedNativeElement.cs
+ ScrollViewerControlAdapter.cs
  StackPanelControlAdapter.cs
  TextBlockControlAdapter.cs
  TextBoxControlAdapter.cs
@@ -85,6 +102,7 @@ GlobalUsings.cs
 Hosting/CsxamlHost.cs
 Nodes/
  ComponentNode.cs
+ NativeAttachedPropertyValue.cs
  NativeElementNode.cs
  NativeEventValue.cs
  NativeNode.cs
@@ -95,12 +113,15 @@ obj/Debug/net10.0-windows10.0.19041.0/
  Csxaml.Runtime.AssemblyInfo.cs
  Csxaml.Runtime.GlobalUsings.g.cs
 Reconciliation/
- ComponentSlot.cs
+ ComponentMatchKey.cs
  ComponentTreeCoordinator.cs
 Rendering/
  RenderedChildMatcher.cs
  WinUiNodeRenderer.cs
 State/State.cs
+Styling/
+ DeferredStyle.cs
+ StyleValueResolver.cs
 Values/ArgbColor.cs
 
 [metadataReferences]

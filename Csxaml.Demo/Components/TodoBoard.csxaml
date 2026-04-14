@@ -1,3 +1,9 @@
+using Microsoft.UI.Xaml;
+using DemoControls = Csxaml.ExternalControls;
+using WinUi = Microsoft.UI.Xaml.Controls;
+
+namespace Csxaml.Demo;
+
 component Element TodoBoard {
     State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(
         new List<TodoItemModel>
@@ -8,25 +14,107 @@ component Element TodoBoard {
         });
     State<string> SelectedItemId = new State<string>("todo-1");
 
-    return <StackPanel Orientation={global::Microsoft.UI.Xaml.Controls.Orientation.Horizontal} Spacing={12}>
-        <StackPanel Spacing={12}>
-            <TextBlock Text="Todo Board" Foreground={TodoColors.BoardForeground} FontSize={24} />
-            foreach (var item in Items.Value) {
-                <TodoCard
-                    Key={item.Id}
-                    Title={item.Title}
-                    IsDone={item.IsDone}
-                    IsSelected={item.Id == SelectedItemId.Value}
-                    OnSelect={() => SelectedItemId.Value = item.Id}
-                    OnToggle={() => Items.Value = Items.Value.Select(existingItem => existingItem.Id == item.Id ? existingItem with { IsDone = !existingItem.IsDone } : existingItem).ToList()} />
-            }
-        </StackPanel>
+    TodoItemModel SelectedItem()
+    {
+        return Items.Value.Single(item => item.Id == SelectedItemId.Value);
+    }
+
+    void SelectItem(string itemId)
+    {
+        SelectedItemId.Value = itemId;
+    }
+
+    void ToggleItem(string itemId)
+    {
+        Items.Value = Items.Value
+            .Select(item => item.Id == itemId ? item with { IsDone = !item.IsDone } : item)
+            .ToList();
+    }
+
+    void UpdateSelected(Func<TodoItemModel, TodoItemModel> update)
+    {
+        var selectedItemId = SelectedItemId.Value;
+        Items.Value = Items.Value
+            .Select(item => item.Id == selectedItemId ? update(item) : item)
+            .ToList();
+    }
+
+    void UpdateSelectedTitle(string value)
+    {
+        UpdateSelected(item => item with { Title = value });
+    }
+
+    void UpdateSelectedNotes(string value)
+    {
+        UpdateSelected(item => item with { Notes = value });
+    }
+
+    void UpdateSelectedDone(bool value)
+    {
+        UpdateSelected(item => item with { IsDone = value });
+    }
+
+    var selected = SelectedItem();
+    var selectedTitle = selected.Title;
+
+    return <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="320,*" Margin={12}>
+        <TextBlock
+            Grid.Row={0}
+            Grid.ColumnSpan={2}
+            AutomationProperties.Name="Todo Board Title"
+            Text="Todo Board"
+            Foreground={TodoColors.BoardForeground}
+            FontSize={24}
+            Margin={new Thickness(0, 0, 0, 12)} />
+        <DemoControls:StatusButton
+            Grid.Row={1}
+            Grid.Column={0}
+            AutomationProperties.Name="Selection Status Button"
+            BadgeText={SelectedItemId.Value}
+            Style={TodoStyles.SelectionStatusButton}
+            OnClick={() => SelectItem(Items.Value[0].Id)}
+            Margin={new Thickness(0, 0, 12, 12)}>
+            <TextBlock Text={selectedTitle} />
+        </DemoControls:StatusButton>
+        <WinUi:InfoBar
+            Grid.Row={1}
+            Grid.Column={1}
+            AutomationProperties.Name="External WinUI Proof"
+            IsOpen={true}
+            Severity={WinUi.InfoBarSeverity.Informational}
+            Title="Interop"
+            Message="External WinUI controls resolve through file-level using aliases."
+            Style={TodoStyles.InteropInfoBar}
+            Margin={new Thickness(0, 0, 0, 12)} />
+        <TodoPanel
+            Grid.Row={2}
+            Grid.Column={0}
+            Title="Tasks"
+            AutomationName="Todo List Panel"
+            Margin={new Thickness(0, 0, 12, 0)}>
+            <ScrollViewer AutomationProperties.Name="Todo List">
+                <StackPanel Spacing={12}>
+                    foreach (var item in Items.Value) {
+                        <TodoCard
+                            Key={item.Id}
+                            Title={item.Title}
+                            IsDone={item.IsDone}
+                            IsSelected={item.Id == SelectedItemId.Value}
+                            OnSelect={() => SelectItem(item.Id)}
+                            OnToggle={() => ToggleItem(item.Id)} />
+                    }
+                </StackPanel>
+            </ScrollViewer>
+        </TodoPanel>
         <TodoEditor
-            Title={Items.Value.Single(item => item.Id == SelectedItemId.Value).Title}
-            Notes={Items.Value.Single(item => item.Id == SelectedItemId.Value).Notes}
-            IsDone={Items.Value.Single(item => item.Id == SelectedItemId.Value).IsDone}
-            OnTitleChanged={value => Items.Value = Items.Value.Select(item => item.Id == SelectedItemId.Value ? item with { Title = value } : item).ToList()}
-            OnNotesChanged={value => Items.Value = Items.Value.Select(item => item.Id == SelectedItemId.Value ? item with { Notes = value } : item).ToList()}
-            OnDoneChanged={value => Items.Value = Items.Value.Select(item => item.Id == SelectedItemId.Value ? item with { IsDone = value } : item).ToList()} />
-    </StackPanel>;
+            Grid.Row={2}
+            Grid.Column={1}
+            AutomationProperties.Name="Task Editor"
+            Title={selected.Title}
+            Notes={selected.Notes}
+            IsDone={selected.IsDone}
+            OnTitleChanged={UpdateSelectedTitle}
+            OnNotesChanged={UpdateSelectedNotes}
+            OnDoneChanged={UpdateSelectedDone} />
+    </Grid>;
 }

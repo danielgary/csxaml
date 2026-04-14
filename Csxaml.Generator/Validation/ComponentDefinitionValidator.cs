@@ -3,8 +3,9 @@ namespace Csxaml.Generator;
 internal sealed class ComponentDefinitionValidator
 {
     private readonly MarkupValidator _markupValidator = new();
+    private readonly SlotDefinitionValidator _slotDefinitionValidator = new();
 
-    public void Validate(ParsedComponent component, ComponentCatalog catalog)
+    public void Validate(ParsedComponent component, CompilationContext compilation)
     {
         ValidateUniqueNames(
             component.Source,
@@ -14,7 +15,12 @@ internal sealed class ComponentDefinitionValidator
             component.Source,
             component.Definition.StateFields.Select(field => (field.Name, field.Span)));
 
-        _markupValidator.Validate(component.Source, component.Definition.Root, catalog);
+        _slotDefinitionValidator.Validate(component.Source, component.Definition);
+
+        if (component.Definition.Root is MarkupNode markupRoot)
+        {
+            _markupValidator.Validate(component.Source, component, markupRoot, compilation);
+        }
     }
 
     private static void ValidateUniqueNames(

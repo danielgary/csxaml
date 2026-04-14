@@ -44,6 +44,11 @@ internal static class ValueKindHintResolver
             return ValueKindHint.Thickness;
         }
 
+        if (type == typeof(Style))
+        {
+            return ValueKindHint.Style;
+        }
+
         return ValueKindHint.Object;
     }
 }

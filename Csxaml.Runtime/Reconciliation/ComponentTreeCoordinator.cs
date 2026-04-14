@@ -50,7 +50,8 @@ public sealed class ComponentTreeCoordinator
         var child = owner.ChildComponents.Resolve(componentNode);
         child.RequestRender = RequestRenderTree;
         child.SetProps(componentNode.Props);
-        return RenderComponent(child);
+        child.SetChildContent(componentNode.ChildContent);
+        return MergeAttachedProperties(RenderComponent(child), componentNode.AttachedProperties);
     }
 
     private NativeElementNode ExpandNativeElement(
@@ -67,7 +68,39 @@ public sealed class ComponentTreeCoordinator
             nativeElementNode.TagName,
             nativeElementNode.Key,
             nativeElementNode.Properties,
+            nativeElementNode.AttachedProperties,
             nativeElementNode.Events,
             children);
+    }
+
+    private static NativeElementNode MergeAttachedProperties(
+        NativeNode renderedNode,
+        IReadOnlyList<NativeAttachedPropertyValue> usageAttachedProperties)
+    {
+        if (renderedNode is not NativeElementNode nativeElementNode)
+        {
+            throw new NotSupportedException(
+                $"Unsupported native node type '{renderedNode.GetType().Name}'.");
+        }
+
+        if (usageAttachedProperties.Count == 0)
+        {
+            return nativeElementNode;
+        }
+
+        var merged = nativeElementNode.AttachedProperties
+            .Where(existing => usageAttachedProperties.All(candidate => !Matches(candidate, existing)))
+            .Concat(usageAttachedProperties)
+            .ToArray();
+
+        return nativeElementNode with { AttachedProperties = merged };
+    }
+
+    private static bool Matches(
+        NativeAttachedPropertyValue left,
+        NativeAttachedPropertyValue right)
+    {
+        return string.Equals(left.OwnerName, right.OwnerName, StringComparison.Ordinal) &&
+            string.Equals(left.PropertyName, right.PropertyName, StringComparison.Ordinal);
     }
 }

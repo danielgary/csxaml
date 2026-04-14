@@ -85,6 +85,11 @@ internal sealed class ParserContext
         return _source.Text[start..end];
     }
 
+    public void SkipToPosition(int position)
+    {
+        AdvanceToPosition(position);
+    }
+
     public Token ReadStringLiteral(string message)
     {
         if (Current.Kind != TokenKind.StringLiteral)
@@ -157,10 +162,15 @@ internal sealed class ParserContext
         var delimiters = new Stack<char>();
         for (var index = start; index < _source.Text.Length; index++)
         {
+            if (CSharpTextScanner.TrySkipCommentOrLiteral(_source, index, out var nextIndex))
+            {
+                index = nextIndex - 1;
+                continue;
+            }
+
             var current = _source.Text[index];
             if (current == '"' || current == '\'')
             {
-                index = SkipQuotedLiteral(index, current);
                 continue;
             }
 
@@ -195,24 +205,5 @@ internal sealed class ParserContext
             _ => throw new InvalidOperationException(
                 $"Unsupported opening delimiter '{openingDelimiter}'.")
         };
-    }
-
-    private int SkipQuotedLiteral(int start, char quoteCharacter)
-    {
-        for (var index = start + 1; index < _source.Text.Length; index++)
-        {
-            if (_source.Text[index] == '\\')
-            {
-                index++;
-                continue;
-            }
-
-            if (_source.Text[index] == quoteCharacter)
-            {
-                return index;
-            }
-        }
-
-        throw DiagnosticFactory.FromPosition(_source, start, "unterminated string literal");
     }
 }

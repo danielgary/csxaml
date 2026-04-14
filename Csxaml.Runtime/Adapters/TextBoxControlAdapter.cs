@@ -38,7 +38,6 @@ internal sealed class TextBoxControlAdapter : ControlAdapter<TextBox>
         ApplyPlaceholderText(control, node);
         ApplyText(control, node);
         ApplyTextWrapping(control, node);
-        ApplyWidth(control, node);
     }
 
     protected override void SetChildren(TextBox control, IReadOnlyList<UIElement> children)
@@ -102,17 +101,6 @@ internal sealed class TextBoxControlAdapter : ControlAdapter<TextBox>
         }
 
         control.ClearValue(TextBox.TextWrappingProperty);
-    }
-
-    private static void ApplyWidth(TextBox control, NativeElementNode node)
-    {
-        if (NativeElementReader.TryGetPropertyValue<double>(node, "Width", out var width))
-        {
-            control.Width = width;
-            return;
-        }
-
-        control.ClearValue(FrameworkElement.WidthProperty);
     }
 
     private static ControlledTextInputState GetState(TextBox control)

@@ -2,10 +2,10 @@ namespace Csxaml.Generator;
 
 internal sealed class CodeEmitter
 {
-    public string Emit(ComponentDefinition component, ComponentCatalog catalog)
+    public string Emit(ParsedComponent component, CompilationContext compilation)
     {
         var writer = new IndentedCodeWriter();
-        new ComponentEmitter(writer, catalog).Emit(component);
+        new ComponentEmitter(writer, compilation).Emit(component);
         return writer.ToString();
     }
 }

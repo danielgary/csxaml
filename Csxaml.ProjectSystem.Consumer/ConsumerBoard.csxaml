@@ -1,0 +1,13 @@
+using Csxaml.ProjectSystem.Components;
+using Admin = Csxaml.ProjectSystem.Components.Admin;
+
+namespace Csxaml.ProjectSystem.Consumer;
+
+component Element ConsumerBoard {
+    return <PanelSurface HeaderText="Imported Components">
+        <StackPanel AutomationProperties.Name="Consumer Stack">
+            <GreetingCard Title="Hello from project references" />
+            <Admin:AdminBadge Label="Verified alias import" />
+        </StackPanel>
+    </PanelSurface>;
+}

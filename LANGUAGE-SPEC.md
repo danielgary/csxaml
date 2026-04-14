@@ -52,6 +52,7 @@ CSXAML v1 should optimize for the following.
 - C# remains the authority for types, expressions, lambdas, object creation, method calls, generics, and delegate shapes.
 - CSXAML MUST not invent a second expression language for ordinary UI logic.
 - If a developer already knows how to write a C# expression, they should usually be able to paste that expression into CSXAML with minimal or no adaptation.
+- File-level imports SHOULD prefer ordinary C# `using` forms over inventing an `xmlns`-style parallel system.
 
 ### 2.2 XAML Familiarity
 
@@ -69,6 +70,7 @@ CSXAML v1 should optimize for the following.
 
 - Component parameters MUST be strongly typed.
 - Native control attributes MUST validate against metadata rather than fail only at runtime.
+- `.csxaml` files SHOULD allow ordinary local helper code so authors can name calculations and behavior near the view instead of collapsing into giant inline expressions.
 - Generated code MUST be boring, stable, and deterministic.
 - Errors SHOULD point to `.csxaml` spans rather than forcing the developer into generated code.
 - The language SHOULD scale toward editor completion, diagnostics, navigation, formatting, and source mapping.
@@ -142,7 +144,7 @@ CSXAML source files use the `.csxaml` extension.
 
 ### 5.2 Top-Level Shape
 
-In the current prototype, each `.csxaml` file contains exactly one component declaration.
+In v1, a `.csxaml` file SHOULD contain exactly one component declaration plus optional file-level `using` directives, an optional file-scoped namespace, and optional file-local helper declarations.
 
 This one-component-per-file model is a good default for readability, build determinism, and tooling.
 
@@ -162,10 +164,60 @@ CSXAML relies on the host C# compilation context for resolving:
 - types referenced in component parameters
 - types referenced in `State<T>`
 - types referenced inside C# expression islands
+- component namespaces imported from other CSXAML libraries
+- external control namespaces
+- attached-property owner types
 
-The current prototype keeps namespace/import handling simple and relies on the generated C# environment.
+The current prototype implements file-level `using` directives, alias-qualified external and component tags, import-driven attached-property owner lookup for the current supported slice, one file-scoped `namespace` declaration per `.csxaml` file, and referenced-component discovery through an explicit generated manifest contract.
 
-v1 SHOULD support an explicit, unsurprising file-level namespace/import story that aligns with ordinary C# rather than inventing a parallel mechanism.
+For v1, CSXAML SHOULD support an explicit, unsurprising file-level namespace/import story that aligns with ordinary C# rather than inventing a parallel mechanism.
+
+The preferred source forms are:
+
+```csharp
+using MyApp.Shared.Components;
+using CommunityToolkit.WinUI.Controls;
+using Fluent = CommunityToolkit.WinUI.Controls;
+using Widgets = MyCompany.Widgets;
+using AutomationProperties = Microsoft.UI.Xaml.Automation.AutomationProperties;
+
+namespace MyApp.Components;
+```
+
+These forms are intended to support:
+
+- imported component tags such as `<TodoCard />` when the simple name is imported and unambiguous
+- bare control tags such as `<InfoBar />` when the simple name is imported and unambiguous
+- qualified tags such as `<Fluent:InfoBar />` or `<Widgets:UserAvatar />` when the prefix names a namespace alias
+- attached-property owners such as `AutomationProperties.Name="Save"` when the owner type is visible by import or type alias
+
+CSXAML SHOULD NOT invent a separate `xmlns` system or a custom `using as` syntax for this scenario.
+
+When present, a file-scoped `namespace` SHOULD determine the namespace of the generated component and any file-local helper declarations.
+
+When the source omits an explicit namespace, the implementation MUST fall back to a deterministic project-default component namespace rather than a hardcoded global placeholder. In the current repo implementation, that project-default namespace is provided by the shared build contract and defaults to the project's `RootNamespace`, then `AssemblyName` if `RootNamespace` is absent.
+
+Project-level generated support files that are not author-facing component types, such as referenced-component manifest providers and generated external-control registration, SHOULD live in a deterministic internal namespace derived from the project-default component namespace rather than leaking into author-facing examples.
+
+Ambiguous simple-name resolution MUST produce a diagnostic rather than heuristic guessing.
+
+### 5.5 File-Local Helper Declarations
+
+CSXAML SHOULD allow file-local helper declarations in the same file as the component.
+
+This is the intended equivalent of helper functions and helper types living next to a React component in a `.tsx` file.
+
+The minimum expected v1 shape is:
+
+- component-local local variables and local functions before the final render return
+- file-local helper types in the same `.csxaml` file
+
+File-local helper declarations:
+
+- share the file's `namespace` and `using` context
+- SHOULD lower predictably to ordinary generated C#
+- SHOULD stay small and focused on the component file they support
+- SHOULD move to ordinary `.cs` files when they become broadly shared or substantially larger than the component itself
 
 ---
 
@@ -243,7 +295,10 @@ That limitation is implementation debt, not a desired design trait.
 The following grammar is intentionally simplified and uses descriptive non-terminals for embedded C# fragments.
 
 ```ebnf
-csxaml-file           ::= component-declaration EOF
+csxaml-file           ::= using-directive* namespace-declaration? file-member* EOF
+
+file-member           ::= helper-declaration
+                        | component-declaration
 
 component-declaration ::= "component" "Element" identifier parameter-list? component-body
 
@@ -252,6 +307,7 @@ parameter             ::= csharp-type identifier
 
 component-body        ::= "{"
                            state-field*
+                           component-helper-code*
                            "return" markup-node ";"
                          "}"
 
@@ -260,14 +316,20 @@ state-field           ::= "State" "<" csharp-type ">" identifier
                           "(" csharp-island ")"
                           ";"
 
+component-helper-code ::= csharp-helper-code
+
 markup-node           ::= element-node
 
 element-node          ::= "<" tag-name attribute* "/>"
                         | "<" tag-name attribute* ">" child-node* "</" tag-name ">"
 
 child-node            ::= markup-node
+                        | slot-outlet
                         | if-block
                         | foreach-block
+
+slot-outlet           ::= "<" "Slot" attribute* "/>"
+                        | "<" "Slot" attribute* ">" child-node* "</" "Slot" ">"
 
 if-block              ::= "if" "(" csharp-island ")" "{" child-node* "}"
 
@@ -280,9 +342,13 @@ expression-island     ::= "{" csharp-island "}"
 
 Where:
 
+- `using-directive` and `namespace-declaration` use ordinary C# source forms
+- `helper-declaration` is file-local helper declaration text that does not contain CSXAML markup and lowers predictably to generated C#
 - `csharp-type` is C# type syntax
+- `csharp-helper-code` is component-local ordinary C# declarations/statements before the final markup return
 - `csharp-island` is opaque C# source text captured by balanced-delimiter scanning
-- `tag-name` and `attribute-name` are currently plain identifiers, but qualified forms are intentionally reserved for future XAML compatibility
+- `tag-name` and `attribute-name` support the current v1 forms `identifier`, `identifier ":" identifier`, and `identifier "." identifier`
+- bare `Slot` is a reserved child-content outlet inside a component definition; prefixed tags such as `Widgets:Slot` remain ordinary tags
 
 ---
 
@@ -331,7 +397,12 @@ To preserve compatibility with XAML-like expansion, the grammar SHOULD reserve t
 - `Prefix:Control` tag names for external control namespaces
 - `Owner.Property` attribute names for attached properties
 
-This is important because future XAML interop should feel additive rather than syntactically disruptive.
+For v1, the intended meaning of these forms is:
+
+- `Prefix:Control` resolves through a file-level namespace alias introduced by ordinary C#-style `using Prefix = Some.Namespace;`
+- `Owner.Property` resolves through an attached-property owner type that is visible by import or by a C#-style type alias
+
+This is important because future XAML interop should feel additive rather than syntactically disruptive while still staying aligned with normal C# import habits.
 
 ### 8.4 Syntax Admission Rule
 
@@ -341,6 +412,26 @@ Future syntax SHOULD meet all of the following before being accepted:
 - it does not require arbitrary reinterpretation of C# islands
 - it does not turn attribute values into context-free guesswork
 - it makes editor completion and diagnostics easier, not harder
+
+### 8.5 Helper Code Scanning
+
+The parser SHOULD allow file-local helper declarations and component-local helper code without fully parsing arbitrary C# declaration syntax.
+
+A practical v1 rule is:
+
+- file-local helper declarations are scanned as opaque C# declarations between top-level forms
+- after the last state field, component-local helper code is scanned as ordinary C# until the first outermost `return` immediately followed by a markup opener `<`
+- nested `return` tokens inside local functions, lambdas, or nested blocks do not terminate the component prologue
+- helper code MUST not itself contain CSXAML markup fragments
+
+This keeps the parser small while still letting component authors write named local values and helpers in the same file.
+
+### 8.6 Name Resolution Guardrails
+
+- simple tag names imported through `using Namespace;` may bind only when a single supported match exists
+- alias-qualified tags such as `Alias:Control` MUST not fall back to broad best-effort searches
+- unknown or unsupported external controls MUST fail at compile-time validation if metadata is unavailable
+- import and alias rules SHOULD stay file-local and explicit enough that tooling can resolve them without whole-solution guesswork
 
 ---
 
@@ -378,13 +469,42 @@ Component parameters:
 
 CSXAML MUST not degrade component props into weak dynamic bags.
 
-### 9.4 Required Return
+### 9.4 Local Helper Code
 
-Each component body currently contains exactly one `return` of a markup node.
+After state declarations and before the final render return, a component body MAY contain ordinary C# local declarations and local functions.
 
-This restriction keeps the core grammar simple and easy to reason about.
+This exists so authors can:
 
-### 9.5 Duplicate Names
+- compute local values once and reuse them in markup
+- give repeated logic a readable name
+- keep component-specific helper behavior close to the render path
+
+For example:
+
+```csharp
+component Element TodoBoard {
+    State<List<TodoItemModel>> Items = ...;
+
+    var selected = Items.Value.Single(item => item.Id == SelectedItemId.Value);
+    string HeaderText() => $"{selected.Title} ({Items.Value.Count})";
+
+    return <TodoEditor Title={selected.Title} Header={HeaderText()} />;
+}
+```
+
+This helper code SHOULD remain ordinary C# and SHOULD NOT require a second statement language.
+
+### 9.5 Required Return
+
+Each component body currently contains exactly one outermost `return` of a markup node.
+
+The render return is the `return` that is immediately followed by a markup opener `<` at the outermost component-body level.
+
+Nested `return` tokens inside local functions, lambdas, or nested C# blocks do not count as the component render return.
+
+This restriction keeps the core grammar simple and easy to reason about while still allowing local helper code before the view is returned.
+
+### 9.6 Duplicate Names
 
 Duplicate parameter names and duplicate state field names are invalid.
 
@@ -435,6 +555,19 @@ OnToggle={() => Items.Value = Items.Value.Select(...).ToList()}
 
 over hidden mutation models that make rerender causes hard to trace.
 
+### 10.5 Async Work and Lifecycle Direction
+
+CSXAML SHOULD keep async work and side effects in ordinary C# methods, local helper code, and a minimal runtime lifecycle API rather than inventing a second effect language.
+
+v1 SHOULD define at least:
+
+- how mount and unmount notifications are expressed
+- how cleanup or disposal is performed
+- what happens when async work completes after unmount
+- how explicit state updates from async work remain predictable and testable
+
+The goal is explicit, boring behavior rather than ambient framework magic.
+
 ---
 
 ## 11. Markup Model
@@ -467,7 +600,7 @@ Markup tags come in two categories:
 - native elements backed by WinUI metadata, such as `Button`
 - component elements backed by CSXAML component definitions, such as `TodoCard`
 
-Resolution SHOULD be exact and deterministic.
+Resolution SHOULD be exact and deterministic across local components, referenced component libraries, and imported external controls.
 
 ---
 
@@ -507,9 +640,16 @@ Examples:
 - `Border` supports a single child
 - `StackPanel` supports multiple children
 
-Component elements do not currently support child content in the core language.
+Component elements support child content only when the target component explicitly declares one default slot outlet.
 
-Future slot support may extend this, but it should do so explicitly rather than implicitly overloading current behavior.
+In v1:
+
+- the outlet syntax is bare `Slot`
+- at most one default slot outlet is allowed per component definition
+- `Slot` attributes are invalid
+- `Slot` child nodes are invalid
+- `Slot Name="..."` MUST fail with a clear "named slots are not supported yet" diagnostic
+- a root-level `<Slot />` is invalid because components still return one root node rather than fragments
 
 ---
 
@@ -672,7 +812,9 @@ It does not allow arbitrary statements such as:
 - `while`
 - `for`
 
-Those can be added later if they genuinely improve the model, but they should not arrive at the cost of turning markup parsing into general C# parsing.
+This does not prevent ordinary C# locals or local functions before the final render return in a component body.
+
+Those child-position forms can be added later if they genuinely improve the model, but they should not arrive at the cost of turning markup parsing into general C# parsing.
 
 ---
 
@@ -682,6 +824,8 @@ Those can be added later if they genuinely improve the model, but they should no
 
 Native elements are validated against generated control metadata.
 
+This metadata model SHOULD apply to both built-in controls and supported external controls.
+
 Metadata answers questions such as:
 
 - is this tag a known native control?
@@ -689,6 +833,23 @@ Metadata answers questions such as:
 - what events are exposed?
 - what child-content shape is allowed?
 - what value-kind hint should apply?
+
+### 16.1.1 External Control Metadata
+
+Supported external controls SHOULD enter the system through referenced-assembly-aware metadata generation.
+
+The implementation SHOULD prefer deterministic discovery, such as explicit project/package reference handling plus controlled inclusion rules, over unconstrained scanning of every reachable CLR type.
+
+The current supported slice and its intentional limitations SHOULD stay documented explicitly in [docs/external-control-interop.md](docs/external-control-interop.md) so roadmap promises remain concrete.
+
+For each supported external control, metadata SHOULD capture at least:
+
+- CLR type identity
+- namespace and assembly identity
+- supported properties
+- supported events
+- child-content shape
+- value-kind hints
 
 ### 16.2 Native Properties and Native Events Are Distinct
 
@@ -722,6 +883,7 @@ Metadata carries conversion hints such as:
 - `Enum`
 - `Object`
 - `Brush`
+- `Style`
 - `Thickness`
 - `Unknown`
 
@@ -750,7 +912,31 @@ Examples:
 
 This rule is good for both parseability and developer experience because it makes type intent visible at the source level.
 
-### 16.6 Runtime Application Model
+### 16.6 Style and Theme Values
+
+CSXAML v1 keeps styling inside the ordinary attribute expression model.
+
+Authors SHOULD be able to write:
+
+- `Background={Theme.CardBrush}`
+- `Foreground={Theme.OnPrimaryBrush}`
+- `Style={AppStyles.PrimaryButton}`
+
+The language SHOULD NOT add a second styling syntax for v1 such as:
+
+- selector mini-languages
+- CSS-like classes
+- framework-owned style resources with special CSXAML-only lookup rules
+
+Reusable visual values SHOULD just be ordinary C# values or ordinary WinUI-compatible objects.
+
+When a reusable helper needs resource lookup or fallback creation, that behavior SHOULD live in library/runtime code rather than new markup syntax.
+
+To preserve hostless rendering and component-test ergonomics, style helper objects MAY defer WinUI resource or style realization until projected rendering time.
+
+This keeps the source model simple while leaving room for richer composition, styling, and slot scenarios later.
+
+### 16.7 Runtime Application Model
 
 Runtime native property application SHOULD use:
 
@@ -759,6 +945,10 @@ Runtime native property application SHOULD use:
 - explicit conversion helpers
 
 Runtime native property application SHOULD NOT use reflection as the primary hot-path mechanism.
+
+For supported external controls, runtime creation and patching SHOULD flow through generated adapters or an explicit registration model derived from the same metadata.
+
+A late-bound reflection fallback MAY exist for experiments or narrow escape hatches, but it SHOULD NOT define the core v1 runtime path.
 
 ---
 
@@ -783,7 +973,9 @@ For component elements:
 - unknown props are invalid
 - duplicate props are invalid
 - missing required props are invalid
-- children are currently invalid
+- child content is invalid unless the callee declares a default slot outlet
+- when child content is allowed, it is transported separately from the public props record
+- named slots are intentionally deferred; v1 supports one default slot only
 
 ### 17.3 Type Safety
 
@@ -847,6 +1039,7 @@ The language design SHOULD naturally support:
 - component prop completion
 - source squiggles
 - go-to-definition
+- formatting and indentation
 - generated/source mapping
 
 This is one reason metadata-driven validation is so important. It helps the editor speak the same language as the compiler and runtime.
@@ -894,6 +1087,8 @@ In particular, it does not center the v1 design around:
 - string handler names
 - binding-path mini-languages as the main data model
 - heavy reliance on code-behind ceremony
+- a second framework-owned styling DSL for v1
+- implicit lifecycle magic when ordinary C# plus small runtime hooks would do
 
 This is intentional. The project is trying to produce a more modern C#-first authoring experience, not a byte-for-byte clone of legacy XAML.
 
@@ -908,6 +1103,7 @@ The language should feel pleasant in everyday use.
 The recommended mental model is:
 
 - write structure in tags
+- compute local values in ordinary C# helper code before the final render return
 - write values in C#
 - write behavior in lambdas or method calls
 - write reusable inputs as typed component props
@@ -922,6 +1118,8 @@ The following conventions are strongly recommended:
 - camelCase for local/state parameter names when they are true variables
 - one component per file
 - small components with explicit props
+- prefer named local values and helper functions over repeating heavy expressions inline
+- prefer WinUI styles/resources and plain C# theme objects over framework-specific styling DSLs
 - helper logic in ordinary C# types rather than giant inline expressions when expressions become hard to read
 
 ### 21.3 Why This Feels Modern
@@ -929,6 +1127,7 @@ The following conventions are strongly recommended:
 CSXAML feels modern when it lets a developer:
 
 - stay in one file
+- keep helper logic close to the view when it is local, and move it out when it becomes shared
 - keep real C# logic
 - avoid code-behind ceremony
 - avoid stringly typed bindings
@@ -954,19 +1153,33 @@ Implemented today:
 - `if` child blocks
 - constrained `foreach` child blocks
 - metadata-driven native property and event validation
+- metadata-driven common layout property support for the current curated controls
+- metadata-driven `Style` support for built-in controls and the current supported external-control slice
+- owner-qualified attached-property syntax for the built-in slice
 - generated generic native prop and event bags
-- runtime adapters for `Border`, `Button`, `StackPanel`, and `TextBlock`
+- generated generic attached-property bags
+- runtime adapters for `Border`, `Button`, `Grid`, `ScrollViewer`, `StackPanel`, `TextBlock`, `TextBox`, and `CheckBox`
+- reusable style helpers that stay as ordinary expression values in hostless logical-tree rendering and resolve during WinUI projection
 - `Key`-driven identity for repeated rendering
+- attached-property carry-through from component usages to rendered native roots
+- automation metadata hooks for semantic component testing
+- deterministic project-default namespace fallback plus one internal generated namespace convention for project-level support files
+- explicit generated component manifests for referenced-assembly component discovery
+- cross-project component imports through the same `using` and alias model used for external controls
+- shared repo-level build targets with deterministic `obj` output, write-if-changed generation, stale-file pruning, and clean integration
+- proof that ordinary C# test projects can consume generated CSXAML components through normal project references
 
 Known gaps relative to the intended v1 experience:
 
-- explicit file-level namespace/import syntax is not yet a finished surface
-- whole-file comment support needs hardening
-- external control namespace syntax is not yet implemented
-- attached property syntax is not yet implemented
-- component child-content slots are not yet implemented
+- whole-file comment support needs further hardening beyond the helper-code and boundary scanners
+- external control namespace syntax, referenced-assembly discovery, and generated runtime registration are implemented for the current supported slice; [docs/external-control-interop.md](docs/external-control-interop.md) describes that slice and its current limitations, while broader external control shape coverage is still in progress
+- the v1 styling story is intentionally thin and currently stops at reusable values plus WinUI `Style` support; richer styling constructs remain future work
+- broader attached-property owner resolution through file-level imports and external metadata is not yet implemented
+- named slots, slot fallback content, and fragment-root slot pass-through are intentionally deferred
+- explicit lifecycle/disposal semantics are not yet finished
 - richer source mapping and editor tooling are still ahead
-- project-system and design-time behavior need more maturation
+- formatting support is not yet defined end to end
+- repo-local project-system build behavior is now explicit and deterministic, but NuGet-delivered build packaging and richer IDE design-time tooling are still ahead
 
 ---
 

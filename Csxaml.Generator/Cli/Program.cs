@@ -8,7 +8,7 @@ internal static class Program
         {
             var options = GeneratorOptionsParser.Parse(args);
             var generatedFiles = new GeneratorRunner().GenerateFiles(options);
-            OutputWriter.WriteAll(generatedFiles);
+            OutputWriter.WriteAll(options.OutputDirectory, generatedFiles);
             return 0;
         }
         catch (DiagnosticException exception)

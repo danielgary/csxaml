@@ -33,4 +33,13 @@ internal sealed class IndentedCodeWriter
         _builder.Append(' ', _indentLevel * 4);
         _builder.AppendLine(text);
     }
+
+    public void WriteBlock(string text)
+    {
+        var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal);
+        foreach (var line in normalized.Split('\n'))
+        {
+            WriteLine(line);
+        }
+    }
 }

@@ -22,7 +22,10 @@ internal abstract class ControlAdapter<TControl> : INativeControlAdapter
 
     public void ApplyProperties(object element, NativeElementNode node)
     {
-        ApplyProperties((TControl)element, node);
+        var control = (TControl)element;
+        FrameworkElementLayoutPropertyApplicator.Apply(control, node);
+        FrameworkElementStylePropertyApplicator.Apply(control, node);
+        ApplyProperties(control, node);
     }
 
     public void SetChildren(object element, IReadOnlyList<object> children)

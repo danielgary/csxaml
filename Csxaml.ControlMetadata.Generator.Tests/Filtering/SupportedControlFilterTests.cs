@@ -15,8 +15,23 @@ public sealed class SupportedControlFilterTests
         var metadata = new SupportedControlFilter().BuildMetadata(definition, discovered);
 
         CollectionAssert.AreEquivalent(
-            new[] { "Background", "Content", "FontSize", "Foreground" },
+            new[]
+            {
+                "Background",
+                "Content",
+                "FontSize",
+                "Foreground",
+                "Height",
+                "HorizontalAlignment",
+                "Margin",
+                "Style",
+                "VerticalAlignment",
+                "Width"
+            },
             metadata.Properties.Select(property => property.Name).ToArray());
+        Assert.AreEqual(
+            ParseStyleHint(),
+            metadata.Properties.Single(property => property.Name == "Style").ValueKindHint);
         Assert.AreEqual("OnClick", metadata.Events.Single().ExposedName);
         Assert.AreEqual("System.Action", metadata.Events.Single().HandlerTypeName);
         Assert.AreEqual(EventBindingKind.Direct, metadata.Events.Single().BindingKind);
@@ -59,7 +74,58 @@ public sealed class SupportedControlFilterTests
             .ToArray();
 
         CollectionAssert.AreEqual(
-            new[] { "Border", "Button", "CheckBox", "StackPanel", "TextBlock", "TextBox" },
+            new[] { "Border", "Button", "CheckBox", "Grid", "ScrollViewer", "StackPanel", "TextBlock", "TextBox" },
             names);
+    }
+
+    [TestMethod]
+    public void GeneratedRegistry_ExposesCommonLayoutPropertiesOnSupportedControls()
+    {
+        var border = ControlMetadataRegistry.GetControl("Border");
+        var grid = ControlMetadataRegistry.GetControl("Grid");
+        var scrollViewer = ControlMetadataRegistry.GetControl("ScrollViewer");
+
+        CollectionAssert.IsSubsetOf(
+            new[] { "Height", "HorizontalAlignment", "Margin", "VerticalAlignment", "Width" },
+            border.Properties.Select(property => property.Name).ToList());
+        CollectionAssert.IsSubsetOf(
+            new[] { "ColumnDefinitions", "RowDefinitions", "Margin", "Width" },
+            grid.Properties.Select(property => property.Name).ToList());
+        CollectionAssert.IsSubsetOf(
+            new[] { "Height", "HorizontalAlignment", "Margin", "VerticalAlignment", "Width" },
+            scrollViewer.Properties.Select(property => property.Name).ToList());
+    }
+
+    [TestMethod]
+    public void AttachedPropertyRegistry_ContainsInitialGridAndAutomationSlice()
+    {
+        var names = AttachedPropertyMetadataRegistry.Properties
+            .Select(property => property.QualifiedName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "AutomationProperties.AutomationId",
+                "AutomationProperties.Name",
+                "Grid.Column",
+                "Grid.ColumnSpan",
+                "Grid.Row",
+                "Grid.RowSpan"
+            },
+            names);
+
+        Assert.AreEqual(
+            "Grid",
+            AttachedPropertyMetadataRegistry.GetProperty("Grid", "Row").RequiredParentTagName);
+        Assert.AreEqual(
+            ValueKindHint.String,
+            AttachedPropertyMetadataRegistry.GetProperty("AutomationProperties", "Name").ValueKindHint);
+    }
+
+    private static ValueKindHint ParseStyleHint()
+    {
+        return Enum.Parse<ValueKindHint>("Style");
     }
 }

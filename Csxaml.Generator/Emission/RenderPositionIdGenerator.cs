@@ -1,11 +1,11 @@
 namespace Csxaml.Generator;
 
-internal sealed class SlotNameGenerator
+internal sealed class RenderPositionIdGenerator
 {
     private int _nextValue;
 
     public string Next()
     {
-        return $"slot{_nextValue++}";
+        return $"position{_nextValue++}";
     }
 }

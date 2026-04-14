@@ -13,6 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\\Csxaml.ControlMetadata\\Csxaml.ControlMetadata.csproj" />
-    <ProjectReference Include="..\\Csxaml.ControlMetadata.Generator\\Csxaml.ControlMetadata.Generator.csproj" />
+    <ProjectReference Include="..\\Csxaml.ControlMetadata.Generator\\Csxaml.ControlMetadata.Generator.csproj" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 </Project>

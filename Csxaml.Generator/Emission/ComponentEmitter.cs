@@ -2,35 +2,39 @@ namespace Csxaml.Generator;
 
 internal sealed class ComponentEmitter
 {
-    private readonly ComponentCatalog _catalog;
+    private readonly CompilationContext _compilation;
     private readonly IndentedCodeWriter _writer;
 
-    public ComponentEmitter(IndentedCodeWriter writer, ComponentCatalog catalog)
+    public ComponentEmitter(IndentedCodeWriter writer, CompilationContext compilation)
     {
         _writer = writer;
-        _catalog = catalog;
+        _compilation = compilation;
     }
 
-    public void Emit(ComponentDefinition component)
+    public void Emit(ParsedComponent component)
     {
-        EmitUsings();
-        EmitNamespace();
-        EmitPropsRecord(component);
+        EmitUsings(component.File.UsingDirectives);
+        EmitNamespace(component.File.Namespace);
+        EmitFileHelpers(component.File.HelperCodeBlocks, beforeComponent: true, component.Definition.Span.Start);
+        EmitPropsRecord(component.Definition);
         EmitComponentClass(component);
+        EmitFileHelpers(component.File.HelperCodeBlocks, beforeComponent: false, component.Definition.Span.Start);
     }
 
-    private void EmitComponentClass(ComponentDefinition component)
+    private void EmitComponentClass(ParsedComponent component)
     {
-        var baseType = component.Parameters.Count == 0
+        var definition = component.Definition;
+        var baseType = definition.Parameters.Count == 0
             ? "ComponentInstance"
-            : $"ComponentInstance<{component.Name}Props>";
+            : $"ComponentInstance<{definition.Name}Props>";
 
-        _writer.WriteLine($"public sealed class {component.Name}Component : {baseType}");
+        _writer.WriteLine($"public sealed class {definition.Name}Component : {baseType}");
         _writer.WriteLine("{");
         _writer.PushIndent();
-        EmitStateFields(component);
-        EmitPropAccessors(component);
-        EmitConstructor(component);
+        EmitStateFields(definition);
+        EmitPropAccessors(definition);
+        EmitRegistrationConstructor(definition);
+        EmitConstructor(definition);
         EmitRenderMethod(component);
         _writer.PopIndent();
         _writer.WriteLine("}");
@@ -58,9 +62,10 @@ internal sealed class ComponentEmitter
         _writer.WriteLine();
     }
 
-    private void EmitNamespace()
+    private void EmitNamespace(FileScopedNamespaceDefinition? fileNamespace)
     {
-        _writer.WriteLine("namespace GeneratedCsxaml;");
+        var namespaceName = fileNamespace?.NamespaceName ?? _compilation.Project.DefaultComponentNamespace;
+        _writer.WriteLine($"namespace {namespaceName};");
         _writer.WriteLine();
     }
 
@@ -92,12 +97,18 @@ internal sealed class ComponentEmitter
         _writer.WriteLine();
     }
 
-    private void EmitRenderMethod(ComponentDefinition component)
+    private void EmitRenderMethod(ParsedComponent component)
     {
         _writer.WriteLine("public override Node Render()");
         _writer.WriteLine("{");
         _writer.PushIndent();
-        new ChildNodeEmitter(_writer, _catalog).EmitRenderBody(component.Root);
+        if (component.Definition.HelperCode is not null)
+        {
+            _writer.WriteBlock(component.Definition.HelperCode.CodeText);
+            _writer.WriteLine();
+        }
+
+        new ChildNodeEmitter(_writer, component, _compilation).EmitRenderBody(component.Definition.Root);
         _writer.PopIndent();
         _writer.WriteLine("}");
     }
@@ -115,12 +126,56 @@ internal sealed class ComponentEmitter
         }
     }
 
-    private void EmitUsings()
+    private void EmitUsings(IReadOnlyList<UsingDirectiveDefinition> usingDirectives)
     {
         _writer.WriteLine("using System;");
         _writer.WriteLine("using System.Collections.Generic;");
         _writer.WriteLine("using System.Linq;");
         _writer.WriteLine("using Csxaml.Runtime;");
+        foreach (var usingDirective in usingDirectives)
+        {
+            if (usingDirective.Alias is null)
+            {
+                _writer.WriteLine($"using {usingDirective.NamespaceName};");
+                continue;
+            }
+
+            _writer.WriteLine($"using {usingDirective.Alias} = {usingDirective.NamespaceName};");
+        }
+        _writer.WriteLine();
+    }
+
+    private void EmitFileHelpers(
+        IReadOnlyList<FileHelperCodeBlock> helperCodeBlocks,
+        bool beforeComponent,
+        int componentStart)
+    {
+        foreach (var helperCodeBlock in helperCodeBlocks)
+        {
+            if ((helperCodeBlock.Span.Start < componentStart) != beforeComponent)
+            {
+                continue;
+            }
+
+            _writer.WriteBlock(helperCodeBlock.CodeText);
+            _writer.WriteLine();
+        }
+    }
+
+    private void EmitRegistrationConstructor(ComponentDefinition component)
+    {
+        if (!_compilation.HasExternalControls)
+        {
+            return;
+        }
+
+        _writer.WriteLine($"static {component.Name}Component()");
+        _writer.WriteLine("{");
+        _writer.PushIndent();
+        _writer.WriteLine(
+            $"global::{_compilation.Project.InternalGeneratedNamespace}.GeneratedExternalControlRegistration.EnsureRegistered();");
+        _writer.PopIndent();
+        _writer.WriteLine("}");
         _writer.WriteLine();
     }
 }

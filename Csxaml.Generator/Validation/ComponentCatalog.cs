@@ -2,20 +2,47 @@ namespace Csxaml.Generator;
 
 internal sealed class ComponentCatalog
 {
-    private readonly Dictionary<string, ParsedComponent> _components;
+    private readonly IReadOnlyList<ComponentCatalogEntry> _entries;
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<ComponentCatalogEntry>> _entriesByQualifiedName;
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<ComponentCatalogEntry>> _entriesBySimpleName;
 
-    public ComponentCatalog(Dictionary<string, ParsedComponent> components)
+    public ComponentCatalog(IReadOnlyList<ComponentCatalogEntry> entries)
     {
-        _components = components;
+        _entries = entries;
+        _entriesBySimpleName = entries
+            .GroupBy(entry => entry.Name, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<ComponentCatalogEntry>)group.ToList(),
+                StringComparer.Ordinal);
+        _entriesByQualifiedName = entries
+            .GroupBy(entry => $"{entry.NamespaceName}.{entry.Name}", StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<ComponentCatalogEntry>)group.ToList(),
+                StringComparer.Ordinal);
     }
 
-    public bool Contains(string componentName)
+    public IReadOnlyList<ComponentCatalogEntry> FindByName(string componentName)
     {
-        return _components.ContainsKey(componentName);
+        return _entriesBySimpleName.TryGetValue(componentName, out var entries)
+            ? entries
+            : Array.Empty<ComponentCatalogEntry>();
     }
 
-    public ComponentDefinition GetComponent(string componentName)
+    public IReadOnlyList<ComponentCatalogEntry> FindByNamespaceAndName(
+        string namespaceName,
+        string componentName)
     {
-        return _components[componentName].Definition;
+        return _entriesByQualifiedName.TryGetValue(
+            $"{namespaceName}.{componentName}",
+            out var entries)
+            ? entries
+            : Array.Empty<ComponentCatalogEntry>();
+    }
+
+    public IReadOnlyList<ComponentCatalogEntry> FindLocalComponents()
+    {
+        return _entries.Where(entry => entry.IsLocal).ToList();
     }
 }

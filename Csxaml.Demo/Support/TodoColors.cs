@@ -1,7 +1,7 @@
 using Csxaml.Runtime;
 using Microsoft.UI.Xaml;
 
-namespace GeneratedCsxaml;
+namespace Csxaml.Demo;
 
 public static class TodoColors
 {

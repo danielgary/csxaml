@@ -84,6 +84,22 @@ public sealed class NativeValidationTests
     }
 
     [TestMethod]
+    public void Validate_BuiltInStyleExpression_IsRecognized()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                return <StackPanel>
+                    <Button Content="Save" Style={TodoStyles.PrimaryButton} />
+                </StackPanel>;
+            }
+            """);
+
+        GeneratorTestHarness.Validate(component);
+    }
+
+    [TestMethod]
     public void Validate_TextBoxStringLiteralEventValue_ThrowsDiagnostic()
     {
         var component = GeneratorTestHarness.Parse(

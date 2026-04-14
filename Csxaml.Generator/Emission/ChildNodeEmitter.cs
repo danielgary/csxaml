@@ -4,27 +4,40 @@ namespace Csxaml.Generator;
 
 internal sealed class ChildNodeEmitter
 {
-    private readonly ComponentCatalog _catalog;
+    private readonly CompilationContext _compilation;
+    private readonly ParsedComponent _component;
+    private readonly MarkupTagResolver _tagResolver = new();
     private readonly LocalNameGenerator _localNameGenerator = new();
     private readonly NativeAttributeEmitter _nativeAttributeEmitter = new();
-    private readonly SlotNameGenerator _slotNameGenerator = new();
+    private readonly RenderPositionIdGenerator _renderPositionIdGenerator = new();
     private readonly IndentedCodeWriter _writer;
 
-    public ChildNodeEmitter(IndentedCodeWriter writer, ComponentCatalog catalog)
+    public ChildNodeEmitter(
+        IndentedCodeWriter writer,
+        ParsedComponent component,
+        CompilationContext compilation)
     {
         _writer = writer;
-        _catalog = catalog;
+        _component = component;
+        _compilation = compilation;
     }
 
-    public void EmitRenderBody(MarkupNode root)
+    public void EmitRenderBody(ChildNode root)
     {
-        EmitMarkupNodeDeclaration(root, "rootNode");
+        if (root is not MarkupNode markupRoot)
+        {
+            throw new InvalidOperationException(
+                "Components must emit a single markup root node.");
+        }
+
+        EmitMarkupNodeDeclaration(markupRoot, "rootNode");
         _writer.WriteLine("return rootNode;");
     }
 
-    private string BuildComponentPropsExpression(MarkupNode markupNode)
+    private string BuildComponentPropsExpression(
+        MarkupNode markupNode,
+        ComponentCatalogEntry component)
     {
-        var component = _catalog.GetComponent(markupNode.TagName);
         if (component.Parameters.Count == 0)
         {
             return "null";
@@ -35,7 +48,7 @@ internal sealed class ChildNodeEmitter
 
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"new {markupNode.TagName}Props({string.Join(", ", arguments)})");
+            $"new {FormatTypeLiteral(component.PropsTypeName!)}({string.Join(", ", arguments)})");
     }
 
     private void EmitChildStatements(IReadOnlyList<ChildNode> childNodes, string listName)
@@ -55,18 +68,30 @@ internal sealed class ChildNodeEmitter
                 case MarkupNode markupNode:
                     EmitMarkupNodeAppend(markupNode, listName);
                     break;
+
+                case SlotOutletNode:
+                    EmitSlotOutlet(listName);
+                    break;
             }
         }
     }
 
-    private void EmitComponentNodeDeclaration(MarkupNode markupNode, string variableName)
+    private void EmitComponentNodeDeclaration(
+        MarkupNode markupNode,
+        ComponentCatalogEntry component,
+        string variableName)
     {
-        var propsExpression = BuildComponentPropsExpression(markupNode);
+        var propsExpression = BuildComponentPropsExpression(markupNode, component);
+        var childContentExpression = BuildChildContentExpression(markupNode.Children);
+        var attachedPropertiesExpression = _nativeAttributeEmitter.BuildAttachedPropertiesExpression(markupNode);
         var keyExpression = _nativeAttributeEmitter.BuildKeyExpression(markupNode);
-        var slotName = _slotNameGenerator.Next();
+        var hasAttachedProperties = _nativeAttributeEmitter.HasAttachedProperties(markupNode);
+        var renderPositionId = _renderPositionIdGenerator.Next();
 
         _writer.WriteLine(
-            $"var {variableName} = new ComponentNode(typeof({markupNode.TagName}Component), {propsExpression}, \"{slotName}\", {keyExpression});");
+            hasAttachedProperties
+                ? $"var {variableName} = new ComponentNode(typeof({FormatTypeLiteral(component.ComponentTypeName)}), {propsExpression}, {childContentExpression}, {attachedPropertiesExpression}, \"{renderPositionId}\", {keyExpression});"
+                : $"var {variableName} = new ComponentNode(typeof({FormatTypeLiteral(component.ComponentTypeName)}), {propsExpression}, {childContentExpression}, \"{renderPositionId}\", {keyExpression});");
     }
 
     private void EmitForEachBlock(ForEachBlockNode forEachBlock, string listName)
@@ -96,22 +121,44 @@ internal sealed class ChildNodeEmitter
         _writer.WriteLine($"{listName}.Add({variableName});");
     }
 
+    private void EmitSlotOutlet(string listName)
+    {
+        _writer.WriteLine($"{listName}.AddRange(ChildContent);");
+    }
+
     private void EmitMarkupNodeDeclaration(MarkupNode markupNode, string variableName)
     {
-        if (ControlMetadataRegistry.IsNativeTag(markupNode.TagName))
+        var resolvedTag = _tagResolver.Resolve(
+            _component.Source,
+            _component,
+            markupNode,
+            _compilation);
+        if (resolvedTag.Kind == ResolvedTagKind.Native)
         {
-            EmitNativeNodeDeclaration(markupNode, variableName);
+            EmitNativeNodeDeclaration(markupNode, resolvedTag.NativeControl!, resolvedTag.RuntimeTagName, variableName);
             return;
         }
 
-        EmitComponentNodeDeclaration(markupNode, variableName);
+        EmitComponentNodeDeclaration(markupNode, resolvedTag.Component!, variableName);
     }
 
     private void EmitNativeNodeDeclaration(MarkupNode markupNode, string variableName)
     {
+        throw new InvalidOperationException(
+            "Native node emission requires resolved control metadata.");
+    }
+
+    private void EmitNativeNodeDeclaration(
+        MarkupNode markupNode,
+        ControlMetadataModel control,
+        string runtimeTagName,
+        string variableName)
+    {
         var keyExpression = _nativeAttributeEmitter.BuildKeyExpression(markupNode);
-        var propertiesExpression = _nativeAttributeEmitter.BuildPropertiesExpression(markupNode);
-        var eventsExpression = _nativeAttributeEmitter.BuildEventsExpression(markupNode);
+        var propertiesExpression = _nativeAttributeEmitter.BuildPropertiesExpression(markupNode, control);
+        var attachedPropertiesExpression = _nativeAttributeEmitter.BuildAttachedPropertiesExpression(markupNode);
+        var eventsExpression = _nativeAttributeEmitter.BuildEventsExpression(markupNode, control);
+        var hasAttachedProperties = _nativeAttributeEmitter.HasAttachedProperties(markupNode);
         var childrenExpression = "Array.Empty<Node>()";
 
         if (markupNode.Children.Count > 0)
@@ -123,7 +170,22 @@ internal sealed class ChildNodeEmitter
         }
 
         _writer.WriteLine(
-            $"var {variableName} = new NativeElementNode(\"{markupNode.TagName}\", {keyExpression}, {propertiesExpression}, {eventsExpression}, {childrenExpression});");
+            hasAttachedProperties
+                ? $"var {variableName} = new NativeElementNode(\"{runtimeTagName}\", {keyExpression}, {propertiesExpression}, {attachedPropertiesExpression}, {eventsExpression}, {childrenExpression});"
+                : $"var {variableName} = new NativeElementNode(\"{runtimeTagName}\", {keyExpression}, {propertiesExpression}, {eventsExpression}, {childrenExpression});");
+    }
+
+    private string BuildChildContentExpression(IReadOnlyList<ChildNode> childNodes)
+    {
+        if (childNodes.Count == 0)
+        {
+            return "Array.Empty<Node>()";
+        }
+
+        var childContentName = _localNameGenerator.Next("childContent");
+        _writer.WriteLine($"var {childContentName} = new List<Node>();");
+        EmitChildStatements(childNodes, childContentName);
+        return childContentName;
     }
 
     private static string EscapeString(string value)
@@ -131,6 +193,11 @@ internal sealed class ChildNodeEmitter
         return value
             .Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("\"", "\\\"", StringComparison.Ordinal);
+    }
+
+    private static string FormatTypeLiteral(string clrTypeName)
+    {
+        return $"global::{clrTypeName.Replace("+", ".", StringComparison.Ordinal)}";
     }
 
     private static string FormatValue(PropertyNode property)

@@ -60,14 +60,24 @@ TemporaryDependencyNodeTargetIdentifier=net10.0-windows10.0.19041.0
 ../Csxaml.Demo/
  Models/TodoItemModel.cs
   @folderNames=Demo
- Support/TodoColors.cs
-  @folderNames=Demo
+ Support/
+  TodoColors.cs
+   @folderNames=Demo
+  TodoStyles.cs
+   @folderNames=Demo
 <NUGET>/microsoft.net.test.sdk/18.0.1/build/net8.0/Microsoft.NET.Test.Sdk.Program.cs
 Adapters/
+ AttachedPropertyApplicatorTests.cs
  ControlledBoolInputStateTests.cs
  ControlledTextInputStateTests.cs
+ ExternalControlAdapterTests.cs
+ ExternalControlStyleTests.cs
+ FrameworkElementLayoutPropertyApplicatorTests.cs
+ FrameworkElementStylePropertyApplicatorTests.cs
+ GridControlAdapterTests.cs
  NativeElementReaderTests.cs
  ReferenceEqualityListTests.cs
+ ScrollViewerControlAdapterTests.cs
  TextSelectionRangeTests.cs
 Demo/TodoDemoTests.cs
 GlobalUsings.cs
@@ -76,26 +86,42 @@ obj/Debug/net10.0-windows10.0.19041.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
  Csxaml.Runtime.Tests.AssemblyInfo.cs
  Csxaml.Runtime.Tests.GlobalUsings.g.cs
+ Csxaml/Generated/
+  GeneratedComponentManifest.g.cs
+  GeneratedExternalControlRegistration.g.cs
+  TodoBoard.g.cs
+  TodoCard.g.cs
+  TodoEditor.g.cs
+  TodoPanel.g.cs
 Reconciliation/
+ ComponentTreeCoordinatorAttachedPropertyTests.cs
  ComponentTreeCoordinatorReconciliationTests.cs
+ ComponentTreeCoordinatorSlotTests.cs
  ComponentTreeCoordinatorStateTests.cs
 Rendering/
  FakeControlAdapter.cs
  FakeElement.cs
  WinUiNodeRendererRetentionTests.cs
  WinUiNodeRendererTests.cs
+ WinUiNodeRendererTextBoxProjectionTests.cs
 RuntimeTreeHelpers.cs
 State/StateTests.cs
 TestComponents/
+ AttachedRootComponent.cs
  CardItemModel.cs
  CardViewComponent.cs
  CardViewProps.cs
  FixedParentComponent.cs
  KeyedBoardComponent.cs
+ SlottedBoardComponent.cs
+ SlotWrapperComponent.cs
+ SlotWrapperProps.cs
+WinUiTestEnvironment.cs
 
 [metadataReferences]
 ../
  Csxaml.ControlMetadata/obj/Debug/net10.0/ref/Csxaml.ControlMetadata.dll
+ Csxaml.ExternalControls/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.ExternalControls.dll
  Csxaml.Runtime/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.Runtime.dll
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.5/ref/net10.0/
  Microsoft.CSharp.dll

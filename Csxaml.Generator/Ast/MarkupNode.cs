@@ -1,7 +1,10 @@
 namespace Csxaml.Generator;
 
 internal sealed record MarkupNode(
-    string TagName,
+    MarkupTagName Tag,
     IReadOnlyList<PropertyNode> Properties,
     IReadOnlyList<ChildNode> Children,
-    TextSpan Span) : ChildNode(Span);
+    TextSpan Span) : ChildNode(Span)
+{
+    public string TagName => Tag.Text;
+}

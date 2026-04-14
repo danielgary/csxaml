@@ -3,67 +3,78 @@ namespace Csxaml.Generator;
 internal sealed class MarkupValidator
 {
     private readonly ComponentTagValidator _componentTagValidator = new();
+    private readonly MarkupTagResolver _tagResolver = new();
     private readonly NativeElementValidator _nativeElementValidator = new();
 
     public void Validate(
         SourceDocument source,
+        ParsedComponent component,
         MarkupNode node,
-        ComponentCatalog catalog)
+        CompilationContext compilation)
     {
-        ValidateCurrentNode(source, node, catalog);
+        Validate(source, component, node, compilation, null);
+    }
+
+    private void Validate(
+        SourceDocument source,
+        ParsedComponent component,
+        MarkupNode node,
+        CompilationContext compilation,
+        string? parentTagName)
+    {
+        ValidateCurrentNode(source, component, node, compilation, parentTagName);
         foreach (var child in node.Children)
         {
-            ValidateChildNode(source, child, catalog);
+            ValidateChildNode(source, component, child, compilation, node.TagName);
         }
     }
 
     private void ValidateChildNode(
         SourceDocument source,
+        ParsedComponent component,
         ChildNode childNode,
-        ComponentCatalog catalog)
+        CompilationContext compilation,
+        string? parentTagName)
     {
         switch (childNode)
         {
             case ForEachBlockNode forEachBlock:
                 foreach (var child in forEachBlock.Children)
                 {
-                    ValidateChildNode(source, child, catalog);
+                    ValidateChildNode(source, component, child, compilation, parentTagName);
                 }
                 break;
 
             case IfBlockNode ifBlock:
                 foreach (var child in ifBlock.Children)
                 {
-                    ValidateChildNode(source, child, catalog);
+                    ValidateChildNode(source, component, child, compilation, parentTagName);
                 }
                 break;
 
             case MarkupNode markupNode:
-                Validate(source, markupNode, catalog);
+                Validate(source, component, markupNode, compilation, parentTagName);
+                break;
+
+            case SlotOutletNode:
                 break;
         }
     }
 
     private void ValidateCurrentNode(
         SourceDocument source,
+        ParsedComponent component,
         MarkupNode node,
-        ComponentCatalog catalog)
+        CompilationContext compilation,
+        string? parentTagName)
     {
-        if (ControlMetadataRegistry.TryGetControl(node.TagName, out var nativeControl))
+        var resolvedTag = _tagResolver.Resolve(source, component, node, compilation);
+        if (resolvedTag.Kind == ResolvedTagKind.Native)
         {
-            _nativeElementValidator.Validate(source, node, nativeControl!);
+            _nativeElementValidator.Validate(source, node, resolvedTag.NativeControl!, parentTagName);
             return;
         }
 
-        if (catalog.Contains(node.TagName))
-        {
-            _componentTagValidator.Validate(source, node, catalog.GetComponent(node.TagName));
-            return;
-        }
-
-        throw DiagnosticFactory.FromSpan(
-            source,
-            node.Span,
-            $"unsupported tag name '{node.TagName}'");
+        _componentTagValidator.Validate(source, node, resolvedTag.Component!, parentTagName);
     }
 }

@@ -2,11 +2,21 @@ namespace Csxaml.Generator;
 
 internal sealed class Parser
 {
-    public ComponentDefinition Parse(SourceDocument source)
+    public CsxamlFileDefinition Parse(SourceDocument source)
     {
         var context = new ParserContext(source, new Tokenizer().Tokenize(source));
         var childNodeParser = new ChildNodeParser(context);
-        return ParseComponentDefinition(context, childNodeParser);
+        var usingDirectives = new UsingDirectiveParser(context).ParseDirectives();
+        var @namespace = new NamespaceDirectiveParser(context).ParseDirective();
+        var fileScan = new FileMemberBoundaryScanner(source).Scan(context.Current.Span.Start);
+        context.SkipToPosition(fileScan.ComponentSpan.Start);
+        var component = ParseComponentDefinition(context, childNodeParser);
+        return new CsxamlFileDefinition(
+            usingDirectives,
+            @namespace,
+            fileScan.HelperCodeBlocks,
+            component,
+            new TextSpan(0, source.Text.Length));
     }
 
     private static ComponentDefinition ParseComponentDefinition(
@@ -20,17 +30,19 @@ internal sealed class Parser
         var parameters = ParseParameters(context);
         context.ReadSymbol("{", invalidDeclaration);
         var stateFields = ParseStateFields(context);
+        var helperCode = new ComponentHelperCodeParser(context.Source).Parse(context);
         context.ReadIdentifier("return", "missing return block");
         var root = childNodeParser.ParseRootNode();
         context.ReadSymbol(";", "missing return block");
         var closeBrace = context.ReadSymbol("}", invalidDeclaration);
-        context.ReadEndOfFile("only one component per file is supported");
 
         return new ComponentDefinition(
             componentName.Text,
             parameters,
             stateFields,
+            helperCode,
             root,
+            SupportsDefaultSlot(root),
             new TextSpan(start, closeBrace.Span.End - start));
     }
 
@@ -163,5 +175,21 @@ internal sealed class Parser
         }
 
         return context.Source.Text[start..lastToken!.Value.Span.End].Trim();
+    }
+
+    private static bool SupportsDefaultSlot(ChildNode node)
+    {
+        if (node is SlotOutletNode)
+        {
+            return true;
+        }
+
+        return node switch
+        {
+            MarkupNode markup => markup.Children.Any(SupportsDefaultSlot),
+            IfBlockNode ifBlock => ifBlock.Children.Any(SupportsDefaultSlot),
+            ForEachBlockNode forEachBlock => forEachBlock.Children.Any(SupportsDefaultSlot),
+            _ => false
+        };
     }
 }

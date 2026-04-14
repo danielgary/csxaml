@@ -1,648 +1,1243 @@
-Milestone 3 - Metadata-Driven Native Props and Stronger Component Props
-Objective
-
-Implement a metadata-driven property system for native controls and tighten the generated component prop model so CSXAML can:
-
-expose a broader set of native control properties in markup
-expose native events in a consistent way
-validate props/events against control metadata
-generate runtime nodes from generic attributes rather than hardcoded control-specific constructors
-pass typed props from parent components to child components cleanly
-patch supported native properties at runtime
-update the Todo demo to support green/red visual state for done/not done cards
-
-This milestone is complete when the Todo demo expresses card coloring through CSXAML props using the new metadata-driven native property system, and component props are generated/passed in a strongly typed and maintainable way.
-
-Non-Negotiable Constraints
-Keep using C# for generator, runtime, and metadata tooling.
-Do not use runtime reflection as the primary runtime property application mechanism.
-Use reflection at build time to generate stable metadata tables.
-Do not expose all WinUI surface area blindly. Discover broadly, then filter to a curated supported subset.
-Do not expand the syntax with unrelated features.
-Do not collapse parser, validator, metadata generation, emitter, and runtime patching into large files.
-Keep event metadata separate from ordinary property metadata.
-Preserve explicit framework-reserved props such as Key outside the native prop bag.
-Prefer a metadata-driven generic native element model over endlessly expanding specialized constructors.
-Keep the Todo demo simple. Do not turn Milestone 3 into a styling framework milestone.
-Core Success Criteria
+# Milestone 10 Plan - Project System Maturity and Fast Inner Loop
+
+## Status
+
+- Drafted: 2026-04-13
+- Roadmap target: Milestone 10 in [ROADMAP.md](./ROADMAP.md)
+- Roadmap status: not started
+- Document purpose: give a future agent an implementation-ready, review-ready plan for landing deterministic project integration, cross-project component consumption, and test-project friendliness without turning CSXAML into hidden build magic
+
+Milestone 10 is the point where CSXAML stops being "the demo builds if you know the ritual" and starts proving it can live inside a normal solution.
+
+The wrong version of this milestone:
+
+- keeps copy-pasted custom targets in every project
+- keeps the hardcoded `GeneratedCsxaml` fallback namespace alive
+- treats test projects as special manual-generation exceptions
+- discovers referenced components through heuristics and naming accidents
+- rewrites `obj` aggressively on every build
+- quietly smuggles generator internals into runtime-facing APIs
+
+The right version is much more disciplined:
+
+- one boring shared build path
+- one boring default-namespace rule
+- one explicit referenced-component metadata contract
+- one explicit import-resolution story across local components, referenced components, and external controls
+- unchanged builds do not churn outputs
+- test projects behave like ordinary consumers
+- future tooling and packaging remain possible because the build and metadata boundaries stay explicit
+
+This plan assumes Milestone 10 succeeds only if a skeptical maintainer can explain:
+
+- how a `.csxaml` file gets from source to `obj`
+- how a downstream project learns about referenced components
+- how namespace fallback works when no file-scoped namespace is present
+- why a rebuild did or did not rerun generation
+- why a renamed or deleted component does not leave stale generated files behind
+
+without hand-waving.
+
+---
+
+## 1. Outcome
+
+At the end of Milestone 10, CSXAML should support this project experience cleanly:
+
+- a project opts into CSXAML generation once through shared build logic rather than per-project handwritten targets
+- a `.csxaml` file with an explicit file-scoped `namespace` generates into that namespace
+- a `.csxaml` file without an explicit namespace generates into a deterministic project-default namespace instead of the hardcoded placeholder `GeneratedCsxaml`
+- generated project-internal support files such as manifests and external-control registration live in a deterministic internal namespace that does not leak into author-facing examples
+- a component library project can expose generated components to downstream projects through normal assembly references
+- a downstream `.csxaml` file can import referenced component namespaces through normal `using` directives, and may use alias-qualified tags when that keeps name resolution explicit
+- test projects can consume generated component types through ordinary `ProjectReference` usage without duplicating generator targets for the referenced source files
+- unchanged inputs do not cause full regeneration or unnecessary file rewrites
+- deleted or renamed `.csxaml` files do not leave stale `.g.cs` files in `obj`
+- project-reference and package-reference changes rerun generation predictably when they affect referenced controls or referenced CSXAML components
 
-Milestone 3 is complete only when all of these are true:
+Milestone 10 is done only when the repo proves all of the following:
 
-Native markup attributes are parsed generically for supported native elements.
-A reflection-based metadata generation step produces stable control/property/event metadata tables.
-Generator validation uses those metadata tables to validate native props and native events.
-Runtime uses emitted prop/event data plus control adapters to create and patch native controls.
-Parent components pass typed props to child components using generated prop types or equivalent strongly typed structures.
-Native events are exposed consistently, such as OnClick.
-The Todo demo updates TodoCard visuals using color/styling props:
-green when done
-red when not done
-Invalid props surface clear diagnostics during generation/build.
-Code remains split into small, understandable files.
-Scope
-In Scope
-generic attribute parsing for native elements
-reflection-based metadata generation for a curated set of WinUI controls
-validation of native props and events using metadata tables
-generic native property/event bags in runtime nodes
-runtime control adapters that create and patch supported properties/events
-typed component props generation and parent-to-child prop passing cleanup
-Todo demo visual update using native props for color/styling
-tests for metadata, validation, prop passing, and runtime property application
-Out of Scope
-complete WinUI property parity
-arbitrary object graph construction from markup
-advanced converters for every WinUI type
-styling DSL
-resource dictionaries
-data templates
-implicit styles
-triggers/visual states
-Roslyn source generators
-IDE tooling implementation
-full language server implementation
-runtime reflection-driven property patching in the hot path
-broad theme system
-Key Design Decisions
+- the build integration is shared rather than duplicated
+- generated namespace behavior is deterministic and documented
+- at least one referenced component library compiles and is consumable from another project
+- at least one test project consumes generated components through normal references rather than duplicate generation wiring
+- clean, rebuild, and rename scenarios are covered by proof tests or build fixtures
+- the roadmap and language spec still describe the system honestly
 
-1. Reflection is a metadata source, not the runtime execution model
+---
 
-Reflection should be used in a build-time metadata generator to inspect selected WinUI types and emit stable metadata tables.
+## 2. Scope
 
-Runtime property application should use those metadata tables and explicit control adapters.
+### In scope
 
-2. Native elements should use a generic prop/event model
+- centralize CSXAML MSBuild integration into shared repo-level build assets
+- define the v1 default generated-namespace convention
+- define a deterministic internal generated namespace for project-level helper output
+- replace destructive always-regenerate behavior with deterministic write-if-changed plus stale-output pruning
+- add a referenced-component metadata contract that downstream generator runs can consume from assemblies
+- support cross-project component discovery and validation
+- support cross-project component imports through the same normal `using` and `using Alias = Namespace;` model already used for external controls
+- keep resolution deterministic across:
+  - local components
+  - referenced components
+  - built-in controls
+  - referenced external controls
+- prove ordinary test-project consumption through at least one real fixture
+- add integration coverage for clean, rebuild, rename, and reference-change scenarios
+- define the public package/API boundary decisions that this milestone must not accidentally freeze in the wrong shape
+- update docs, plan truth, and roadmap truth as the design locks in
 
-Do not keep expanding specialized node constructors like:
+### Explicitly out of scope
 
-TextBlockNode(string Text)
-ButtonNode(string Content, Action OnClick)
+- switching the whole system to a Roslyn source generator
+- Visual Studio completion, editor diagnostics, formatting UI, or navigation work from Milestone 11
+- source mapping or generated-code debugging improvements from Milestone 12
+- lifecycle, async, disposal, or testing-harness semantics from Milestone 13
+- packaging and release mechanics from Milestone 15
+- a full custom SDK or NuGet-delivered build package
+- automatic folder-to-namespace mapping
+- implicit scanning of referenced project source trees
+- dynamic runtime discovery of components without an explicit generated manifest contract
+- broad rethinks of runtime reconciliation or language surface unrelated to project-system maturity
 
-Move toward a generic native element model:
+### Practical boundary
 
-native type/tag name
-reserved framework props like Key
-property bag
-event bag
-children 3. Component props stay strongly typed
+Milestone 10 should stay centered on:
 
-Do not move component props to dynamic dictionaries.
+- repo-level MSBuild assets such as `Directory.Build.props`, `Directory.Build.targets`, or a `build/` folder
+- `Csxaml.Generator/Cli`
+- `Csxaml.Generator/IO`
+- `Csxaml.Generator/Semantics`
+- `Csxaml.Generator/Validation`
+- `Csxaml.Generator/Emission`
+- the small public metadata contract assembly used by generator and generated code
+- fixture projects and tests that prove multi-project behavior
+- `Csxaml.Demo` only where namespace/default-namespace migration is required
+- `LANGUAGE-SPEC.md`
+- `ROADMAP.md`
 
-Each generated component should still have strongly typed props or equivalent generated parameter handling.
+Do not let Milestone 10 silently become:
 
-4. Native props and native events are distinct
+- a tooling milestone
+- a source-generator rewrite
+- a packaging milestone
+- a lifecycle/test-harness milestone
+- a general "clean up the whole solution" milestone
 
-A native event is not just another property.
+---
 
-Treat them separately in metadata, validation, emission, and runtime binding.
+## 3. Existing Architecture Baseline
 
-5. Support a curated native control set first
+### 3.1 Build integration is duplicated and bespoke
 
-Metadata generation should focus first on a small set of controls needed now:
+Today the repo has project-local generation targets rather than one shared CSXAML build path.
 
-StackPanel
-Border if needed for card coloring
-TextBlock
-Button
+Concrete examples:
 
-Optional if already present or trivial to support:
+- [Csxaml.Demo.csproj](./Csxaml.Demo/Csxaml.Demo.csproj) defines a custom `GenerateCsxaml` target
+- [Csxaml.Runtime.Tests.csproj](./Csxaml.Runtime.Tests/Csxaml.Runtime.Tests.csproj) defines a separate `GenerateDemoCsxaml` target
 
-TextBox
-CheckBox
+Both targets:
 
-Do not attempt all WinUI controls in this milestone.
+- collect references manually
+- write a references file manually
+- invoke `dotnet run --project ..\\Csxaml.Generator`
+- include generated `.g.cs` files manually
 
-Architectural Changes Required
+This works for the current repo, but it is not yet a project system. It is two hand-maintained call sites.
 
-1. Add a metadata generation project or assembly
+### 3.2 Generation is currently full and destructive
 
-Create a new project or clear sub-area responsible for generating control metadata from reflection.
+The current project targets call:
 
-Recommended name:
+- `RemoveDir` on the generated directory
+- `MakeDir`
+- generator invocation
+- wildcard compile include
 
-Csxaml.ControlMetadata.Generator
+That means:
 
-This tool should inspect selected WinUI types and emit a stable artifact consumed by generator/runtime.
+- every generation run destroys the previous output set
+- unchanged outputs are rewritten
+- rename/delete scenarios are handled by brute-force directory replacement rather than explicit stale-output management
+- the build does not yet have a meaningful "fast inner loop"
 
-2. Introduce a shared metadata model
+This is acceptable for the prototype. It is not acceptable as the steady-state milestone-10 behavior.
 
-Create a shared model for:
+### 3.3 The generator still lacks project-level namespace context
 
-control metadata
-property metadata
-event metadata
-type/conversion hints
+The current emitter falls back to:
 
-This model should be consumed by:
+- `GeneratedCsxaml` when a file does not declare an explicit namespace
 
-metadata generator
-code generator validator
-runtime control adapter layer
-future tooling 3. Update the parser/AST to treat native attributes generically
+Relevant file:
 
-For native elements, parser should capture attributes generically rather than hardcoding per-control props.
+- [ComponentEmitter.cs](./Csxaml.Generator/Emission/ComponentEmitter.cs)
 
-4. Add a validation layer based on metadata tables
+That hardcoded fallback was fine while everything lived in one project and the demo support types opted into the same placeholder namespace. It becomes actively harmful once:
 
-The generator should validate whether a given native property or event is supported for a given native tag.
+- multiple component libraries exist
+- test projects reference component libraries
+- downstream projects need deterministic namespace discovery
 
-5. Replace or evolve native node emission
+### 3.4 Project-level helper output still assumes the old fallback namespace
 
-Generated code should emit generic native prop/event structures rather than specialized constructor arguments only.
+The current generated external-control registration file is emitted into:
 
-6. Add runtime control adapters
+- `namespace GeneratedCsxaml;`
 
-Runtime should create and patch native controls using adapter classes informed by supported metadata.
+Relevant file:
 
-7. Tighten component prop generation
+- [GeneratedExternalControlRegistrationEmitter.cs](./Csxaml.Generator/Emission/GeneratedExternalControlRegistrationEmitter.cs)
 
-If Milestone 2 introduced typed props, this milestone should clean up any awkwardness and standardize component prop generation/emission so parent-to-child passing is obvious and maintainable.
+That is a hidden project-system hazard because component files with explicit namespaces and project-level helper output with hardcoded fallback namespaces are on a collision course.
 
-Required Metadata Model
+Milestone 10 needs to solve this explicitly rather than hoping all projects stay namespace-less.
 
-Create a stable metadata representation with at least the following concepts.
+### 3.5 Demo support code still leans on the placeholder namespace
 
-ControlMetadata
+The demo currently keeps support types in `GeneratedCsxaml`, for example:
 
-Fields should include:
+- [TodoItemModel.cs](./Csxaml.Demo/Models/TodoItemModel.cs)
+- [TodoColors.cs](./Csxaml.Demo/Support/TodoColors.cs)
+- [TodoStyles.cs](./Csxaml.Demo/Support/TodoStyles.cs)
 
-TagName
-ClrTypeName
-BaseTypeName or inheritance chain
-Properties
-Events
-PropertyMetadata
+That is useful evidence:
 
-Fields should include:
+- the fallback namespace is not just a generator detail anymore
+- changing the fallback will have visible downstream consequences
 
-Name
-ClrTypeName
-IsWritable
-IsDependencyProperty if discoverable
-IsAttached
-ExposedInCsxaml
-ValueKindHint
-EventMetadata
+Milestone 10 therefore needs an explicit migration step for demo and fixture code.
 
-Fields should include:
+### 3.6 Component discovery is still local and simple-name based
 
-ClrEventName
-ExposedName such as OnClick
-HandlerTypeName
-ExposedInCsxaml
-ValueKindHint
+The current component catalog:
 
-Include enough hints for validation/coercion planning, such as:
+- indexes only components from the current generator invocation
+- keys them by simple component name
+- has no concept of namespace-qualified component identity
+- has no concept of referenced component assemblies
 
-String
-Bool
-Int
-Double
-Enum
-Object
-Brush
-Thickness
-Unknown
+Relevant files:
 
-This does not need to solve all conversions. It only needs enough for the supported milestone surface.
+- [ComponentCatalog.cs](./Csxaml.Generator/Validation/ComponentCatalog.cs)
+- [ComponentCatalogBuilder.cs](./Csxaml.Generator/Validation/ComponentCatalogBuilder.cs)
 
-Metadata Generation Requirements
-Inputs
+That is intentionally narrow for earlier milestones, but it is not enough for cross-project resolution.
 
-A curated list of WinUI control CLR types, such as:
+### 3.7 Import resolution is already more advanced for external controls than for components
 
-Microsoft.UI.Xaml.Controls.StackPanel
-Microsoft.UI.Xaml.Controls.TextBlock
-Microsoft.UI.Xaml.Controls.Button
-Microsoft.UI.Xaml.Controls.Border if needed
-Discovery behavior
+The current tag resolver already understands:
 
-Use reflection to inspect:
+- file-level `using Namespace;`
+- file-level `using Alias = Namespace;`
+- alias-qualified external control tags
+- ambiguity diagnostics for imported external control names
 
-public writable CLR properties
-public events
-optionally dependency properties when easy to correlate
-Filtering behavior
+Relevant files:
 
-The generator must not expose everything automatically.
+- [ImportScope.cs](./Csxaml.Generator/Semantics/ImportScope.cs)
+- [MarkupTagResolver.cs](./Csxaml.Generator/Semantics/MarkupTagResolver.cs)
 
-It should filter to a supported subset using rules such as:
+That is a good foundation, but the current resolver still only treats components as:
 
-public writable property
-declarative-safe
-not explicitly excluded
-type is supported or allowed as Object
-event is supported for the current runtime/event model
-Outputs
+- local simple names
 
-Emit one stable metadata artifact.
+Milestone 10 should extend that existing import model rather than inventing a second one for components.
 
-Recommended output options:
+### 3.8 There is no referenced-component metadata contract yet
 
-generated C# metadata tables in a shared assembly
-JSON metadata artifact loaded by generator/runtime
+Downstream generation currently has no explicit way to ask a referenced assembly:
 
-Preferred for Milestone 3: generated C# source because it is easy to consume from both generator/runtime without additional loading complexity.
+- which CSXAML components it exports
+- what namespaces they live in
+- what props they accept
+- whether they support default child content
+- what generated component type and props type should be emitted
 
-Syntax and Parsing Rules
-Native attributes
+That contract must become explicit in Milestone 10.
 
-The parser should capture native element attributes generically.
+Without it, downstream resolution would be forced into one of several bad options:
 
-Example:
+- source scanning
+- reflection over generated naming conventions
+- hand-authored registration files
 
-<Button
-    Content="Toggle"
-    Background={SomeBrush}
-    Foreground={SomeOtherBrush}
-    FontSize={18}
-    OnClick={Toggle} />
+### 3.9 Test-project proof still relies on duplicate generation
 
-Parser should capture:
+`Csxaml.Runtime.Tests` currently regenerates the demo components from source with its own target rather than consuming them through a normal project reference.
 
-tag name
-attribute list
-for each attribute:
-name
-value kind
-raw value / parsed expression payload
-Attribute value kinds
+That has been useful so far because it let runtime tests stay focused on runtime behavior, but it is still a milestone-10 gap relative to the roadmap promise:
 
-Support at least:
+- "test projects can consume generated components predictably without hand-authored duplicate generation wiring"
 
-string literal: "Done"
-expression: {item.IsDone ? DoneBrush : NotDoneBrush}
-numeric literal inside expression is acceptable
-boolean expression via {...}
+Milestone 10 needs at least one honest proof of the normal-reference path.
 
-Do not add extra literal syntaxes unless already present.
+### 3.10 Clean/rebuild/rename and design-time behavior are not yet first-class proofs
 
-Reserved props
+The roadmap explicitly calls out:
 
-Keep framework-reserved props separate from native props:
+- incremental generation
+- deterministic `obj` behavior
+- clean/rebuild and rename scenarios
+- design-time/build-time stability
 
-Key
-any future framework-only reserved names
+Today those are not yet backed by dedicated fixture-level proof.
 
-Reserved props should not flow into the native property bag.
+Milestone 10 should not claim maturity until those scenarios are tested directly.
 
-Event naming
+---
 
-Native events exposed in CSXAML should use normalized names such as:
+## 4. Decisions To Lock In Up Front
 
-OnClick
+These decisions should guide the milestone unless a failing proof test forces a rethink.
 
-The metadata layer should map:
+### 4.1 Keep the current generator model for this milestone
 
-OnClick -> WinUI Click
-Component Props Requirements
+Milestone 10 should improve the existing CLI-driven generation path rather than replacing it with a source generator or custom MSBuild task.
 
-Milestone 3 must also standardize component prop passing.
+Why:
 
-Requirements
-Each component with parameters must generate a stable typed props structure or equivalent.
-Parent components must pass child component props through generated strongly typed construction, not dynamic bags.
-Generator output for component prop passing should be readable and deterministic.
-Validation should catch:
-missing required props
-duplicate props
-unknown props on component tags
-Preferred shape
+- the current generator already expresses the language and runtime contract clearly
+- the current risk is project-system maturity, not generator capability
+- jumping to a different generation technology would multiply unknowns and make milestone truth harder to judge
 
-A generated props record is acceptable and recommended:
+This milestone should leave the codebase with a cleaner seam for future generator-host changes, not use milestone pressure as an excuse to rewrite the host.
 
-public sealed record TodoCardProps(
-string Title,
-bool IsDone,
-Action OnToggle
-);
+### 4.2 Introduce one shared build entry point
 
-And generated parent usage should lower cleanly into that props type.
+Recommended direction:
 
-If your current shape is already similar, keep it and tighten it rather than redesigning for novelty.
+- repo-level `build/Csxaml.props`
+- repo-level `build/Csxaml.targets`
+- imported once for participating projects through root `Directory.Build.props` and `Directory.Build.targets`, or through explicit imports if that stays clearer
 
-Runtime Model Changes
-Native element node
+Projects should opt in with one obvious property, such as:
 
-Introduce or standardize a generic native element node shape.
+- `<EnableCsxaml>true</EnableCsxaml>`
 
-It should contain at least:
+Do not keep copy-paste generation targets in every project.
 
-TagName
-Key
-Properties
-Events
-Children
+### 4.3 Define a boring default namespace rule now
 
-Example conceptual shape:
+Recommended default namespace behavior:
 
-public sealed class NativeElementNode : Node
-{
-public required string TagName { get; init; }
-public string? Key { get; init; }
-public IReadOnlyList<NativePropValue> Properties { get; init; } = [];
-public IReadOnlyList<NativeEventValue> Events { get; init; } = [];
-public IReadOnlyList<Node> Children { get; init; } = [];
+- if the file declares an explicit file-scoped namespace, use it
+- otherwise use `$(RootNamespace)` if present
+- otherwise use `$(AssemblyName)`
+
+Do not add folder mirroring in v1.
+
+This satisfies the language-spec requirement that the fallback be:
+
+- deterministic
+- discoverable
+
+and it avoids the uncanny valley where authors have to guess whether folders silently rewrite namespaces.
+
+### 4.4 Separate author-facing component namespaces from internal generated infrastructure
+
+Milestone 10 should introduce a deterministic internal infrastructure namespace, separate from the author-facing component namespace.
+
+Recommended direction:
+
+- author-facing component namespace:
+  - explicit file namespace, or
+  - project default namespace fallback
+- internal generated namespace:
+  - `<ProjectDefaultNamespace>.__CsxamlGenerated`
+
+Project-level helper output such as:
+
+- component manifest providers
+- external-control registration
+- other future internal support files
+
+should live there.
+
+This keeps:
+
+- user-facing examples clean
+- internal generated support predictable
+- cross-file explicit namespaces from colliding with project-level helper output
+
+### 4.5 Referenced component discovery must use an explicit manifest contract
+
+Do not infer referenced components from:
+
+- class-name suffixes
+- props-record naming conventions
+- ad hoc reflection over all public types
+
+Recommended direction:
+
+- generate a project-level manifest provider into the built assembly
+- expose it through a small public metadata contract
+- let downstream generator runs load that manifest explicitly from referenced assemblies
+
+That contract should include at least:
+
+- component name
+- component namespace
+- assembly identity
+- generated component CLR type name
+- generated props CLR type name, if any
+- parameter names and parameter type names in order
+- whether default child content is supported
+
+### 4.6 Cross-project component imports should use the same normal `using` and alias model as other imports
+
+Milestone 10 should support both:
+
+- `using MyCompany.Widgets;` plus bare `<TodoCard />` when unambiguous
+- `using Widgets = MyCompany.Widgets;` plus `<Widgets:TodoCard />` when explicit qualification is desired
+
+This keeps the mental model aligned with the direction already set for:
+
+- external controls
+- attached-property owner lookup
+- file-local helper code and file-scoped namespaces
+
+If milestone implementation adds alias-qualified component tags, update the language spec in the same change so the project does not drift into undocumented behavior.
+
+### 4.7 Resolution rules must stay deterministic and boring
+
+Recommended simple-tag resolution rule:
+
+1. built-in native controls by exact simple name
+2. local components from the current compilation by exact simple name
+3. imported referenced components and imported external controls from visible namespaces
+4. clear diagnostics for ambiguity or unsupported imported matches
+
+Recommended alias-qualified resolution rule:
+
+1. resolve alias to exactly one namespace
+2. search referenced components and external controls visible in that namespace
+3. if one supported match exists, use it
+4. if multiple supported matches exist, fail with a diagnostic
+5. if only unsupported matches exist, fail with the explicit unsupported reason
+
+Do not add heuristic fallback searches.
+
+### 4.8 Test projects should behave like ordinary consumers
+
+Milestone 10 should prove that at least one test project can:
+
+- reference a component project or component library
+- compile against its generated components
+- instantiate or render those generated components
+
+without:
+
+- a duplicate `GenerateCsxaml` target aimed at the referenced source files
+- hand-maintained generated-file includes
+- hand-authored mirrored support code
+
+### 4.9 Incremental means both target skipping and write stability
+
+This milestone should not call something "incremental" unless both are true:
+
+- MSBuild can skip generator invocation when inputs and reference outputs are unchanged
+- when generation does run, unchanged generated files keep their content and timestamps
+
+Deleting and rewriting every generated file on every input change is still churn, even if the target itself sometimes skips.
+
+### 4.10 Generated app code must not depend on generator internals
+
+Generated project code may depend on:
+
+- `Csxaml.Runtime`
+- the chosen public metadata contract assembly
+
+Generated project code must not depend on:
+
+- `Csxaml.Generator` internals
+- test-only helpers
+- repo-local build helper types that do not ship as normal references
+
+This is part of the package/API boundary discipline Milestone 10 is supposed to lock down.
+
+---
+
+## 5. Tempting Wrong Approaches
+
+### Wrong approach: switch to a Roslyn source generator now
+
+That would multiply the problem space:
+
+- new hosting model
+- new incremental model
+- new design-time story
+- new debugging surface
+
+before the current project contract is even explicit.
+
+Milestone 10 should make the current generator host predictable first.
+
+### Wrong approach: keep copy-paste targets and just "clean them up a little"
+
+If `Csxaml.Demo`, fixture projects, and test projects all keep their own near-duplicate targets, the repo will drift immediately.
+
+The right fix is one shared integration path.
+
+### Wrong approach: preserve `GeneratedCsxaml` as the default forever
+
+That namespace is:
+
+- not project specific
+- not discoverable from normal .NET conventions
+- likely to collide across libraries
+- hostile to cross-project imports
+
+Milestone 10 should retire it as the fallback convention, not bless it.
+
+### Wrong approach: infer referenced components from naming conventions
+
+For example:
+
+- find public types ending in `Component`
+- guess the tag name by trimming the suffix
+- guess the props type by appending `Props`
+
+That is brittle, opaque, and hard to version intentionally.
+
+The manifest contract must be explicit.
+
+### Wrong approach: scan referenced source trees or `obj` folders
+
+That would make build behavior dependent on:
+
+- source layout
+- intermediate output layout
+- project-to-project file visibility quirks
+
+The downstream contract should be assembly-based and deterministic.
+
+### Wrong approach: treat test projects as a permanent special case
+
+If milestone proof still requires a test project to regenerate someone else's `.csxaml` files manually, the roadmap promise has not actually landed.
+
+### Wrong approach: keep destructive `RemoveDir` generation
+
+That hides stale-file logic instead of solving it and guarantees needless churn.
+
+### Wrong approach: make folder structure rewrite namespaces automatically
+
+Folder mirroring sounds convenient until someone asks:
+
+- what happens on rename
+- what happens on partial namespace declarations
+- how tooling displays the effective namespace
+
+Milestone 10 should favor explicit file namespaces plus a simple project-default fallback.
+
+### Wrong approach: freeze package boundaries accidentally
+
+Do not let the easiest local implementation quietly decide forever:
+
+- which assembly owns component manifest types
+- whether generated projects reference generator-only assemblies
+- whether internal build helpers become runtime surface area
+
+Those boundaries need an intentional decision while the blast radius is still manageable.
+
+---
+
+## 6. Recommended V1 Project Model
+
+### 6.1 Project opt-in should be obvious
+
+Recommended project shape:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <EnableCsxaml>true</EnableCsxaml>
+    <RootNamespace>MyCompany.Widgets</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CsxamlSource Include="**\*.csxaml" Exclude="bin\**;obj\**" />
+  </ItemGroup>
+</Project>
+```
+
+The project should not need to know:
+
+- where the generator output folder lives
+- how references are collected
+- how manifests are emitted
+- how stale files are pruned
+
+Those are shared-build concerns.
+
+### 6.2 Namespace behavior should be unsurprising
+
+Examples:
+
+```csharp
+// No explicit namespace in UserAvatar.csxaml
+component Element UserAvatar(string UserId) {
+    return <TextBlock Text={UserId} />;
 }
-Prop values
+```
 
-Each property should capture:
+If `RootNamespace` is `MyCompany.Widgets`, the generated component lives in:
 
-Name
-Value
-optional ValueKindHint
-Event values
+- `MyCompany.Widgets`
 
-Each event should capture:
+If the file declares:
 
-exposed name such as OnClick
-handler delegate
-Component nodes
+```csharp
+namespace MyCompany.Widgets.Admin;
 
-Keep component nodes strongly typed and separate from native element nodes.
-
-Runtime Control Adapter Layer
-
-Add a control adapter layer that owns native control creation and patching.
-
-Responsibilities
-
-For each supported native tag:
-
-create native control instance
-apply supported properties
-wire supported events
-patch changed properties during reconciliation
-patch or rebind events safely
-Recommended shape
-
-One adapter per supported control type, for example:
-
-ButtonControlAdapter
-TextBlockControlAdapter
-StackPanelControlAdapter
-BorderControlAdapter
-
-Or a small adapter registry plus per-type implementations.
-
-Do not do this
-
-Do not put all property application in one massive switch statement file.
-
-Validation Requirements
-
-Generator validation must use metadata tables to validate native tags, props, and events.
-
-Validate
-known native tag
-prop exists on supported control metadata
-event exists on supported control metadata
-reserved props are used only where legal
-duplicate native props are rejected
-duplicate events are rejected
-Error examples
-unknown prop on native control
-unsupported event on control
-reserved prop misused
-invalid component prop
-duplicate attribute name
-
-Diagnostics can be plain build errors for now.
-
-Todo Demo Changes
-
-Update the Todo demo so cards visually reflect done/not done.
-
-Goal
-
-Use the new native property system to pass color/styling props in CSXAML.
-
-Recommended implementation
-
-Use Border around each todo card and set its background or border brush based on IsDone.
-
-Done card
-green background or green border
-Not done card
-red background or red border
-
-Keep it simple and obvious.
-
-Example target authoring shape
-
-TodoCard.csxaml should be able to express something like:
-
-component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-return <Border Background={IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground}>
-<StackPanel>
-<TextBlock Text={Title} Foreground={TodoColors.CardForeground} />
-if (IsDone) {
-<TextBlock Text="Done" Foreground={TodoColors.DoneForeground} />
+component Element AuditBadge(string Label) {
+    return <TextBlock Text={Label} />;
 }
-if (!IsDone) {
-<TextBlock Text="Not Done" Foreground={TodoColors.NotDoneForeground} />
+```
+
+the generated component lives in:
+
+- `MyCompany.Widgets.Admin`
+
+No hidden folder convention should intervene.
+
+### 6.3 Internal generated support should be hidden but deterministic
+
+For the same project, internal support files should live in:
+
+- `MyCompany.Widgets.__CsxamlGenerated`
+
+For example:
+
+- `MyCompany.Widgets.__CsxamlGenerated.GeneratedComponentManifest`
+- `MyCompany.Widgets.__CsxamlGenerated.GeneratedExternalControlRegistration`
+
+Generated component code may reference those types with fully-qualified names.
+
+User-authored code should not need to import or know them.
+
+### 6.4 Referenced component consumption should feel like ordinary C#
+
+Consumer example:
+
+```csharp
+using MyCompany.Widgets;
+using Admin = MyCompany.Widgets.Admin;
+
+component Element Dashboard(string UserId) {
+    return <StackPanel>
+        <UserAvatar UserId={UserId} />
+        <Admin:AuditBadge Label="Verified" />
+    </StackPanel>;
 }
-<Button Content="Toggle" OnClick={OnToggle} />
-</StackPanel>
-</Border>;
-}
+```
 
-Exact syntax can vary slightly depending on your current grammar, but the demo must visibly show green/red based on state.
+That is the right mental model:
 
-Supporting code
+- bring namespaces into scope with `using`
+- use bare names when unambiguous
+- use aliases when explicit qualification makes the code clearer
 
-It is acceptable to add a small C# helper such as TodoColors with static brushes if brush literal syntax is not yet supported.
+### 6.5 Test projects should stop pretending they are special
 
-That is preferable to inventing a brush-construction language in this milestone.
+Recommended proof scenario:
 
-Implementation Phases
-Phase 1 - Introduce control metadata generator
-Deliverables
-new metadata generation project or clear module
-reflection over curated WinUI control list
-generated metadata artifact
-shared metadata model
-Acceptance criteria
-metadata tables are generated deterministically
-metadata can answer:
-what props exist for Button
-what events exist for Button
-what props exist for Border
-what props exist for TextBlock
-Phase 2 - Update parser and AST for generic native attributes
-Deliverables
-native element attributes parsed generically
-reserved props separated conceptually
-attribute value kinds preserved
-Acceptance criteria
-native element tags can carry arbitrary supported attributes in syntax
-parser no longer depends on control-specific prop hardcoding for supported native tags
-Phase 3 - Add metadata-driven validation
-Deliverables
-validator consumes metadata tables
-native prop validation
-native event validation
-native tag validation
-duplicate attribute checks
-Acceptance criteria
-invalid native props fail build with clear diagnostics
-invalid native events fail build with clear diagnostics
-valid native props/events pass
-Phase 4 - Update emission model for generic native props/events
-Deliverables
-generated code emits generic native prop structures
-generated code emits generic native event structures
-reserved props like Key handled separately
-component prop emission standardized/tightened
-Acceptance criteria
-generated code remains readable and deterministic
-parent-to-child component prop passing is strongly typed and clear
-native element emission no longer depends only on specialized constructor signatures
-Phase 5 - Add runtime control adapter layer
-Deliverables
-adapter registry
-adapters for:
-StackPanel
-TextBlock
-Button
-Border if used in the Todo demo
-property application logic
-event binding logic
-minimal patch/update logic for supported properties
-Acceptance criteria
-supported native properties apply correctly
-supported events bind correctly
-rerender/patch works for changed supported props
-Phase 6 - Update Todo demo
-Deliverables
-Todo demo updated to use native prop syntax for visual styling
-done/not done cards clearly green/red
-TodoColors helper or similar if needed
-no hand-authored custom rendering path outside the normal CSXAML flow
-Acceptance criteria
-green when done
-red when not done
-toggle still works
-demo is expressed through the new metadata-driven prop model
-Phase 7 - Tests and cleanup
-Deliverables
-metadata generation tests
-validator tests
-emitter snapshot/golden tests
-runtime property application tests
-component prop passing tests
-todo demo smoke test if available
-Acceptance criteria
-regressions in metadata/validation/emission are covered
-bug fixes follow failing-test-first discipline
-Required Project/File Structure
+- `Csxaml.ProjectSystem.TestComponents` class library contains `.csxaml` components
+- `Csxaml.ProjectSystem.Tests` references that project normally
+- tests instantiate or render generated component types directly
 
-Keep responsibilities split.
+No duplicate generator target in the test project.
 
-Suggested project layout
-/Csxaml.ControlMetadata
-/Model
-ControlMetadata.cs
-PropertyMetadata.cs
-EventMetadata.cs
-ValueKindHint.cs
+That is the kind of proof Milestone 10 needs.
 
-/Csxaml.ControlMetadata.Generator
-/Discovery
-/Filtering
-/Emission
+---
 
-/Csxaml.Generator
-/Cli
-/Syntax
-/Parsing
-/Ast
-/Validation
-/Emission
-/Diagnostics
+## 7. Required Architecture Changes
 
-/Csxaml.Runtime
-/Nodes
-/Components
-/Rendering
-/Adapters
-/Hosting
-/Reconciliation
+### 7.1 Centralize build logic into shared repo assets
 
-/Csxaml.Demo
-/Components
-/Models
-/Support
+Recommended files:
 
-If you do not want a separate metadata project, at least keep metadata model and metadata generation clearly separated from runtime and generator logic.
+- `build/Csxaml.props`
+- `build/Csxaml.targets`
+- optional root `Directory.Build.props`
+- optional root `Directory.Build.targets`
 
-File-Size and Maintainability Rules
+The shared build contract should define:
 
-Because maintainability is already a concern, enforce these during implementation:
+- project opt-in property such as `EnableCsxaml`
+- default generated directory, preferably under `$(IntermediateOutputPath)Csxaml`
+- generated source manifest path
+- generated reference manifest path
+- generated stamp or output manifest path
+- project default namespace
+- internal generated namespace
+- generator invocation target
+- cleanup target integration with `CoreClean`
 
-preferred file size: under 200 lines
-warning threshold: 300 lines
-hard stop: 400 lines
+Keep the targets:
 
-Do not allow:
+- short
+- literal
+- inspectable
 
-tokenizer + parser + validator in one file
-metadata discovery + filtering + emission in one file
-runtime node definitions + adapter logic + control patching in one file
+Do not bury the actual control flow behind imported mystery targets with opaque names.
 
-Split early.
+### 7.2 Extend generator options to carry project context explicitly
 
-Testing Requirements
-Metadata generator tests
-discovers expected props for curated controls
-discovers expected events for curated controls
-filtering behaves as expected
-generated metadata artifact is stable
-Generator/validator tests
-valid native props accepted
-invalid native props rejected
-valid native events accepted
-invalid native events rejected
-reserved props handled correctly
-component prop passing validates correctly
-Emitter tests
-generated native prop/event emission snapshots
-generated component prop emission snapshots
-Runtime tests
-adapter creates correct native control type
-supported properties apply
-supported properties patch correctly
-events bind and rebind safely
-Demo-level tests
-todo card green when done
-todo card red when not done
-toggle preserves expected visual updates
-Stop Conditions
+The generator currently only receives:
 
-The agent must stop and refactor before continuing if any of these happen:
+- output directory
+- references-file path
+- input files
 
-Reflection logic is being copied into runtime hot paths.
-Native props and native events are being treated as one undifferentiated bag.
-Component props are drifting toward dynamic dictionaries.
-Property application is becoming one giant switch file.
-Metadata generation, validation, and runtime application are being mixed together.
-The Todo demo change requires special-case code outside the normal CSXAML pipeline.
-Files grow into large, multi-responsibility implementations.
-Definition of Done
+Milestone 10 should add explicit project context, at minimum:
 
-Milestone 3 is done when:
+- default component namespace
+- internal generated namespace
+- optionally project or assembly name if that simplifies diagnostics or manifest emission
 
-reflection-based metadata tables exist for the supported native control set
-parser captures native attributes generically
-validator uses metadata tables for native prop/event validation
-generated code emits generic native prop/event structures
-runtime uses control adapters to create/patch native controls
-parent-to-child component prop passing is strongly typed and clean
-Todo cards visually show green for done and red for not done using CSXAML props
-invalid native props/events fail with clear diagnostics
-the implementation remains split into small, understandable files
-Final Instruction to the Agent
+Recommended additions:
 
-Implement this as a focused infrastructure milestone. The primary goal is to establish a maintainable metadata-driven native property system and solid component prop passing. Do not broaden the language unnecessarily. Do not chase full WinUI coverage. Use the Todo demo as the proof that the new native prop system works by coloring cards green/red based on done state.
+- extend `GeneratorOptions`
+- extend `GeneratorOptionsParser`
+- thread the new context through `GeneratorRunner`, `CompilationContext`, and emitters
 
-If you want, I can also turn this into a tighter implementation-plan.md with explicit file-by-file deliverables and suggested commit breakdowns.s
+Do not keep project-default namespace behavior as a hardcoded emitter fallback.
+
+### 7.3 Make output writing deterministic and non-destructive
+
+`OutputWriter` should become responsible for:
+
+- writing only when content actually changed
+- preserving unchanged file timestamps
+- deleting stale generated files within the designated generated directory
+- refusing to delete outside the designated generated directory
+
+Recommended direction:
+
+- generator computes the exact current output file set
+- output writer writes changed files
+- output writer removes stale `.g.cs` files under the generated directory that are no longer part of the current set
+- output writer also writes a stable generated-file manifest if that helps `CoreClean` and fixture assertions
+
+This is the right place to solve stale-output behavior because the generator already knows the intended file set.
+
+### 7.4 Introduce a small public component-manifest contract
+
+Recommended direction:
+
+- place a data-only manifest contract in `Csxaml.ControlMetadata` unless that assembly becomes semantically muddy enough to justify spinning out a tiny shared contract assembly first
+
+The contract should be boring:
+
+- `ComponentMetadata`
+- `ComponentParameterMetadata`
+- `CompiledComponentManifest`
+- optional assembly attribute or provider interface for discovery
+
+The contract should not contain:
+
+- parser logic
+- runtime rendering logic
+- build-target logic
+
+Its only job is to let generated component libraries describe their exported component surface to downstream generator runs.
+
+### 7.5 Emit a manifest provider into each generating component project
+
+Milestone 10 should generate a project-level manifest provider file that contains the local component surface.
+
+Each entry should include at least:
+
+- tag name
+- namespace name
+- assembly identity
+- fully qualified generated component type name
+- fully qualified generated props type name, or null when the component has no props
+- ordered parameter metadata
+- default-slot support flag
+
+The provider should live in the internal generated namespace and be discoverable without naming heuristics.
+
+### 7.6 Add a referenced-component catalog builder
+
+The generator needs a new semantic step that:
+
+- inspects referenced assemblies
+- locates the explicit component manifest provider
+- reads referenced component metadata into a downstream catalog
+
+Keep this loader narrow:
+
+- load only assemblies already supplied through the build reference list
+- read only the known manifest contract
+- cache loaded manifests per assembly path during one generator run
+- surface explicit unsupported or malformed-manifest diagnostics when needed
+
+Do not turn this into broad reflection over every public type in every assembly.
+
+### 7.7 Rewrite component catalogs around explicit component entries
+
+The current catalog stores `ParsedComponent` by simple name.
+
+Milestone 10 should introduce an explicit component entry model that can represent both:
+
+- local components from the current project
+- referenced components from manifest metadata
+
+Each entry should answer:
+
+- simple name
+- namespace name
+- assembly identity
+- full identity
+- component CLR type name
+- props CLR type name
+- ordered parameter metadata
+- default-slot support
+- whether the component is local or referenced
+
+Local-only data such as source spans can remain attached separately for diagnostics.
+
+### 7.8 Extend tag resolution to handle referenced components cleanly
+
+`MarkupTagResolver` should evolve so that it can:
+
+- resolve local components
+- resolve imported referenced components
+- resolve alias-qualified referenced components
+- keep built-in native control behavior stable
+- keep imported external control behavior stable
+- produce good ambiguity diagnostics when names collide
+- diagnose duplicate referenced component identities clearly when namespace plus simple name collide across assemblies
+
+Important guardrail:
+
+Do not split tag resolution into separate hidden code paths that duplicate import rules for components and native controls. The import model should stay one coherent system.
+
+### 7.9 Emit fully qualified component type usage
+
+`ChildNodeEmitter` currently assumes:
+
+- local simple component tag name
+- local props record type name
+- local component class type name
+
+Milestone 10 should switch component emission to use explicit resolved metadata, not local naming assumptions.
+
+That means the resolver result for components should provide enough information to emit:
+
+- `typeof(global::MyCompany.Widgets.UserAvatarComponent)`
+- `new global::MyCompany.Widgets.UserAvatarProps(...)`
+
+or their zero-props equivalent.
+
+This change will also make local-component emission more explicit and robust.
+
+### 7.10 Move project-level helper output off the author-facing namespace assumption
+
+Current external-control registration output should be updated so that:
+
+- it lives in the internal generated namespace
+- generated component code references it explicitly by fully qualified name
+
+This avoids hidden namespace coupling and keeps future project-level helper output in one deterministic place.
+
+### 7.11 Add real multi-project fixture coverage
+
+Milestone 10 needs honest proof fixtures, not just unit tests over generator internals.
+
+Recommended fixture shape:
+
+- `Csxaml.ProjectSystem.Components`
+  - class library
+  - contains a few `.csxaml` components
+  - includes both explicit-namespace and fallback-namespace files
+- `Csxaml.ProjectSystem.Consumer`
+  - class library or small app
+  - consumes the components through `using` imports and alias-qualified tags
+- `Csxaml.ProjectSystem.Tests`
+  - MSTest project
+  - references the component library normally
+  - instantiates generated components or runs hostless runtime proofs
+
+In addition, integration tests or fixture scripts should run:
+
+- build
+- rebuild
+- clean
+- rename/delete scenarios
+
+### 7.12 Reduce duplicate generation in existing tests where it matters
+
+Milestone 10 does not need to refactor every current test immediately, but it should leave the repo with at least one honest normal-reference proof and a clear path away from bespoke duplication.
+
+Reasonable milestone-10 target:
+
+- keep specialized demo-regeneration tests only where they are still buying focused runtime coverage
+- add at least one normal-reference test project as the canonical project-system proof
+- stop adding new duplicate-regeneration patterns once the shared build path exists
+
+### 7.13 Lock package and API boundaries intentionally
+
+Before the milestone is called complete, the plan should explicitly record:
+
+- which assembly owns the public component manifest contract
+- which assemblies generated app code is allowed to reference
+- where shared build assets live in the repo
+- which pieces are still repo-local implementation details rather than public release surface
+
+This does not require Milestone 15 packaging work, but it does require intentional boundaries.
+
+---
+
+## 8. Execution Plan
+
+### Phase 1 - Lock the milestone with real proof fixtures and failing tests
+
+#### Goal
+
+Define the success surface before refactoring the build.
+
+#### Tasks
+
+- add a small component-library fixture project dedicated to project-system proof
+- add a consumer fixture project that references that library
+- add a test-project proof that references the library normally
+- add failing tests or scripted assertions for:
+  - fallback namespace uses project default namespace
+  - explicit file namespace overrides fallback
+  - referenced component resolution through `using Namespace;`
+  - alias-qualified referenced component resolution through `using Alias = Namespace;`
+  - stale generated file cleanup after rename/delete
+  - unchanged rebuild does not rewrite outputs
+  - referenced-assembly changes rerun downstream generation
+  - test project consumes generated components without duplicate generation target
+
+#### Guardrail
+
+Do not change the build system first and then "add proof later." The fixture surface is what keeps this milestone honest.
+
+### Phase 2 - Centralize the shared build contract and project context
+
+#### Goal
+
+Replace duplicated project-local generation targets with one shared integration path and explicit generator inputs.
+
+#### Tasks
+
+- add shared build props/targets files
+- define the opt-in property for projects that contain `.csxaml`
+- define standard generated-directory and manifest-file paths
+- extend generator CLI options with:
+  - default component namespace
+  - internal generated namespace
+- update generating projects to use the shared target rather than handwritten inline targets
+- keep the current invocation model readable; avoid stacking shell indirection on top of MSBuild indirection
+
+#### Guardrail
+
+After this phase, there should be one obvious place to read the CSXAML build contract.
+
+### Phase 3 - Land deterministic output writing, stale-output pruning, and clean integration
+
+#### Goal
+
+Make `obj` behavior boring and fast enough for real iteration.
+
+#### Tasks
+
+- teach `OutputWriter` to write only changed files
+- add stale-file pruning limited to the designated generated directory
+- emit a stable generated-file manifest or equivalent output list if needed for clean and fixture assertions
+- stop deleting the whole generated directory on every generation run
+- register generated outputs with `FileWrites` or equivalent clean integration
+- add clean/rebuild/rename fixture assertions
+
+#### Guardrail
+
+Do not call the milestone "incremental" if generation still rewrites every output file whenever anything changes.
+
+### Phase 4 - Emit and load referenced component manifests
+
+#### Goal
+
+Introduce the explicit contract that lets downstream projects understand referenced CSXAML components.
+
+#### Tasks
+
+- add the public component-manifest contract types
+- generate a project-level manifest provider into each producing project
+- add a referenced-component manifest loader over referenced assemblies
+- keep load behavior deterministic and local to the provided reference list
+- add validation and failure diagnostics for malformed or missing manifest expectations where appropriate
+- add unit tests for manifest generation and loading
+
+#### Guardrail
+
+If implementation starts guessing component shape from naming conventions instead of reading the manifest contract, stop and correct it immediately.
+
+### Phase 5 - Rewrite component catalogs, resolution, and emission for cross-project use
+
+#### Goal
+
+Make the generator understand referenced components as first-class symbols.
+
+#### Tasks
+
+- replace simple-name-only component catalog entries with explicit component metadata entries
+- extend `MarkupTagResolver` to resolve:
+  - local components
+  - imported referenced components
+  - alias-qualified referenced components
+  - existing imported external controls
+- preserve deterministic ambiguity diagnostics
+- update validators to use component metadata rather than local AST assumptions where needed
+- update `ChildNodeEmitter` to emit fully qualified component and props type names
+- update project-level helper emission such as external-control registration to use the internal generated namespace
+
+#### Guardrail
+
+Keep resolution logic in one understandable place. Do not fork "component import logic" and "control import logic" into parallel half-systems.
+
+### Phase 6 - Prove ordinary test-project consumption
+
+#### Goal
+
+Close the roadmap gap where test projects still need bespoke generation wiring.
+
+#### Tasks
+
+- add or update one test project so it references a component library normally
+- use the referenced generated component types in at least one real test
+- remove duplicate generation wiring from that proof path
+- document which existing duplicate-generation tests remain temporary and why
+
+#### Guardrail
+
+Do not declare success just because build fixtures compile. A real test project must consume generated components through a normal reference path.
+
+### Phase 7 - Harden reference invalidation and design-time-adjacent behavior
+
+#### Goal
+
+Make the shared target predictable when references and build modes change.
+
+#### Tasks
+
+- ensure reference-list changes trigger generation
+- ensure project-reference rebuilds propagate via referenced assembly timestamps or equivalent inputs
+- ensure package-version or referenced-control-library changes invalidate appropriately
+- run at least one design-time-style or `DesignTimeBuild=true` smoke build to confirm the target does not behave catastrophically
+- keep design-time support narrow and honest; the milestone only needs stability, not full IDE richness
+
+#### Guardrail
+
+Do not over-promise full IDE behavior. The standard for Milestone 10 is "stable enough for normal development," not "tooling is done."
+
+### Phase 8 - Migrate demo/support namespaces and update milestone truth
+
+#### Goal
+
+Align the example code and docs with the new namespace reality.
+
+#### Tasks
+
+- update demo support types away from the placeholder `GeneratedCsxaml` assumption
+- update any generated-component consumers such as app bootstrap code to use the new namespace model
+- update `LANGUAGE-SPEC.md` if alias-qualified referenced component tags or other import semantics were extended
+- update `ROADMAP.md` milestone status and notes only after the proof matrix is actually satisfied
+- add notes about any intentionally deferred project-system limits
+
+#### Guardrail
+
+Do not leave the demo and docs teaching the old placeholder namespace after the real default convention changes.
+
+---
+
+## 9. Verification Matrix
+
+### Shared build integration
+
+- one shared repo-level CSXAML target path exists
+- demo and any fixture projects use the shared path rather than copy-pasted targets
+- projects without `EnableCsxaml` are unaffected
+
+### Namespace behavior
+
+- file with explicit `namespace` emits there
+- file without explicit namespace emits into project default namespace
+- internal helper output emits into the internal generated namespace
+- demo/support code compiles cleanly under the new convention
+
+### Referenced component discovery
+
+- producing project emits a manifest provider
+- downstream generator loads the referenced manifest
+- manifest data includes props and slot support
+- manifest data includes enough identity to diagnose same-name exports from different assemblies
+- malformed or unsupported manifest conditions fail clearly
+
+### Resolution behavior
+
+- local simple component tags still work
+- imported referenced component tags work through `using Namespace;`
+- alias-qualified referenced component tags work through `using Alias = Namespace;`
+- imported external controls still work
+- ambiguity across referenced components yields a diagnostic
+- duplicate same-namespace same-name exports across different assemblies yield a diagnostic
+- unsupported imported matches yield explicit diagnostics
+
+### Emission behavior
+
+- emitted component references use fully qualified type names
+- zero-props components and props-bearing components both work
+- child content/default slot support survives cross-project use
+
+### Incremental and cleanup behavior
+
+- unchanged rebuild skips generation or at minimum does not rewrite outputs
+- changed `.csxaml` file updates only affected generated outputs
+- renamed `.csxaml` file removes the old generated file
+- deleted `.csxaml` file removes the old generated file
+- `dotnet clean` removes generated outputs predictably
+
+### Reference invalidation behavior
+
+- referenced component-library rebuild invalidates downstream generation
+- referenced external-control library change invalidates downstream generation
+- changed project default namespace invalidates generation
+
+### Test-project proof
+
+- a test project references a component library normally
+- the test project uses generated component types without duplicate generation wiring
+- proof remains understandable to a new maintainer
+
+### Milestone truth check
+
+- roadmap checklist items for Milestone 10 are satisfied by actual proof, not just code existence
+- language spec still matches the implemented import/namespace model
+
+---
+
+## 10. Concrete Checklist
+
+- [ ] add shared repo-level CSXAML build props/targets
+- [ ] define a single project opt-in property such as `EnableCsxaml`
+- [ ] move generating projects onto the shared build path
+- [ ] define `CsxamlGeneratedDirectory` under `$(IntermediateOutputPath)`
+- [ ] define stable source/reference/stamp manifest file paths
+- [ ] extend generator CLI options with default component namespace
+- [ ] extend generator CLI options with internal generated namespace
+- [ ] replace the hardcoded `GeneratedCsxaml` fallback in the emitter
+- [ ] define the internal generated namespace convention
+- [ ] emit project-level helper output into the internal generated namespace
+- [ ] make generated component code reference helper output by fully qualified name
+- [ ] add write-if-changed output behavior
+- [ ] add stale generated-file pruning
+- [ ] integrate generated outputs with clean behavior
+- [ ] add a public component-manifest contract
+- [ ] generate a project-level component manifest provider
+- [ ] load referenced component manifests from referenced assemblies
+- [ ] introduce explicit component catalog entries for local and referenced components
+- [ ] resolve imported referenced components through `using Namespace;`
+- [ ] resolve alias-qualified referenced components through `using Alias = Namespace;`
+- [ ] preserve existing external-control import behavior
+- [ ] preserve existing local component behavior
+- [ ] emit fully qualified referenced component and props type names
+- [ ] validate child-content support from component metadata, not local AST assumptions alone
+- [ ] add a component-library fixture project
+- [ ] add a consumer fixture project
+- [ ] add a normal-reference test-project proof
+- [ ] add build/clean/rebuild/rename integration assertions
+- [ ] add reference-invalidation integration assertions
+- [ ] migrate demo/support code off the placeholder namespace assumption
+- [ ] update spec wording if alias-qualified component tags become part of the implemented model
+- [ ] update roadmap truth only after proof scenarios pass
+
+---
+
+## 11. Prove-Yourself-Wrong Loop
+
+Use this loop after every phase and before calling the milestone complete.
+
+1. Did the build contract actually get simpler?
+
+- If the answer is "not really" because multiple projects still carry custom targets, keep going.
+
+2. Did we accidentally preserve `GeneratedCsxaml` in a way that still matters?
+
+- If demo code, support code, or generated helper code still depends on it as the real default story, the milestone is not done.
+
+3. Are referenced components discovered through an explicit contract?
+
+- If the code is still guessing from type names, stop and fix it.
+
+4. Does imported component resolution feel like the same world as external-control imports?
+
+- If components and external controls now use visibly different namespace mental models, the plan is drifting away from the roadmap direction.
+
+5. Did we accidentally create a build system that looks incremental but still churns files?
+
+- Check both target skipping and file timestamp stability.
+
+6. Can a test project consume components without re-running generation over the referenced source files?
+
+- If not, the test-project goal is still open.
+
+7. Did we accidentally force generated code to reference generator-only internals?
+
+- If yes, fix the boundary before continuing.
+
+8. Did project-level helper output become clearer or murkier?
+
+- If manifests, registration, and support files are scattered across namespaces with no clean rule, stop and simplify.
+
+9. Did the resolver stay understandable?
+
+- If the tag-resolution code now feels like multiple interleaved search engines, refactor before moving on.
+
+10. Would a new engineer know how to import a referenced component?
+
+- The intended answer should be one sentence:
+  - "Use a normal `using`, and alias it if you need to qualify the tag."
+
+If the answer requires caveats, there is probably still too much magic.
+
+---
+
+## 12. Stop Conditions
+
+Stop and refactor before continuing if any of these happen:
+
+- shared build logic starts splitting into per-project variants again
+- generator output still rewrites unchanged files after the incremental phase
+- referenced component discovery relies on naming heuristics instead of manifest metadata
+- generated app code gains a compile dependency on `Csxaml.Generator`
+- namespace fallback becomes more complicated than explicit-file-namespace or project-default-namespace
+- component and external-control import logic diverge into separate mental models
+- test-project proof still depends on duplicate generation wiring
+- design-time stabilization work starts turning into Milestone 11 tooling implementation
+
+Do not push through these warnings. Simplify first.
+
+---
+
+## 13. Exit Criteria Restated
+
+Milestone 10 is complete only when:
+
+- there is one shared, understandable CSXAML build path
+- project default namespace behavior is explicit, deterministic, and no longer centered on `GeneratedCsxaml`
+- internal generated support files have a deterministic home
+- referenced component libraries export an explicit manifest contract
+- downstream projects can import referenced components through normal `using` semantics
+- test projects can consume generated components through normal references without duplicate generation wiring
+- unchanged builds avoid needless regeneration churn
+- rename/delete/clean/rebuild scenarios are covered by proof
+- roadmap and language-spec documentation match the implementation that actually landed
+
+If any one of those is still unproven, Milestone 10 is not done.

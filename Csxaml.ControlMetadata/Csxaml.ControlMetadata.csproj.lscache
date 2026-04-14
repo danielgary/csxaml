@@ -56,19 +56,29 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 /warnaserror+:NU1605,SYSLIB0011
 
 [sourceFiles]
-Generated/GeneratedControlMetadata.cs
+Generated/
+ GeneratedAttachedPropertyMetadata.cs
+ GeneratedControlMetadata.cs
 Model/
+ AttachedPropertyMetadata.cs
+ CompiledComponentManifest.cs
+ ComponentMetadata.cs
+ ComponentParameterMetadata.cs
  ControlChildKind.cs
  ControlMetadata.cs
+ CsxamlComponentManifestProviderAttribute.cs
  EventBindingKind.cs
  EventMetadata.cs
+ IComponentManifestProvider.cs
  PropertyMetadata.cs
  ValueKindHint.cs
 obj/Debug/net10.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
  Csxaml.ControlMetadata.AssemblyInfo.cs
  Csxaml.ControlMetadata.GlobalUsings.g.cs
-Registry/ControlMetadataRegistry.cs
+Registry/
+ AttachedPropertyMetadataRegistry.cs
+ ControlMetadataRegistry.cs
 
 [metadataReferences]
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.5/ref/net10.0/

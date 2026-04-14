@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml;
+
 namespace Csxaml.Runtime.Tests.Adapters;
 
 [TestClass]
@@ -64,7 +66,40 @@ public sealed class NativeElementReaderTests
         var found = NativeElementReader.TryGetPropertyValue<bool?>(node, "IsChecked", out var isChecked);
 
         Assert.IsTrue(found);
-        Assert.AreEqual(true, isChecked);
+        Assert.IsTrue(isChecked ?? false);
+    }
+
+    [TestMethod]
+    public void TryGetAttachedPropertyValue_IntHint_ConvertsInt()
+    {
+        var node = new NativeElementNode(
+            "TextBlock",
+            null,
+            Array.Empty<NativePropertyValue>(),
+            [new NativeAttachedPropertyValue("Grid", "Row", 2, ValueKindHint.Int)],
+            Array.Empty<NativeEventValue>(),
+            Array.Empty<Node>());
+
+        var found = NativeElementReader.TryGetAttachedPropertyValue<int>(node, "Grid", "Row", out var row);
+
+        Assert.IsTrue(found);
+        Assert.AreEqual(2, row);
+    }
+
+    [TestMethod]
+    public void TryGetPropertyValue_ThicknessHint_ConvertsUniformNumber()
+    {
+        var node = new NativeElementNode(
+            "Border",
+            null,
+            [new NativePropertyValue("Padding", 16, ValueKindHint.Thickness)],
+            Array.Empty<NativeEventValue>(),
+            Array.Empty<Node>());
+
+        var found = NativeElementReader.TryGetPropertyValue<Thickness>(node, "Padding", out var padding);
+
+        Assert.IsTrue(found);
+        Assert.AreEqual(new Thickness(16), padding);
     }
 
     [TestMethod]

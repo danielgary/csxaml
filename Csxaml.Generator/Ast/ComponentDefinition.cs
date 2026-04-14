@@ -4,5 +4,7 @@ internal sealed record ComponentDefinition(
     string Name,
     IReadOnlyList<ComponentParameter> Parameters,
     IReadOnlyList<StateFieldDefinition> StateFields,
-    MarkupNode Root,
+    ComponentHelperCodeBlock? HelperCode,
+    ChildNode Root,
+    bool SupportsDefaultSlot,
     TextSpan Span);

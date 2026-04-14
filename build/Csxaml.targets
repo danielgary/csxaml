@@ -1,0 +1,84 @@
+<Project>
+  <PropertyGroup Condition="'$(EnableCsxaml)' == 'true'">
+    <CsxamlIntermediateRoot Condition="'$(CsxamlIntermediateRoot)' == ''">$(IntermediateOutputPath)Csxaml</CsxamlIntermediateRoot>
+    <CsxamlGeneratedDirectory Condition="'$(CsxamlGeneratedDirectory)' == ''">$(CsxamlIntermediateRoot)\Generated</CsxamlGeneratedDirectory>
+    <CsxamlSourceManifestFile Condition="'$(CsxamlSourceManifestFile)' == ''">$(CsxamlIntermediateRoot)\Sources.txt</CsxamlSourceManifestFile>
+    <CsxamlReferenceManifestFile Condition="'$(CsxamlReferenceManifestFile)' == ''">$(CsxamlIntermediateRoot)\References.txt</CsxamlReferenceManifestFile>
+    <CsxamlProjectContextFile Condition="'$(CsxamlProjectContextFile)' == ''">$(CsxamlIntermediateRoot)\ProjectContext.txt</CsxamlProjectContextFile>
+    <CsxamlStampFile Condition="'$(CsxamlStampFile)' == ''">$(CsxamlIntermediateRoot)\Generation.stamp</CsxamlStampFile>
+    <CsxamlDefaultNamespace Condition="'$(CsxamlDefaultNamespace)' == '' and '$(RootNamespace)' != ''">$(RootNamespace)</CsxamlDefaultNamespace>
+    <CsxamlDefaultNamespace Condition="'$(CsxamlDefaultNamespace)' == ''">$(AssemblyName)</CsxamlDefaultNamespace>
+    <CsxamlInternalGeneratedNamespace Condition="'$(CsxamlInternalGeneratedNamespace)' == ''">$(CsxamlDefaultNamespace).__CsxamlGenerated</CsxamlInternalGeneratedNamespace>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableCsxaml)' == 'true'">
+    <CsxamlGeneratorInput Include="$(CsxamlGeneratorProject)" />
+    <CsxamlGeneratorInput
+      Include="$(MSBuildThisFileDirectory)..\Csxaml.Generator\**\*.cs"
+      Exclude="$(MSBuildThisFileDirectory)..\Csxaml.Generator\bin\**;$(MSBuildThisFileDirectory)..\Csxaml.Generator\obj\**" />
+  </ItemGroup>
+
+  <Target
+    Name="PrepareCsxamlInputs"
+    DependsOnTargets="ResolveReferences"
+    Condition="'$(EnableCsxaml)' == 'true' and '@(CsxamlSource)' != ''">
+    <MakeDir Directories="$(CsxamlIntermediateRoot)" />
+    <MakeDir Directories="$(CsxamlGeneratedDirectory)" />
+
+    <ItemGroup>
+      <CsxamlGeneratorReference Include="@(ReferencePath)" />
+      <CsxamlGeneratorReference Include="@(ReferenceCopyLocalPaths)" />
+    </ItemGroup>
+
+    <WriteLinesToFile
+      File="$(CsxamlSourceManifestFile)"
+      Lines="@(CsxamlSource->'%(FullPath)')"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile
+      File="$(CsxamlReferenceManifestFile)"
+      Lines="@(CsxamlGeneratorReference)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile
+      File="$(CsxamlProjectContextFile)"
+      Lines="$(AssemblyName);$(CsxamlDefaultNamespace);$(CsxamlInternalGeneratedNamespace)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <Target
+    Name="GenerateCsxaml"
+    DependsOnTargets="PrepareCsxamlInputs"
+    BeforeTargets="MarkupCompilePass1;CoreCompile"
+    Inputs="@(CsxamlSource);@(ReferencePath);@(ReferenceCopyLocalPaths);@(CsxamlGeneratorInput);$(CsxamlSourceManifestFile);$(CsxamlReferenceManifestFile);$(CsxamlProjectContextFile);$(MSBuildThisFileFullPath);$(MSBuildThisFileDirectory)Csxaml.props"
+    Outputs="$(CsxamlStampFile)"
+    Condition="'$(EnableCsxaml)' == 'true' and '@(CsxamlSource)' != ''">
+    <Exec
+      Command="dotnet run --project &quot;$(CsxamlGeneratorProject)&quot; -- --out &quot;$(CsxamlGeneratedDirectory)&quot; --assembly-name &quot;$(AssemblyName)&quot; --default-namespace &quot;$(CsxamlDefaultNamespace)&quot; --generated-namespace &quot;$(CsxamlInternalGeneratedNamespace)&quot; --references-file &quot;$(CsxamlReferenceManifestFile)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
+      WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Touch Files="$(CsxamlStampFile)" AlwaysCreate="true" />
+  </Target>
+
+  <Target
+    Name="IncludeCsxamlGeneratedCompileItems"
+    DependsOnTargets="GenerateCsxaml"
+    BeforeTargets="MarkupCompilePass1;CoreCompile"
+    Condition="'$(EnableCsxaml)' == 'true' and '@(CsxamlSource)' != ''">
+    <ItemGroup>
+      <Compile Include="$(CsxamlGeneratedDirectory)\**\*.g.cs" Visible="false" />
+      <FileWrites Include="$(CsxamlSourceManifestFile)" />
+      <FileWrites Include="$(CsxamlReferenceManifestFile)" />
+      <FileWrites Include="$(CsxamlProjectContextFile)" />
+      <FileWrites Include="$(CsxamlStampFile)" />
+      <FileWrites Include="$(CsxamlGeneratedDirectory)\**\*.g.cs" Condition="Exists('$(CsxamlGeneratedDirectory)')" />
+    </ItemGroup>
+  </Target>
+
+  <Target
+    Name="CleanCsxamlOutputs"
+    AfterTargets="CoreClean"
+    Condition="'$(EnableCsxaml)' == 'true' and Exists('$(CsxamlIntermediateRoot)')">
+    <RemoveDir Directories="$(CsxamlIntermediateRoot)" />
+  </Target>
+</Project>

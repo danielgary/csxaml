@@ -2,4 +2,7 @@ namespace Csxaml.Generator;
 
 internal sealed record ParsedComponent(
     SourceDocument Source,
-    ComponentDefinition Definition);
+    CsxamlFileDefinition File)
+{
+    public ComponentDefinition Definition => File.Component;
+}

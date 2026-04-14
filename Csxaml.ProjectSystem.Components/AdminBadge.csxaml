@@ -1,0 +1,7 @@
+namespace Csxaml.ProjectSystem.Components.Admin;
+
+component Element AdminBadge(string Label) {
+    return <TextBlock
+        AutomationProperties.Name="Admin Badge"
+        Text={Label} />;
+}

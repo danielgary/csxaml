@@ -16,6 +16,12 @@ internal sealed class Tokenizer
                 continue;
             }
 
+            if (current == '/' && CSharpTextScanner.TrySkipComment(source, index, out var afterComment))
+            {
+                index = afterComment;
+                continue;
+            }
+
             if (char.IsLetter(current) || current == '_')
             {
                 index = ReadIdentifier(source.Text, index, tokens);

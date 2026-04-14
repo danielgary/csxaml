@@ -9,7 +9,7 @@
     <WindowsPackageType>None</WindowsPackageType>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
-    <CsxamlGeneratedDirectory>$(MSBuildProjectDirectory)\obj\GeneratedCsxaml</CsxamlGeneratedDirectory>
+    <EnableCsxaml>true</EnableCsxaml>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,20 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\\Csxaml.Runtime\\Csxaml.Runtime.csproj" />
+    <ProjectReference Include="..\\Csxaml.ExternalControls\\Csxaml.ExternalControls.csproj" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 
-  <ItemGroup>
-    <CsxamlSource Include="**\\*.csxaml" Exclude="bin\\**;obj\\**" />
-  </ItemGroup>
-
-  <Target Name="GenerateCsxaml" BeforeTargets="BeforeBuild" Condition="'@(CsxamlSource)' != ''">
-    <RemoveDir Directories="$(CsxamlGeneratedDirectory)" Condition="Exists('$(CsxamlGeneratedDirectory)')" />
-    <MakeDir Directories="$(CsxamlGeneratedDirectory)" />
-    <Exec
-      Command="dotnet run --no-restore --project &quot;$(MSBuildProjectDirectory)\\..\\Csxaml.Generator\\Csxaml.Generator.csproj&quot; -- --out &quot;$(CsxamlGeneratedDirectory)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
-      WorkingDirectory="$(MSBuildProjectDirectory)" />
-    <ItemGroup>
-      <Compile Include="$(CsxamlGeneratedDirectory)\\**\\*.g.cs" />
-    </ItemGroup>
-  </Target>
 </Project>

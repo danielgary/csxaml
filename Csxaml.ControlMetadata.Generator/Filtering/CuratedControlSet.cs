@@ -4,17 +4,27 @@ namespace Csxaml.ControlMetadata.Generator;
 
 internal static class CuratedControlSet
 {
+    private static readonly IReadOnlyList<string> CommonFrameworkElementPropertyNames =
+    [
+        "Height",
+        "HorizontalAlignment",
+        "Margin",
+        "Style",
+        "VerticalAlignment",
+        "Width"
+    ];
+
     public static IReadOnlyList<CuratedControlDefinition> Definitions { get; } =
     [
         new(
             typeof(Border),
             ControlChildKind.Single,
-            ["Background", "BorderBrush", "BorderThickness", "Padding"],
+            WithCommonFrameworkElementProperties("Background", "BorderBrush", "BorderThickness", "Padding"),
             []),
         new(
             typeof(Button),
             ControlChildKind.None,
-            ["Background", "Content", "FontSize", "Foreground"],
+            WithCommonFrameworkElementProperties("Background", "Content", "FontSize", "Foreground"),
             [
                 new CuratedEventDefinition(
                     ["Click"],
@@ -27,7 +37,7 @@ internal static class CuratedControlSet
         new(
             typeof(CheckBox),
             ControlChildKind.None,
-            ["Content", "IsChecked"],
+            WithCommonFrameworkElementProperties("Content", "IsChecked"),
             [
                 new CuratedEventDefinition(
                     ["Checked", "Unchecked", "Indeterminate"],
@@ -38,19 +48,29 @@ internal static class CuratedControlSet
                     EventBindingKind.BoolValueChanged)
             ]),
         new(
+            typeof(Grid),
+            ControlChildKind.Multiple,
+            WithCommonFrameworkElementProperties("Background", "ColumnDefinitions", "RowDefinitions"),
+            []),
+        new(
+            typeof(ScrollViewer),
+            ControlChildKind.Single,
+            WithCommonFrameworkElementProperties(),
+            []),
+        new(
             typeof(StackPanel),
             ControlChildKind.Multiple,
-            ["Background", "Orientation", "Spacing"],
+            WithCommonFrameworkElementProperties("Background", "Orientation", "Spacing"),
             []),
         new(
             typeof(TextBlock),
             ControlChildKind.None,
-            ["FontSize", "Foreground", "Text"],
+            WithCommonFrameworkElementProperties("FontSize", "Foreground", "Text"),
             []),
         new(
             typeof(TextBox),
             ControlChildKind.None,
-            ["AcceptsReturn", "MinHeight", "PlaceholderText", "Text", "TextWrapping", "Width"],
+            WithCommonFrameworkElementProperties("AcceptsReturn", "MinHeight", "PlaceholderText", "Text", "TextWrapping"),
             [
                 new CuratedEventDefinition(
                     ["TextChanged"],
@@ -61,4 +81,12 @@ internal static class CuratedControlSet
                     EventBindingKind.TextValueChanged)
             ])
     ];
+
+    private static IReadOnlyList<string> WithCommonFrameworkElementProperties(params string[] propertyNames)
+    {
+        return propertyNames
+            .Concat(CommonFrameworkElementPropertyNames)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+    }
 }

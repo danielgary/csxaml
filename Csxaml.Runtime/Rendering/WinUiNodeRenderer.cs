@@ -118,8 +118,25 @@ public sealed class WinUiNodeRenderer
     private void ApplyElement(RenderedNativeElement rendered, NativeElementNode node)
     {
         rendered.Adapter.ApplyProperties(rendered.Element, node);
+        ApplyAttachedProperties(rendered, node);
         rendered.Adapter.ApplyEvents(rendered.Element, node, rendered.EventBindings);
         UpdateChildren(rendered, node);
+    }
+
+    private static void ApplyAttachedProperties(RenderedNativeElement rendered, NativeElementNode node)
+    {
+        if (node.AttachedProperties.Count == 0)
+        {
+            return;
+        }
+
+        if (rendered.Element is not FrameworkElement frameworkElement)
+        {
+            throw new InvalidOperationException(
+                $"Projected element for '{node.TagName}' must be a FrameworkElement.");
+        }
+
+        AttachedPropertyApplicator.Apply(frameworkElement, node);
     }
 
     private void UpdateChildren(RenderedNativeElement rendered, NativeElementNode node)

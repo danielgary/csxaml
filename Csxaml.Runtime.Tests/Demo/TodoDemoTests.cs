@@ -1,4 +1,6 @@
-using GeneratedCsxaml;
+using Csxaml.ExternalControls;
+using Csxaml.Demo;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Csxaml.Runtime.Tests.Demo;
 
@@ -17,19 +19,90 @@ public sealed class TodoDemoTests
     }
 
     [TestMethod]
+    public void TodoBoard_UsesGridLayoutAndSemanticHooks()
+    {
+        var component = new TodoBoardComponent();
+
+        var tree = (NativeElementNode)new ComponentTreeCoordinator(component).Render();
+
+        Assert.AreEqual("Grid", tree.TagName);
+        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "Todo Board Title"));
+        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "Selection Status Button"));
+        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "External WinUI Proof"));
+        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "Todo List"));
+        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "Task Editor"));
+        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationId(tree, "SelectedTodoTitle"));
+        Assert.AreEqual(
+            1,
+            RuntimeTreeHelpers.GetAttachedProperty<int>(
+                RuntimeTreeHelpers.FindByAutomationName(tree, "Task Editor")!,
+                "Grid",
+                "Column"));
+    }
+
+    [TestMethod]
+    public void TodoBoard_ExternalInteropControls_AppearWithResolvedRuntimeKeys()
+    {
+        var component = new TodoBoardComponent();
+
+        var tree = (NativeElementNode)new ComponentTreeCoordinator(component).Render();
+        var statusButton = RuntimeTreeHelpers.FindByAutomationName(tree, "Selection Status Button");
+        var infoBar = RuntimeTreeHelpers.FindByAutomationName(tree, "External WinUI Proof");
+
+        Assert.IsNotNull(statusButton);
+        Assert.IsNotNull(infoBar);
+        Assert.AreEqual(typeof(StatusButton).FullName, statusButton!.TagName);
+        Assert.AreEqual(typeof(InfoBar).FullName, infoBar!.TagName);
+        Assert.AreEqual("todo-1", RuntimeTreeHelpers.GetProperty<string>(statusButton, "BadgeText"));
+    }
+
+    [TestMethod]
+    public void TodoBoard_UsesDeferredStyleObjectsOnNativeControls()
+    {
+        var component = new TodoBoardComponent();
+
+        var tree = (NativeElementNode)new ComponentTreeCoordinator(component).Render();
+        var statusButton = RuntimeTreeHelpers.FindByAutomationName(tree, "Selection Status Button");
+        var infoBar = RuntimeTreeHelpers.FindByAutomationName(tree, "External WinUI Proof");
+
+        AssertDeferredStyle(statusButton!);
+        AssertDeferredStyle(infoBar!);
+        AssertDeferredStyle(GetSelectButton(tree, 0));
+        AssertDeferredStyle(GetToggleButton(tree, 0));
+    }
+
+    [TestMethod]
     public void TodoBoard_SelectingItemUpdatesEditorFields()
     {
         var component = new TodoBoardComponent();
         var coordinator = new ComponentTreeCoordinator(component);
 
-        var firstEditor = GetEditor(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()));
-        Assert.AreEqual("Draft plan", GetEditorTextBox(firstEditor, 0));
+        var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        Assert.AreEqual("Draft plan", GetTitleEditorText(firstRoot));
 
-        RuntimeTreeHelpers.GetEventHandler<Action>(GetSelectButton(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()), 1), "OnClick")();
+        RuntimeTreeHelpers.GetEventHandler<Action>(GetSelectButton(firstRoot, 1), "OnClick")();
 
-        var secondEditor = GetEditor(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()));
-        Assert.AreEqual("Wire runtime", GetEditorTextBox(secondEditor, 0));
-        Assert.AreEqual("Reconcile the renderer and adapter flow.", GetEditorTextBox(secondEditor, 1));
+        var secondRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        Assert.AreEqual("Wire runtime", GetTitleEditorText(secondRoot));
+        Assert.AreEqual("Reconcile the renderer and adapter flow.", GetNotesEditorText(secondRoot));
+    }
+
+    [TestMethod]
+    public void TodoBoard_StatusButtonResetsSelectionToFirstItem()
+    {
+        var component = new TodoBoardComponent();
+        var coordinator = new ComponentTreeCoordinator(component);
+
+        var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        RuntimeTreeHelpers.GetEventHandler<Action>(GetSelectButton(firstRoot, 1), "OnClick")();
+
+        var secondRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        Assert.AreEqual("Wire runtime", GetTitleEditorText(secondRoot));
+
+        RuntimeTreeHelpers.GetEventHandler<Action>(GetSelectionStatusButton(secondRoot), "OnClick")();
+
+        var thirdRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        Assert.AreEqual("Draft plan", GetTitleEditorText(thirdRoot));
     }
 
     [TestMethod]
@@ -38,12 +111,12 @@ public sealed class TodoDemoTests
         var component = new TodoBoardComponent();
         var coordinator = new ComponentTreeCoordinator(component);
 
-        var firstEditor = GetEditor(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()));
-        RuntimeTreeHelpers.GetEventHandler<Action<string>>(GetTextBox(firstEditor, 0), "OnTextChanged")("Ship Milestone 4");
+        var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        RuntimeTreeHelpers.GetEventHandler<Action<string>>(GetTitleEditor(firstRoot), "OnTextChanged")("Ship Milestone 6");
 
-        var secondEditor = GetEditor(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()));
-        Assert.AreEqual("Ship Milestone 4", GetEditorTextBox(secondEditor, 0));
-        Assert.AreEqual("Ship Milestone 4", GetCardTitle(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()), 0));
+        var secondRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        Assert.AreEqual("Ship Milestone 6", GetTitleEditorText(secondRoot));
+        Assert.AreEqual("Ship Milestone 6", GetCardTitle(secondRoot, 0));
     }
 
     [TestMethod]
@@ -52,14 +125,13 @@ public sealed class TodoDemoTests
         var component = new TodoBoardComponent();
         var coordinator = new ComponentTreeCoordinator(component);
 
-        var firstRoot = RuntimeTreeHelpers.RootStackPanel(coordinator.Render());
+        var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
         RuntimeTreeHelpers.GetEventHandler<Action>(GetToggleButton(firstRoot, 1), "OnClick")();
 
-        var secondRoot = RuntimeTreeHelpers.RootStackPanel(coordinator.Render());
-        var secondEditor = GetEditor(secondRoot);
+        var secondRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
 
-        Assert.AreEqual("Draft plan", GetEditorTextBox(secondEditor, 0));
-        Assert.AreEqual("Sketch the interaction model for controlled inputs.", GetEditorTextBox(secondEditor, 1));
+        Assert.AreEqual("Draft plan", GetTitleEditorText(secondRoot));
+        Assert.AreEqual("Sketch the interaction model for controlled inputs.", GetNotesEditorText(secondRoot));
         Assert.AreEqual("Not Done", GetCardStatus(secondRoot, 1));
     }
 
@@ -69,11 +141,11 @@ public sealed class TodoDemoTests
         var component = new TodoBoardComponent();
         var coordinator = new ComponentTreeCoordinator(component);
 
-        var firstEditor = GetEditor(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()));
-        RuntimeTreeHelpers.GetEventHandler<Action<string>>(GetTextBox(firstEditor, 1), "OnTextChanged")("Add TextBox and CheckBox support.");
+        var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        RuntimeTreeHelpers.GetEventHandler<Action<string>>(GetNotesEditor(firstRoot), "OnTextChanged")("Add Grid and ScrollViewer support.");
 
-        var secondEditor = GetEditor(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()));
-        Assert.AreEqual("Add TextBox and CheckBox support.", GetEditorTextBox(secondEditor, 1));
+        var secondRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        Assert.AreEqual("Add Grid and ScrollViewer support.", GetNotesEditorText(secondRoot));
     }
 
     [TestMethod]
@@ -82,20 +154,28 @@ public sealed class TodoDemoTests
         var component = new TodoBoardComponent();
         var coordinator = new ComponentTreeCoordinator(component);
 
-        var firstEditor = GetEditor(RuntimeTreeHelpers.RootStackPanel(coordinator.Render()));
-        RuntimeTreeHelpers.GetEventHandler<Action<bool>>(GetCheckBox(firstEditor), "OnCheckedChanged")(true);
+        var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        RuntimeTreeHelpers.GetEventHandler<Action<bool>>(GetDoneCheckBox(firstRoot), "OnCheckedChanged")(true);
 
-        var secondRoot = RuntimeTreeHelpers.RootStackPanel(coordinator.Render());
-        var secondEditor = GetEditor(secondRoot);
+        var secondRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
 
-        Assert.IsTrue(RuntimeTreeHelpers.GetProperty<bool?>(GetCheckBox(secondEditor), "IsChecked") ?? false);
+        Assert.IsTrue(RuntimeTreeHelpers.GetProperty<bool?>(GetDoneCheckBox(secondRoot), "IsChecked") ?? false);
         Assert.AreEqual("Done", GetCardStatus(secondRoot, 0));
     }
 
     private static NativeElementNode GetCard(NativeElementNode root, int index)
     {
-        var listPanel = RuntimeTreeHelpers.GetChildElement(root, 0);
-        return RuntimeTreeHelpers.GetChildElement(listPanel, index + 1);
+        var listPanel = RuntimeTreeHelpers.GetChildElement(
+            RuntimeTreeHelpers.FindByAutomationName(root, "Todo List")!,
+            0);
+        return RuntimeTreeHelpers.GetChildElement(listPanel, index);
+    }
+
+    private static void AssertDeferredStyle(NativeElementNode node)
+    {
+        var style = RuntimeTreeHelpers.GetProperty<object>(node, "Style");
+        Assert.IsNotNull(style);
+        Assert.IsInstanceOfType(style, typeof(DeferredStyle));
     }
 
     private static string GetCardStatus(NativeElementNode root, int index)
@@ -110,19 +190,24 @@ public sealed class TodoDemoTests
         return RuntimeTreeHelpers.GetProperty<string>(RuntimeTreeHelpers.GetChildElement(cardPanel, 0), "Text") ?? string.Empty;
     }
 
-    private static NativeElementNode GetCheckBox(NativeElementNode editor)
+    private static NativeElementNode GetDoneCheckBox(NativeElementNode root)
     {
-        return RuntimeTreeHelpers.GetChildElement(RuntimeTreeHelpers.GetChildElement(editor, 0), 4);
+        return RuntimeTreeHelpers.FindByAutomationId(root, "SelectedTodoDone")!;
     }
 
-    private static NativeElementNode GetEditor(NativeElementNode root)
+    private static NativeElementNode GetNotesEditor(NativeElementNode root)
     {
-        return RuntimeTreeHelpers.GetChildElement(root, 1);
+        return RuntimeTreeHelpers.FindByAutomationId(root, "SelectedTodoNotes")!;
     }
 
-    private static string GetEditorTextBox(NativeElementNode editor, int index)
+    private static NativeElementNode GetSelectionStatusButton(NativeElementNode root)
     {
-        return RuntimeTreeHelpers.GetProperty<string>(GetTextBox(editor, index), "Text") ?? string.Empty;
+        return RuntimeTreeHelpers.FindByAutomationName(root, "Selection Status Button")!;
+    }
+
+    private static string GetNotesEditorText(NativeElementNode root)
+    {
+        return RuntimeTreeHelpers.GetProperty<string>(GetNotesEditor(root), "Text") ?? string.Empty;
     }
 
     private static NativeElementNode GetSelectButton(NativeElementNode root, int index)
@@ -137,8 +222,13 @@ public sealed class TodoDemoTests
         return RuntimeTreeHelpers.GetChildElement(cardPanel, 3);
     }
 
-    private static NativeElementNode GetTextBox(NativeElementNode editor, int index)
+    private static NativeElementNode GetTitleEditor(NativeElementNode root)
     {
-        return RuntimeTreeHelpers.GetChildElement(RuntimeTreeHelpers.GetChildElement(editor, 0), index + 1);
+        return RuntimeTreeHelpers.FindByAutomationId(root, "SelectedTodoTitle")!;
+    }
+
+    private static string GetTitleEditorText(NativeElementNode root)
+    {
+        return RuntimeTreeHelpers.GetProperty<string>(GetTitleEditor(root), "Text") ?? string.Empty;
     }
 }

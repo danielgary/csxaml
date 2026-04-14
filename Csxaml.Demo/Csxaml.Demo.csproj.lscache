@@ -69,11 +69,21 @@ Models/TodoItemModel.cs
 obj/x64/Debug/net10.0-windows10.0.19041.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
  Csxaml.Demo.AssemblyInfo.cs
-Support/TodoColors.cs
+ Csxaml/Generated/
+  GeneratedComponentManifest.g.cs
+  GeneratedExternalControlRegistration.g.cs
+  TodoBoard.g.cs
+  TodoCard.g.cs
+  TodoEditor.g.cs
+  TodoPanel.g.cs
+Support/
+ TodoColors.cs
+ TodoStyles.cs
 
 [metadataReferences]
 ../
  Csxaml.ControlMetadata/obj/x64/Debug/net10.0/ref/Csxaml.ControlMetadata.dll
+ Csxaml.ExternalControls/obj/x64/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.ExternalControls.dll
  Csxaml.Runtime/obj/x64/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.Runtime.dll
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.5/ref/net10.0/
  Microsoft.CSharp.dll

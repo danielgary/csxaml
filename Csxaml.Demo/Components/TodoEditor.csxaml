@@ -1,11 +1,35 @@
+using Microsoft.UI.Xaml;
+
+namespace Csxaml.Demo;
+
 component Element TodoEditor(string Title, string Notes, bool IsDone, Action<string> OnTitleChanged, Action<string> OnNotesChanged, Action<bool> OnDoneChanged) {
-    return <Border Background={TodoColors.EditorBackground} Padding={TodoColors.CardPadding}>
+    return <Border
+        AutomationProperties.Name="Editor Surface"
+        Background={TodoColors.EditorBackground}
+        Padding={TodoColors.CardPadding}>
         <StackPanel Spacing={8}>
-        <TextBlock Text="Editor" Foreground={TodoColors.EditorForeground} FontSize={22} />
-        <TextBox Text={Title} PlaceholderText="Title" OnTextChanged={OnTitleChanged} Width={280} />
-        <TextBox Text={Notes} PlaceholderText="Notes" OnTextChanged={OnNotesChanged} AcceptsReturn={true} TextWrapping={global::Microsoft.UI.Xaml.TextWrapping.Wrap} MinHeight={120} Width={280} />
-        <TextBlock Text="Changes apply as you type." Foreground={TodoColors.EditorHintForeground} />
-        <CheckBox IsChecked={IsDone} Content="Done" OnCheckedChanged={OnDoneChanged} />
+            <TextBlock Text="Editor" Foreground={TodoColors.EditorForeground} FontSize={22} />
+            <TextBox
+                AutomationProperties.AutomationId="SelectedTodoTitle"
+                Text={Title}
+                PlaceholderText="Title"
+                OnTextChanged={OnTitleChanged}
+                Width={280} />
+            <TextBox
+                AutomationProperties.AutomationId="SelectedTodoNotes"
+                Text={Notes}
+                PlaceholderText="Notes"
+                OnTextChanged={OnNotesChanged}
+                AcceptsReturn={true}
+                TextWrapping={TextWrapping.Wrap}
+                MinHeight={120}
+                Width={280} />
+            <TextBlock Text="Changes apply as you type." Foreground={TodoColors.EditorHintForeground} />
+            <CheckBox
+                AutomationProperties.AutomationId="SelectedTodoDone"
+                IsChecked={IsDone}
+                Content="Done"
+                OnCheckedChanged={OnDoneChanged} />
         </StackPanel>
     </Border>;
 }

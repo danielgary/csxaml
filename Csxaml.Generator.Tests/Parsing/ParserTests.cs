@@ -21,7 +21,8 @@ public sealed class ParserTests
             """;
 
         var component = GeneratorTestHarness.Parse("TodoCard.csxaml", sourceText).Definition;
-        var rootChild = (MarkupNode)component.Root.Children[0];
+        var root = TestAstAssertions.RequireMarkup(component.Root);
+        var rootChild = TestAstAssertions.RequireMarkup(root.Children[0]);
 
         Assert.AreEqual("TodoCard", component.Name);
         Assert.HasCount(3, component.Parameters);
@@ -31,8 +32,8 @@ public sealed class ParserTests
         Assert.AreEqual("IsDone", component.Parameters[1].Name);
         Assert.AreEqual("Action", component.Parameters[2].TypeName);
         Assert.AreEqual("OnToggle", component.Parameters[2].Name);
-        Assert.AreEqual("Border", component.Root.TagName);
-        Assert.AreEqual("Background", component.Root.Properties[0].Name);
+        Assert.AreEqual("Border", root.TagName);
+        Assert.AreEqual("Background", root.Properties[0].Name);
         Assert.AreEqual("StackPanel", rootChild.TagName);
         Assert.AreEqual("Spacing", rootChild.Properties[0].Name);
         Assert.IsInstanceOfType<IfBlockNode>(rootChild.Children[1]);
@@ -55,16 +56,59 @@ public sealed class ParserTests
             """;
 
         var component = GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText).Definition;
-        var loop = (ForEachBlockNode)component.Root.Children[1];
+        var root = TestAstAssertions.RequireMarkup(component.Root);
+        var loop = (ForEachBlockNode)root.Children[1];
         var child = (MarkupNode)loop.Children[0];
 
         Assert.HasCount(1, component.StateFields);
         Assert.AreEqual("Items", component.StateFields[0].Name);
         Assert.AreEqual("item", loop.ItemName);
         Assert.AreEqual("Items.Value", loop.CollectionExpression);
-        Assert.AreEqual("Spacing", component.Root.Properties[0].Name);
+        Assert.AreEqual("Spacing", root.Properties[0].Name);
         Assert.AreEqual("TodoCard", child.TagName);
         Assert.HasCount(4, child.Properties);
         Assert.AreEqual("Key", child.Properties[0].Name);
+    }
+
+    [TestMethod]
+    public void Parse_FileLevelUsingDirectives_ProducesUsingDefinitions()
+    {
+        const string sourceText = """
+            using Microsoft.UI.Xaml.Controls;
+            using WinUi = Microsoft.UI.Xaml.Controls;
+
+            component Element TodoBoard {
+                return <StackPanel />;
+            }
+            """;
+
+        var file = new Parser().Parse(
+            new SourceDocument("TodoBoard.csxaml", GeneratorTestHarness.Normalize(sourceText)));
+
+        Assert.HasCount(2, file.UsingDirectives);
+        Assert.AreEqual("Microsoft.UI.Xaml.Controls", file.UsingDirectives[0].NamespaceName);
+        Assert.IsNull(file.UsingDirectives[0].Alias);
+        Assert.AreEqual("WinUi", file.UsingDirectives[1].Alias);
+        Assert.AreEqual("Microsoft.UI.Xaml.Controls", file.UsingDirectives[1].NamespaceName);
+    }
+
+    [TestMethod]
+    public void Parse_AliasQualifiedTag_PreservesPrefixAndLocalName()
+    {
+        const string sourceText = """
+            using WinUi = Microsoft.UI.Xaml.Controls;
+
+            component Element TodoBoard {
+                return <WinUi:InfoBar IsOpen={true}></WinUi:InfoBar>;
+            }
+            """;
+
+        var component = GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText).Definition;
+
+        var root = TestAstAssertions.RequireMarkup(component.Root);
+
+        Assert.AreEqual("WinUi:InfoBar", root.TagName);
+        Assert.AreEqual("WinUi", root.Tag.Prefix);
+        Assert.AreEqual("InfoBar", root.Tag.LocalName);
     }
 }

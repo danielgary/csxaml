@@ -24,6 +24,7 @@ public sealed class MetadataSourceEmitterTests
         Assert.AreEqual(first, second);
         StringAssert.Contains(first, "new ControlMetadata(");
         StringAssert.Contains(first, "\"Button\"");
+        StringAssert.Contains(first, "new PropertyMetadata(\"Style\", \"Microsoft.UI.Xaml.Style\", true, true, false, true, ValueKindHint.Style)");
         StringAssert.Contains(first, "new EventMetadata(\"Click\", \"OnClick\", \"System.Action\", true, ValueKindHint.Unknown, EventBindingKind.Direct)");
         StringAssert.Contains(first, "new EventMetadata(\"TextChanged\", \"OnTextChanged\", \"System.Action<string>\", true, ValueKindHint.String, EventBindingKind.TextValueChanged)");
     }

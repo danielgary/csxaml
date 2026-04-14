@@ -3,13 +3,13 @@ namespace Csxaml.Runtime;
 internal sealed class ChildComponentStore
 {
     private Dictionary<string, ComponentInstance> _current = new();
+    private Dictionary<string, int> _positionOccurrences = new();
     private Dictionary<string, ComponentInstance> _previous = new();
-    private Dictionary<string, int> _slotOccurrences = new();
 
     public void BeginRenderPass()
     {
         _current = new Dictionary<string, ComponentInstance>();
-        _slotOccurrences = new Dictionary<string, int>();
+        _positionOccurrences = new Dictionary<string, int>();
     }
 
     public void CompleteRenderPass()
@@ -19,19 +19,19 @@ internal sealed class ChildComponentStore
 
     public ComponentInstance Resolve(ComponentNode node)
     {
-        var slot = ComponentSlot.Create(node, _slotOccurrences);
-        if (_current.ContainsKey(slot.MatchKey))
+        var matchKey = ComponentMatchKey.Create(node, _positionOccurrences);
+        if (_current.ContainsKey(matchKey.Value))
         {
             throw new InvalidOperationException(
-                $"Duplicate child component identity '{slot.MatchKey}'.");
+                $"Duplicate child component identity '{matchKey.Value}'.");
         }
 
-        if (!_previous.TryGetValue(slot.MatchKey, out var instance))
+        if (!_previous.TryGetValue(matchKey.Value, out var instance))
         {
             instance = CreateComponentInstance(node.ComponentType);
         }
 
-        _current[slot.MatchKey] = instance;
+        _current[matchKey.Value] = instance;
         return instance;
     }
 

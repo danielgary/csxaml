@@ -1,5 +1,4 @@
 using Csxaml.Runtime;
-using GeneratedCsxaml;
 using Microsoft.UI.Xaml;
 
 namespace Csxaml.Demo;

@@ -9,9 +9,9 @@ internal sealed class ChildNodeParser
         _context = context;
     }
 
-    public MarkupNode ParseRootNode()
+    public ChildNode ParseRootNode()
     {
-        return ParseMarkupNode("missing return block");
+        return ParseChildNode("missing return block");
     }
 
     private IReadOnlyList<ChildNode> ParseBlockChildren(string message)
@@ -74,7 +74,7 @@ internal sealed class ChildNodeParser
             new TextSpan(start, openBrace.Span.End - start));
     }
 
-    private MarkupNode ParseMarkupNode(string message)
+    private ChildNode ParseMarkupNode(string message)
     {
         var openAngle = _context.ReadSymbol("<", message);
         if (_context.TryReadSymbol("/"))
@@ -82,8 +82,15 @@ internal sealed class ChildNodeParser
             throw _context.CreateException(openAngle.Span, "unsupported tag name");
         }
 
-        var tagName = _context.ReadIdentifier("unsupported tag name");
-        var properties = ParseProperties(tagName);
+        var tagName = ParseTagName();
+        var properties = ParseProperties(tagName.Text);
+        if (IsDefaultSlotTag(tagName))
+        {
+            return _context.TryReadSymbol("/")
+                ? ParseSelfClosingSlotOutlet(openAngle, properties)
+                : ParseElementSlotOutlet(openAngle, properties);
+        }
+
         return _context.TryReadSymbol("/")
             ? ParseSelfClosingNode(openAngle, tagName, properties)
             : ParseElementNode(openAngle, tagName, properties);
@@ -91,29 +98,33 @@ internal sealed class ChildNodeParser
 
     private PropertyNode ParseProperty()
     {
-        var propertyName = _context.ReadIdentifier("unsupported prop name");
-        _context.ReadSymbol("=", $"unsupported prop name '{propertyName.Text}'");
+        var (name, ownerName, propertyName, nameSpan) = ParsePropertyName();
+        _context.ReadSymbol("=", $"unsupported prop name '{name}'");
 
         if (_context.TryReadSymbol("{"))
         {
-            var value = _context.ReadRawUntilMatching('}', $"unsupported prop name '{propertyName.Text}'").Trim();
-            var closeBrace = _context.ReadSymbol("}", $"unsupported prop name '{propertyName.Text}'");
+            var value = _context.ReadRawUntilMatching('}', $"unsupported prop name '{name}'").Trim();
+            var closeBrace = _context.ReadSymbol("}", $"unsupported prop name '{name}'");
             return new PropertyNode(
-                propertyName.Text,
+                name,
+                ownerName,
+                propertyName,
                 PropertyValueKind.Expression,
                 value,
-                new TextSpan(propertyName.Span.Start, closeBrace.Span.End - propertyName.Span.Start));
+                new TextSpan(nameSpan.Start, closeBrace.Span.End - nameSpan.Start));
         }
 
-        var stringToken = _context.ReadStringLiteral($"unsupported prop name '{propertyName.Text}'");
+        var stringToken = _context.ReadStringLiteral($"unsupported prop name '{name}'");
         return new PropertyNode(
-            propertyName.Text,
+            name,
+            ownerName,
+            propertyName,
             PropertyValueKind.StringLiteral,
             stringToken.Text,
-            new TextSpan(propertyName.Span.Start, stringToken.Span.End - propertyName.Span.Start));
+            new TextSpan(nameSpan.Start, stringToken.Span.End - nameSpan.Start));
     }
 
-    private IReadOnlyList<PropertyNode> ParseProperties(Token tagName)
+    private IReadOnlyList<PropertyNode> ParseProperties(string tagName)
     {
         var properties = new List<PropertyNode>();
         while (!_context.PeekSymbol(">") &&
@@ -127,12 +138,12 @@ internal sealed class ChildNodeParser
 
     private MarkupNode ParseSelfClosingNode(
         Token openAngle,
-        Token tagName,
+        MarkupTagName tagName,
         IReadOnlyList<PropertyNode> properties)
     {
         var closeAngle = _context.ReadSymbol(">", $"unsupported tag name '{tagName.Text}'");
         return new MarkupNode(
-            tagName.Text,
+            tagName,
             properties,
             Array.Empty<ChildNode>(),
             new TextSpan(openAngle.Span.Start, closeAngle.Span.End - openAngle.Span.Start));
@@ -140,31 +151,127 @@ internal sealed class ChildNodeParser
 
     private MarkupNode ParseElementNode(
         Token openAngle,
-        Token tagName,
+        MarkupTagName tagName,
         IReadOnlyList<PropertyNode> properties)
     {
         _context.ReadSymbol(">", $"unsupported tag name '{tagName.Text}'");
         var children = new List<ChildNode>();
-        while (!IsClosingTag(tagName.Text))
+        while (!IsClosingTag(tagName))
         {
             children.Add(ParseChildNode($"unsupported tag name '{tagName.Text}'"));
         }
 
         _context.ReadSymbol("<", $"unsupported tag name '{tagName.Text}'");
         _context.ReadSymbol("/", $"unsupported tag name '{tagName.Text}'");
-        _context.ReadIdentifier(tagName.Text, $"unsupported tag name '{tagName.Text}'");
+        ReadMatchingClosingTag(tagName);
         var closeAngle = _context.ReadSymbol(">", $"unsupported tag name '{tagName.Text}'");
         return new MarkupNode(
-            tagName.Text,
+            tagName,
             properties,
             children,
             new TextSpan(openAngle.Span.Start, closeAngle.Span.End - openAngle.Span.Start));
     }
 
-    private bool IsClosingTag(string tagName)
+    private SlotOutletNode ParseSelfClosingSlotOutlet(
+        Token openAngle,
+        IReadOnlyList<PropertyNode> properties)
     {
-        return _context.PeekSymbol("<") &&
-               _context.PeekSymbol("/", 1) &&
-               _context.PeekIdentifier(tagName, 2);
+        var closeAngle = _context.ReadSymbol(">", "unsupported tag name 'Slot'");
+        return new SlotOutletNode(
+            properties,
+            Array.Empty<ChildNode>(),
+            new TextSpan(openAngle.Span.Start, closeAngle.Span.End - openAngle.Span.Start));
+    }
+
+    private SlotOutletNode ParseElementSlotOutlet(
+        Token openAngle,
+        IReadOnlyList<PropertyNode> properties)
+    {
+        _context.ReadSymbol(">", "unsupported tag name 'Slot'");
+        var children = new List<ChildNode>();
+        while (!IsClosingTag(new MarkupTagName("Slot", null, "Slot", new TextSpan(openAngle.Span.Start, 4))))
+        {
+            children.Add(ParseChildNode("unsupported tag name 'Slot'"));
+        }
+
+        _context.ReadSymbol("<", "unsupported tag name 'Slot'");
+        _context.ReadSymbol("/", "unsupported tag name 'Slot'");
+        _context.ReadIdentifier("Slot", "unsupported tag name 'Slot'");
+        var closeAngle = _context.ReadSymbol(">", "unsupported tag name 'Slot'");
+        return new SlotOutletNode(
+            properties,
+            children,
+            new TextSpan(openAngle.Span.Start, closeAngle.Span.End - openAngle.Span.Start));
+    }
+
+    private bool IsClosingTag(MarkupTagName tagName)
+    {
+        if (!_context.PeekSymbol("<") || !_context.PeekSymbol("/", 1))
+        {
+            return false;
+        }
+
+        if (tagName.Prefix is null)
+        {
+            return _context.PeekIdentifier(tagName.LocalName, 2) &&
+                !_context.PeekSymbol(":", 3);
+        }
+
+        return _context.PeekIdentifier(tagName.Prefix, 2) &&
+            _context.PeekSymbol(":", 3) &&
+            _context.PeekIdentifier(tagName.LocalName, 4);
+    }
+
+    private MarkupTagName ParseTagName()
+    {
+        var firstPart = _context.ReadIdentifier("unsupported tag name");
+        if (!_context.TryReadSymbol(":"))
+        {
+            return new MarkupTagName(
+                firstPart.Text,
+                null,
+                firstPart.Text,
+                firstPart.Span);
+        }
+
+        var localName = _context.ReadIdentifier("unsupported tag name");
+        return new MarkupTagName(
+            $"{firstPart.Text}:{localName.Text}",
+            firstPart.Text,
+            localName.Text,
+            new TextSpan(firstPart.Span.Start, localName.Span.End - firstPart.Span.Start));
+    }
+
+    private void ReadMatchingClosingTag(MarkupTagName tagName)
+    {
+        if (tagName.Prefix is not null)
+        {
+            _context.ReadIdentifier(tagName.Prefix, $"unsupported tag name '{tagName.Text}'");
+            _context.ReadSymbol(":", $"unsupported tag name '{tagName.Text}'");
+        }
+
+        _context.ReadIdentifier(tagName.LocalName, $"unsupported tag name '{tagName.Text}'");
+    }
+
+    private static bool IsDefaultSlotTag(MarkupTagName tagName)
+    {
+        return tagName.Prefix is null &&
+               string.Equals(tagName.LocalName, "Slot", StringComparison.Ordinal);
+    }
+
+    private (string Name, string? OwnerName, string PropertyName, TextSpan Span) ParsePropertyName()
+    {
+        var firstPart = _context.ReadIdentifier("unsupported prop name");
+        if (!_context.TryReadSymbol("."))
+        {
+            return (firstPart.Text, null, firstPart.Text, firstPart.Span);
+        }
+
+        var propertyPart = _context.ReadIdentifier("unsupported prop name");
+        return (
+            $"{firstPart.Text}.{propertyPart.Text}",
+            firstPart.Text,
+            propertyPart.Text,
+            new TextSpan(firstPart.Span.Start, propertyPart.Span.End - firstPart.Span.Start));
     }
 }

@@ -10,5 +10,6 @@ public enum ValueKindHint
     Object,
     Brush,
     Thickness,
+    Style,
     Unknown
 }

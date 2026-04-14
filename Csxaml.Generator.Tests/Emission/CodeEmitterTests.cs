@@ -29,7 +29,7 @@ public sealed class CodeEmitterTests
             using System.Linq;
             using Csxaml.Runtime;
 
-            namespace GeneratedCsxaml;
+            namespace TestProject;
 
             public sealed record TodoCardProps(string Title, bool IsDone, Action OnToggle);
 
@@ -50,7 +50,7 @@ public sealed class CodeEmitterTests
                         var childNode4 = new NativeElementNode("TextBlock", null, new NativePropertyValue[] { new NativePropertyValue("Text", "Done", global::Csxaml.ControlMetadata.ValueKindHint.String) }, Array.Empty<NativeEventValue>(), Array.Empty<Node>());
                         children2.Add(childNode4);
                     }
-                    var childNode5 = new NativeElementNode("Button", null, new NativePropertyValue[] { new NativePropertyValue("Content", "Toggle", global::Csxaml.ControlMetadata.ValueKindHint.Object) }, new NativeEventValue[] { new NativeEventValue("OnClick", OnToggle, global::Csxaml.ControlMetadata.ValueKindHint.Unknown) }, Array.Empty<Node>());
+                    var childNode5 = new NativeElementNode("Button", null, new NativePropertyValue[] { new NativePropertyValue("Content", "Toggle", global::Csxaml.ControlMetadata.ValueKindHint.Object) }, new NativeEventValue[] { new NativeEventValue("OnClick", (global::System.Action)(OnToggle), global::Csxaml.ControlMetadata.ValueKindHint.Unknown) }, Array.Empty<Node>());
                     children2.Add(childNode5);
                     var childNode1 = new NativeElementNode("StackPanel", null, new NativePropertyValue[] { new NativePropertyValue("Spacing", 8, global::Csxaml.ControlMetadata.ValueKindHint.Double) }, Array.Empty<NativeEventValue>(), children2);
                     children0.Add(childNode1);
@@ -93,12 +93,14 @@ public sealed class CodeEmitterTests
             }
             """);
 
-        var catalog = GeneratorTestHarness.Validate(card, board);
-        var emitted = new CodeEmitter().Emit(board.Definition, catalog);
+        var compilation = GeneratorTestHarness.Validate(card, board);
+        var emitted = new CodeEmitter().Emit(board, compilation);
 
         StringAssert.Contains(emitted, "foreach (var item in Items.Value)");
-        StringAssert.Contains(emitted, "new ComponentNode(typeof(TodoCardComponent)");
-        StringAssert.Contains(emitted, "\"slot0\", item.Id");
+        StringAssert.Contains(
+            emitted,
+            "new ComponentNode(typeof(global::TestProject.TodoCardComponent)");
+        StringAssert.Contains(emitted, "\"position0\", item.Id");
     }
 
     [TestMethod]
@@ -119,9 +121,27 @@ public sealed class CodeEmitterTests
 
         StringAssert.Contains(
             emitted,
-            "new NativeEventValue(\"OnTextChanged\", OnTitleChanged, global::Csxaml.ControlMetadata.ValueKindHint.String)");
+            "new NativeEventValue(\"OnTextChanged\", (global::System.Action<string>)(OnTitleChanged), global::Csxaml.ControlMetadata.ValueKindHint.String)");
         StringAssert.Contains(
             emitted,
-            "new NativeEventValue(\"OnCheckedChanged\", OnDoneChanged, global::Csxaml.ControlMetadata.ValueKindHint.Bool)");
+            "new NativeEventValue(\"OnCheckedChanged\", (global::System.Action<bool>)(OnDoneChanged), global::Csxaml.ControlMetadata.ValueKindHint.Bool)");
+    }
+
+    [TestMethod]
+    public void Emit_BuiltInStyleExpression_UsesStyleValueKind()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                return <Button Content="Save" Style={TodoStyles.PrimaryButton} />;
+            }
+            """);
+
+        var emitted = GeneratorTestHarness.Emit(component);
+
+        StringAssert.Contains(
+            emitted,
+            "new NativePropertyValue(\"Style\", TodoStyles.PrimaryButton, global::Csxaml.ControlMetadata.ValueKindHint.Style)");
     }
 }

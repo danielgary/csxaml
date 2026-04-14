@@ -1,0 +1,127 @@
+namespace Csxaml.Generator.Tests.Validation;
+
+[TestClass]
+public sealed class AttachedPropertyValidationTests
+{
+    [TestMethod]
+    public void Validate_GridAttachedPropertyInsideGrid_IsAccepted()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                return <Grid>
+                    <TextBlock Grid.Row={1} Grid.Column={0} Text="Todo Board" />
+                </Grid>;
+            }
+            """);
+
+        GeneratorTestHarness.Validate(component);
+    }
+
+    [TestMethod]
+    public void Validate_ComponentAttachedPropertyInsideGrid_IsAccepted()
+    {
+        var editor = GeneratorTestHarness.Parse(
+            "TodoEditor.csxaml",
+            """
+            component Element TodoEditor(string Title) {
+                return <Border>
+                    <TextBlock Text={Title} />
+                </Border>;
+            }
+            """);
+        var board = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                return <Grid>
+                    <TodoEditor Grid.Column={1} AutomationProperties.Name="Task Editor" Title="Draft plan" />
+                </Grid>;
+            }
+            """);
+
+        GeneratorTestHarness.Validate(editor, board);
+    }
+
+    [TestMethod]
+    public void Validate_GridAttachedPropertyInsideForeachUnderGrid_IsAccepted()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                return <Grid>
+                    foreach (var item in new[] { 0, 1 }) {
+                        <TextBlock Grid.Row={item} Text="Todo Board" />
+                    }
+                </Grid>;
+            }
+            """);
+
+        GeneratorTestHarness.Validate(component);
+    }
+
+    [TestMethod]
+    public void Validate_GridAttachedPropertyOutsideGrid_ThrowsDiagnostic()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                return <StackPanel>
+                    <TextBlock Grid.Row={1} Text="Todo Board" />
+                </StackPanel>;
+            }
+            """);
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Validate(component));
+
+        StringAssert.Contains(
+            exception.Diagnostic.Message,
+            "attached property 'Grid.Row' on 'TextBlock' requires parent 'Grid'");
+    }
+
+    [TestMethod]
+    public void Validate_DuplicateAttachedProperty_ThrowsDiagnostic()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                return <Grid>
+                    <TextBlock Grid.Row={0} Grid.Row={1} Text="Todo Board" />
+                </Grid>;
+            }
+            """);
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Validate(component));
+
+        StringAssert.Contains(
+            exception.Diagnostic.Message,
+            "duplicate attribute name 'Grid.Row' on native control 'TextBlock'");
+    }
+
+    [TestMethod]
+    public void Validate_NumericStringAttachedPropertyValue_ThrowsDiagnostic()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                return <Grid>
+                    <TextBlock Grid.Row="1" Text="Todo Board" />
+                </Grid>;
+            }
+            """);
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Validate(component));
+
+        StringAssert.Contains(
+            exception.Diagnostic.Message,
+            "attached property 'Grid.Row' on 'TextBlock' requires an expression value");
+    }
+}
