@@ -12,6 +12,14 @@ It is intended to do three things at once:
 
 Normative language in this document uses `MUST`, `SHOULD`, and `MAY`.
 
+Sections 1 through 21 define the draft v1 language contract.
+
+Section 22 is explicitly non-normative and records current prototype coverage only.
+
+When this document mentions current implementation behavior, that text is descriptive unless the same rule is also stated normatively in the language sections above.
+
+Behavior that is not described in this document is out of scope for draft v1 and MUST NOT be inferred solely from generated code or temporary prototype quirks.
+
 Implementation notes call out places where the current prototype only implements a subset of the intended v1 surface.
 
 ---
@@ -204,6 +212,55 @@ Project-level generated support files that are not author-facing component types
 
 Ambiguous simple-name resolution MUST produce a diagnostic rather than heuristic guessing.
 
+### 5.4.1 Allowed File-Level `using` Forms
+
+A `.csxaml` file MAY contain ordinary non-global C# `using` directives in these source forms:
+
+- namespace import: `using MyApp.Components;`
+- namespace alias: `using Fluent = CommunityToolkit.WinUI.Controls;`
+- type alias: `using AutomationProperties = Microsoft.UI.Xaml.Automation.AutomationProperties;`
+
+Project-level `global using` directives supplied by surrounding C# compilation still participate indirectly through ordinary C# type resolution, but `.csxaml` source MUST NOT invent a separate import syntax.
+
+### 5.4.2 Tag Resolution Algorithm
+
+For a simple tag `<Name />`, the implementation MUST build a candidate set from:
+
+- visible CSXAML component types named `Name` in the file namespace or namespaces imported by ordinary `using Namespace;`
+- built-in native WinUI controls from the default control-metadata set
+- visible external controls named `Name` in namespaces imported by ordinary `using Namespace;`
+
+If the candidate set contains exactly one supported match, that match is selected.
+
+If the candidate set is empty, the tag is unknown.
+
+If the candidate set contains more than one supported match, the tag is ambiguous and MUST produce a diagnostic. Implementations MUST NOT silently prefer a component over a native control or a native control over a component.
+
+For an alias-qualified tag `<Alias:Name />`, `Alias` MUST resolve through a namespace alias introduced by `using Alias = Some.Namespace;`.
+
+The implementation MUST search only that aliased namespace across visible component manifests and native/external control metadata.
+
+Type aliases do not create tag prefixes.
+
+If exactly one supported `Name` exists in the aliased namespace, it is selected. Otherwise the implementation MUST emit an unknown-tag or ambiguous-tag diagnostic as appropriate.
+
+Alias-qualified tags MUST NOT fall back to broad global search.
+
+### 5.4.3 Attached-Property Owner Resolution
+
+For an attached-property attribute `Owner.Property`, `Owner` MUST resolve through the ordinary visible type namespace context of the file:
+
+- an in-scope type name
+- or a C# type alias introduced by `using Alias = Some.Type;`
+
+Namespace aliases are not valid attached-property owners by themselves.
+
+If exactly one attached property named `Property` exists on the resolved owner type in loaded metadata, the attribute binds to that attached property.
+
+If no such attached property exists, the attribute is invalid.
+
+If multiple supported attached properties with the same source spelling would match, the attribute is ambiguous and MUST produce a diagnostic.
+
 ### 5.5 File-Local Helper Declarations
 
 CSXAML SHOULD allow file-local helper declarations in the same file as the component.
@@ -349,6 +406,8 @@ attribute-value       ::= string-literal | expression-island
 expression-island     ::= "{" csharp-island "}"
 ```
 
+Comments and whitespace are omitted from this overview grammar and MAY appear wherever whitespace is otherwise allowed unless a rule explicitly prohibits them.
+
 Where:
 
 - `using-directive` and `namespace-declaration` use ordinary C# source forms
@@ -394,6 +453,21 @@ When scanning a C# island, the parser MUST:
 - ignore delimiters inside quoted literals
 - stop only when the matching outer delimiter is reached
 
+Balanced island scanning MUST treat the following C# lexical forms as opaque:
+
+- regular string literals
+- verbatim string literals
+- interpolated string literals
+- raw string literals
+- character literals
+- line comments
+- block comments
+- nested interpolation holes inside interpolated strings
+
+The scanner is lexical rather than semantic. It MUST NOT reinterpret `<` inside a C# island as markup, and it MUST NOT attempt to decide whether a token sequence represents generics, comparison operators, or some other valid C# form.
+
+Preprocessor directives MAY appear inside opaque C# islands and helper code. They participate only as opaque C# text and MUST NOT introduce new CSXAML grammar forms.
+
 This approach gives the language several benefits:
 
 - most ordinary C# expressions can pass through unchanged
@@ -431,11 +505,15 @@ A practical v1 rule is:
 
 - file-local helper declarations are scanned as opaque C# declarations between top-level forms
 - component prologue members such as `inject` declarations and `State<T>` declarations are parsed explicitly before helper-code scanning begins
-- after the last component prologue member, component-local helper code is scanned as ordinary C# until the first outermost `return` immediately followed by a markup opener `<`
-- nested `return` tokens inside local functions, lambdas, or nested blocks do not terminate the component prologue
+- while scanning component-local helper code, the parser tracks C# lexical state, delimiter depth, and nested block depth
+- the component render return is the first `return` token encountered at helper depth zero whose next non-trivia source text begins with `<` followed by a legal tag-name start
+- whitespace and comments between `return` and the markup opener are ignored, so `return /* comment */ <Grid />;` is valid
+- nested `return` tokens inside strings, comments, local functions, lambdas, or nested blocks do not terminate helper-code scanning
 - helper code MUST not itself contain CSXAML markup fragments
 
 This keeps the parser small while still letting component authors write named local values and helpers in the same file.
+
+Outside parser positions that explicitly expect markup, `<` MUST be treated as part of opaque C# text rather than as a tag opener.
 
 ### 8.6 Name Resolution Guardrails
 
@@ -443,6 +521,18 @@ This keeps the parser small while still letting component authors write named lo
 - alias-qualified tags such as `Alias:Control` MUST not fall back to broad best-effort searches
 - unknown or unsupported external controls MUST fail at compile-time validation if metadata is unavailable
 - import and alias rules SHOULD stay file-local and explicit enough that tooling can resolve them without whole-solution guesswork
+
+### 8.7 Parser Recovery
+
+When a parse failure occurs, implementations SHOULD recover at the nearest stable structural boundary that can be recognized without guessing, such as:
+
+- `/>`
+- `>`
+- `</Tag>`
+- `}`
+- end of file
+
+Recovery SHOULD prefer surfacing multiple local diagnostics over abandoning the rest of the file after the first malformed construct.
 
 ---
 
@@ -558,6 +648,45 @@ To keep the model small and explicit, v1 SHOULD NOT center dependency injection 
 - keyed, named, or optional service syntax
 - property injection or service values forwarded through generated props
 
+### 9.4.5 Ambient Scope and Disposal
+
+All `inject` declarations in a component instance resolve from the same ambient component service scope.
+
+Child components inherit that same ambient scope by default unless the host establishes a different scope outside CSXAML source syntax.
+
+CSXAML v1 does not define component-authored nested scopes or syntax for establishing child service scopes.
+
+Injected services resolve before state initialization and before the component's first render.
+
+State initializers MAY reference injected services and earlier state fields to the extent ordinary generated C# allows. They MUST NOT depend on later declarations becoming available early.
+
+Each injected member resolves independently from the same ambient scope. The declaration order of multiple `inject` members does not create a second dependency model beyond ordinary container resolution.
+
+Unmounting a component does not individually dispose injected services. Disposal of singleton, scoped, or transient services follows host container ownership rules. If the host creates a component subtree scope, the host owns disposal of that scope when the subtree unmounts.
+
+### 9.4.6 Component Instance and Render Order
+
+A rendered component corresponds to a retained runtime instance with stable identity until reconciliation removes it or replaces it because the parent tree no longer matches the same component kind and key.
+
+For an initial mount, the runtime MUST behave as if it performs these steps in order:
+
+1. create the component instance
+2. store the incoming props on that instance
+3. resolve injected services from the ambient scope
+4. initialize state fields in source order
+5. execute the component render
+6. reconcile and project the produced child tree
+
+Helper code and expression islands evaluate against the current component instance, current props, current state values, and current injected services using ordinary C# closure semantics.
+
+### 9.4.7 Render Scheduling
+
+Component render for a single instance MUST be non-reentrant.
+
+Explicit state assignment marks the component dirty synchronously, but the host runtime MAY batch multiple dirty marks into one later rerender pass.
+
+The observable behavior MUST be as if at least one rerender occurs after the last successful state assignment before the pending render queue drains.
+
 ### 9.5 Local Helper Code
 
 After injected-service declarations and state declarations and before the final render return, a component body MAY contain ordinary C# local declarations and local functions.
@@ -587,7 +716,7 @@ This helper code SHOULD remain ordinary C# and SHOULD NOT require a second state
 
 Each component body currently contains exactly one outermost `return` of a markup node.
 
-The render return is the `return` that is immediately followed by a markup opener `<` at the outermost component-body level.
+The render return is the `return` whose next non-trivia source text is a markup opener `<` at the outermost component-body level.
 
 Nested `return` tokens inside local functions, lambdas, or nested C# blocks do not count as the component render return.
 
@@ -621,6 +750,40 @@ A state field:
 - has an initializer expressed in C# syntax
 - invalidates the component when its value changes
 
+### 10.2.1 Value Observation and Assignment
+
+`State<T>` observation in v1 is assignment-driven.
+
+Only reads and writes of `State<T>.Value` are part of the language contract.
+
+In-place mutation of an object or collection currently stored inside a `State<T>` does not automatically invalidate the component.
+
+Every successful assignment to `Value` MUST mark the owning component dirty, even when the newly assigned value is reference-equal or `Equals`-equal to the previous value.
+
+Assigning the same reference back to `Value` is valid. That is the explicit rerender signal when an author chooses controlled mutation over replacement.
+
+### 10.2.2 Scheduling and Batching
+
+The `Value` setter stores the new value and marks the component dirty synchronously.
+
+The actual rerender MAY be queued or batched by the host runtime.
+
+Multiple `Value` assignments before the next render pass MAY coalesce into one rerender.
+
+Rerender proceeds top-down from the invalidated component and reconciles descendants against the prior child tree.
+
+### 10.2.3 Thread Affinity and Render Safety
+
+State updates that trigger UI work MUST execute on the host UI scheduler or dispatcher, or be marshaled there by the host runtime before rendering occurs.
+
+State writes during render are invalid and SHOULD fail with a clear runtime error rather than recursively reentering the same component render.
+
+### 10.2.4 Unmount Safety
+
+After a component unmounts, later state writes MUST NOT resurrect or rerender that disposed component instance.
+
+Implementations SHOULD ignore such writes and surface a controlled debug diagnostic rather than allowing stale async work to reattach UI.
+
 ### 10.3 Type Matching
 
 The type argument in the field declaration and the constructor call MUST refer to the same state type.
@@ -636,6 +799,12 @@ State<int> Count = new State<long>(0);     // invalid
 
 For predictable UI behavior, CSXAML SHOULD prefer explicit state updates over magical binding rules.
 
+Explicit state does not require immutable data structures.
+
+Authors MAY replace a value with a new object, or mutate a local object or collection and then assign it back through `Value`.
+
+The language contract is assignment-driven, not collection-strategy-driven.
+
 That means this style is preferred:
 
 ```csharp
@@ -648,7 +817,9 @@ over hidden mutation models that make rerender causes hard to trace.
 
 CSXAML SHOULD keep async work and side effects in ordinary C# methods, local helper code, and a minimal runtime lifecycle API rather than inventing a second effect language.
 
-v1 SHOULD define at least:
+The exact source syntax for lifecycle hooks remains out of scope for this draft v1 document.
+
+Any lifecycle API added for v1 or later MUST define at least:
 
 - how mount and unmount notifications are expressed
 - how cleanup or disposal is performed
@@ -656,6 +827,10 @@ v1 SHOULD define at least:
 - how explicit state updates from async work remain predictable and testable
 
 The goal is explicit, boring behavior rather than ambient framework magic.
+
+Until richer lifecycle hooks are specified, async continuations behave like ordinary C# continuations attached to component methods or delegates.
+
+Async work MAY update state only through explicit `Value` assignment, and the unmount rule in section 10.2.4 still applies after the component leaves the tree.
 
 ### 10.6 Relationship to Injected Services
 
@@ -751,6 +926,18 @@ In v1:
 - `Slot Name="..."` MUST fail with a clear "named slots are not supported yet" diagnostic
 - a root-level `<Slot />` is invalid because components still return one root node rather than fragments
 
+### 12.4.1 Default Slot Transport Semantics
+
+When a caller supplies child content to a component that declares a default slot outlet, that child content is transported as an ordered slot-content fragment separate from the component's public props.
+
+The callee renders that fragment at the location of its sole `Slot` outlet.
+
+Caller child order MUST be preserved.
+
+If no caller child content is supplied, the default slot renders nothing.
+
+CSXAML v1 does not define fallback content inside `Slot` itself. Any child nodes nested inside `<Slot> ... </Slot>` remain invalid until a later version specifies fallback semantics.
+
 ---
 
 ## 13. Attributes and Values
@@ -778,6 +965,18 @@ String literals are best for obvious string values:
 <TextBlock Text="Done" />
 <Button Content="Toggle" />
 ```
+
+Quoted text is always literal source text.
+
+For example, `Text="Title"` renders the exact string `Title`. It does not look up a variable, property, or resource named `Title`.
+
+When the author intends a string-valued variable, property, method call, or interpolation, the expression form MUST be used instead:
+
+```xml
+<TextBlock Text={Title} />
+```
+
+Tooling SHOULD flag likely quoted-identifier mistakes when metadata expects a string and the quoted text matches an in-scope symbol name.
 
 ### 13.3 Expression Values
 
@@ -916,6 +1115,8 @@ This does not prevent ordinary C# locals or local functions before the final ren
 
 Those child-position forms can be added later if they genuinely improve the model, but they should not arrive at the cost of turning markup parsing into general C# parsing.
 
+Authors who need richer branching SHOULD compute a local value or helper method before the final render return and keep child-position markup intentionally narrow.
+
 ---
 
 ## 16. Native Element Semantics
@@ -925,6 +1126,10 @@ Those child-position forms can be added later if they genuinely improve the mode
 Native elements are validated against generated control metadata.
 
 This metadata model SHOULD apply to both built-in controls and supported external controls.
+
+The language specification defines the metadata contract abstractly.
+
+The exact built-in or external control coverage of a particular implementation is a versioned compatibility matter rather than part of the core language grammar.
 
 Metadata answers questions such as:
 
@@ -971,6 +1176,28 @@ CSXAML uses normalized event names such as:
 - future `OnCheckedChanged`
 
 This keeps the authoring model consistent and easy to discover.
+
+### 16.3.1 Event Handler Binding
+
+The value of an event attribute MUST be a C# expression that converts to the target delegate type under ordinary C# rules.
+
+Compatible method groups, lambda expressions, anonymous functions, and delegate-valued expressions are all valid event values.
+
+String handler names are invalid.
+
+If an async lambda or async method group converts successfully to the target delegate type, it is valid.
+
+Unhandled synchronous or asynchronous exceptions from event handlers MUST flow through the host UI exception pipeline and MUST NOT be silently swallowed by the CSXAML runtime.
+
+### 16.3.2 Event Subscription Lifetime
+
+On rerender, the runtime MUST ensure that the active event subscription corresponds to the latest rendered delegate value.
+
+When the rendered handler changes, the previous subscription MUST be removed before or as the new handler is attached.
+
+When a native node unmounts or is replaced, all subscriptions associated with that node MUST be removed.
+
+The runtime MAY retain an existing subscription when the rendered delegate identity is unchanged and doing so preserves the same observable behavior.
 
 ### 16.4 Value-Kind Hints
 
@@ -1035,6 +1262,16 @@ When a reusable helper needs resource lookup or fallback creation, that behavior
 To preserve hostless rendering and component-test ergonomics, style helper objects MAY defer WinUI resource or style realization until projected rendering time.
 
 This keeps the source model simple while leaving room for richer composition, styling, and slot scenarios later.
+
+### 16.6.1 Theme and Resource Propagation
+
+CSXAML does not define a second theme or resource propagation model.
+
+Theme changes, resource lookup, and style-object behavior follow the underlying WinUI object and resource system of the projected control tree.
+
+Hostless logical-tree rendering MAY preserve deferred theme, style, or resource values without resolving them until projection time.
+
+Cross-platform host semantics are out of scope for this draft v1 specification. WinUI remains the authoritative rendering model.
 
 ### 16.7 Runtime Application Model
 
@@ -1103,6 +1340,22 @@ This gives the language XAML readability without sacrificing C# guarantees.
 - `Key` SHOULD be stable across rerenders
 - repeated renders SHOULD supply keys whenever identity matters
 
+### 18.1.1 Matching Rules
+
+Within a single parent, keyed children are matched by the tuple:
+
+- element category (native or component)
+- resolved control or component identity
+- key value
+
+Unkeyed children of the same category and identity are matched by relative order after keyed matches are removed from consideration.
+
+If the key, element category, or resolved control/component identity changes, the subtree is replaced rather than preserved.
+
+When a child instance is preserved by this matching, its component state and injected bindings are retained.
+
+Implementations SHOULD update preserved native nodes in place rather than destroying and recreating them unless the host control contract requires replacement.
+
 ### 18.2 Why It Exists
 
 Keys let the runtime preserve intended identity across:
@@ -1132,6 +1385,26 @@ Diagnostics SHOULD point to `.csxaml` spans for:
 - duplicate attributes
 - child-content violations
 
+### 19.1.1 Diagnostic Categories
+
+Implementations SHOULD distinguish at least these diagnostic classes:
+
+- syntax diagnostics
+- name-resolution and metadata-validation diagnostics
+- C# semantic diagnostics projected back from generated code
+- runtime activation diagnostics
+- runtime projection diagnostics
+
+### 19.1.2 Recovery and Source Mapping
+
+Parser and validator implementations SHOULD continue after local failures when safe so a single pass can report multiple actionable diagnostics.
+
+When a C# compiler diagnostic originates from author-written CSXAML source, the implementation MUST map that diagnostic back to the original `.csxaml` span.
+
+Only when no stable source mapping exists MAY an implementation fall back to reporting a generated-file location.
+
+Duplicate-name and ambiguity diagnostics SHOULD point at the conflicting source span and SHOULD mention the original conflicting declaration or candidate when that information is available.
+
 ### 19.2 Tooling Surface
 
 The language design SHOULD naturally support:
@@ -1139,6 +1412,7 @@ The language design SHOULD naturally support:
 - tag completion
 - native prop and event completion
 - component prop completion
+- C#-aware completion and navigation inside helper code, `inject` declarations, `State<T>` declarations, and expression islands
 - source squiggles
 - go-to-definition
 - formatting and indentation
@@ -1198,6 +1472,18 @@ In particular, it does not center the v1 design around:
 
 This is intentional. The project is trying to produce a more modern C#-first authoring experience, not a byte-for-byte clone of legacy XAML.
 
+### 20.4 Conformance Expectations
+
+Implementations SHOULD maintain a conformance suite that covers at least:
+
+- comments and trivia around `return <...>`
+- nested generics, lambdas, interpolated strings, and raw strings inside C# islands
+- ambiguous tag and import resolution
+- slot misuse and named-slot rejection
+- `Key` forwarding prohibition and keyed matching behavior
+- attached-property owner resolution
+- source mapping of C# diagnostics back to `.csxaml`
+
 ---
 
 ## 21. Developer Experience Guidelines
@@ -1253,6 +1539,7 @@ Implemented today:
 
 - one component per `.csxaml` file
 - typed component parameters
+- explicit component-level `inject` declarations
 - explicit `State<T>`
 - `return` of a markup root
 - native and component tags
@@ -1284,7 +1571,6 @@ Known gaps relative to the intended v1 experience:
 - broader attached-property owner resolution through file-level imports and external metadata is not yet implemented
 - named slots, slot fallback content, and fragment-root slot pass-through are intentionally deferred
 - explicit lifecycle/disposal semantics are not yet finished
-- explicit component-level `inject` declarations and service-aware component activation are now part of the intended v1 spec surface, but they are not yet implemented in the current prototype
 - parser/validator diagnostics, direct source-authored build failures, deterministic source-map sidecars under `obj`, and staged runtime exception context are now implemented for the current slice; fuller debugger integration and broader IDE coverage are still ahead
 - formatting support is not yet defined end to end
 - repo-local project-system build behavior is now explicit and deterministic, but NuGet-delivered build packaging and richer IDE design-time tooling are still ahead
@@ -1297,13 +1583,17 @@ This is representative of the language direction the project is aiming for:
 
 ```csharp
 component Element TodoBoard {
-    State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(
-        new List<TodoItemModel>
-        {
-            new TodoItemModel("todo-1", "Draft plan", false),
-            new TodoItemModel("todo-2", "Wire runtime", true),
-            new TodoItemModel("todo-3", "Write tests", false)
-        });
+    inject ITodoService todoService;
+
+    State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(todoService.LoadItems());
+
+    void ToggleItem(string itemId) {
+        var items = Items.Value;
+        var index = items.FindIndex(item => item.Id == itemId);
+        items[index] = items[index] with { IsDone = !items[index].IsDone };
+        Items.Value = items;
+        todoService.SaveItems(items);
+    }
 
     return <StackPanel Spacing={12}>
         <TextBlock Text="Todo Board" FontSize={24} />
@@ -1312,8 +1602,7 @@ component Element TodoBoard {
                 Key={item.Id}
                 Title={item.Title}
                 IsDone={item.IsDone}
-                OnToggle={() => Items.Value = Items.Value.Select(todo =>
-                    todo.Id == item.Id ? todo with { IsDone = !todo.IsDone } : todo).ToList()} />
+                OnToggle={() => ToggleItem(item.Id)} />
         }
     </StackPanel>;
 }
