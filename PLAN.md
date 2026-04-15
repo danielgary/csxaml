@@ -1,1243 +1,882 @@
-# Milestone 10 Plan - Project System Maturity and Fast Inner Loop
+# Milestone 13 Plan - Stabilization, Compatibility, DI, Lifecycle, and Test Hardening
 
 ## Status
 
-- Drafted: 2026-04-13
-- Roadmap target: Milestone 10 in [ROADMAP.md](./ROADMAP.md)
+- Drafted: 2026-04-15
+- Roadmap target: Milestone 13 in [ROADMAP.md](./ROADMAP.md)
 - Roadmap status: not started
-- Document purpose: give a future agent an implementation-ready, review-ready plan for landing deterministic project integration, cross-project component consumption, and test-project friendliness without turning CSXAML into hidden build magic
+- Document purpose: give an implementation-ready plan for making CSXAML dependable enough for real team use, with explicit DI, explicit lifecycle/disposal behavior, C#-first testing APIs, and documented compatibility boundaries
 
-Milestone 10 is the point where CSXAML stops being "the demo builds if you know the ritual" and starts proving it can live inside a normal solution.
+Milestone 12 made failures legible.
 
-The wrong version of this milestone:
+Milestone 13 has a different job: make the system feel boring to depend on.
 
-- keeps copy-pasted custom targets in every project
-- keeps the hardcoded `GeneratedCsxaml` fallback namespace alive
-- treats test projects as special manual-generation exceptions
-- discovers referenced components through heuristics and naming accidents
-- rewrites `obj` aggressively on every build
-- quietly smuggles generator internals into runtime-facing APIs
+At the end of this milestone, a developer should be able to answer all of these without guesswork:
 
-The right version is much more disciplined:
+- what is a stable source-level promise and what is still experimental?
+- how do components receive services without blurring props, state, and ambient app dependencies?
+- when does a component mount, unmount, and clean up?
+- what happens if async work completes after a component is gone?
+- how do I test a CSXAML component from ordinary C# without manually spelunking generated types and child indices?
 
-- one boring shared build path
-- one boring default-namespace rule
-- one explicit referenced-component metadata contract
-- one explicit import-resolution story across local components, referenced components, and external controls
-- unchanged builds do not churn outputs
-- test projects behave like ordinary consumers
-- future tooling and packaging remain possible because the build and metadata boundaries stay explicit
-
-This plan assumes Milestone 10 succeeds only if a skeptical maintainer can explain:
-
-- how a `.csxaml` file gets from source to `obj`
-- how a downstream project learns about referenced components
-- how namespace fallback works when no file-scoped namespace is present
-- why a rebuild did or did not rerun generation
-- why a renamed or deleted component does not leave stale generated files behind
-
-without hand-waving.
+Milestone 13 should make those answers explicit in code, tests, and docs.
 
 ---
 
 ## 1. Outcome
 
-At the end of Milestone 10, CSXAML should support this project experience cleanly:
+At the end of Milestone 13, CSXAML should provide a coherent stability story across five paths:
 
-- a project opts into CSXAML generation once through shared build logic rather than per-project handwritten targets
-- a `.csxaml` file with an explicit file-scoped `namespace` generates into that namespace
-- a `.csxaml` file without an explicit namespace generates into a deterministic project-default namespace instead of the hardcoded placeholder `GeneratedCsxaml`
-- generated project-internal support files such as manifests and external-control registration live in a deterministic internal namespace that does not leak into author-facing examples
-- a component library project can expose generated components to downstream projects through normal assembly references
-- a downstream `.csxaml` file can import referenced component namespaces through normal `using` directives, and may use alias-qualified tags when that keeps name resolution explicit
-- test projects can consume generated component types through ordinary `ProjectReference` usage without duplicating generator targets for the referenced source files
-- unchanged inputs do not cause full regeneration or unnecessary file rewrites
-- deleted or renamed `.csxaml` files do not leave stale `.g.cs` files in `obj`
-- project-reference and package-reference changes rerun generation predictably when they affect referenced controls or referenced CSXAML components
+1. compatibility policy and supported feature matrix
+2. explicit component-level DI through `inject`
+3. explicit lifecycle, unmount, and cleanup behavior
+4. hostless C#-first component testing APIs
+5. broader regression coverage around the above contracts
 
-Milestone 10 is done only when the repo proves all of the following:
+Concrete user-visible outcomes:
 
-- the build integration is shared rather than duplicated
-- generated namespace behavior is deterministic and documented
-- at least one referenced component library compiles and is consumable from another project
-- at least one test project consumes generated components through normal references rather than duplicate generation wiring
-- clean, rebuild, and rename scenarios are covered by proof tests or build fixtures
-- the roadmap and language spec still describe the system honestly
+- the language has a documented compatibility policy instead of an implied one
+- the repo publishes a supported feature matrix that says what v1 actually promises
+- components can declare required app services with `inject Type name;`
+- services resolve once per component instance from an ambient `IServiceProvider`
+- missing required services fail in source terms, not raw container jargon alone
+- unmounted components stop participating in render invalidation
+- cleanup and async-after-unmount behavior are explicit and testable
+- component tests can render, query, and interact with logical trees from ordinary C#
+
+Milestone 13 is not done if DI technically works but feels like a service locator, if cleanup still depends on tribal knowledge, or if component testing still requires direct knowledge of generated code or brittle child indices.
 
 ---
 
-## 2. Scope
+## 2. Day-To-Day Experience Bar
+
+This is the real product bar for the milestone.
+
+### 2.1 Service dependencies are visible
+
+When a component needs app services, the source should say so up front:
+
+```csharp
+component Element TodoBoard {
+    inject ITodoService todoService;
+    inject ILogger<TodoBoard> logger;
+
+    State<List<TodoItemModel>> items = new State<List<TodoItemModel>>(new());
+
+    return <StackPanel>...</StackPanel>;
+}
+```
+
+The developer should not have to infer service dependencies from:
+
+- component parameter lists
+- special markup attributes
+- arbitrary `GetRequiredService()` calls inside helper code
+
+### 2.2 Host integration stays simple
+
+When an app does not use DI, the current root-instance path should still work.
+
+When an app does use DI, the host should accept a normal `IServiceProvider` boundary without forcing the app into a CSXAML-owned container model.
+
+The public story should be:
+
+- simple demos/tests can still mount a root instance directly
+- apps/tests that need DI can provide an `IServiceProvider`
+- no one needs to rewrite their entire app boot path just to try CSXAML
+
+### 2.3 Lifecycle and async behavior are explicit
+
+When a component mounts, unmounts, or cleans up work, the behavior should be:
+
+- explicit
+- small
+- easy to test
+- free of hook-style call-order magic
+
+When async work completes after unmount, the result should not resurrect the component or trigger confusing rerenders.
+
+### 2.4 Component tests feel like ordinary C#
+
+When writing tests, the developer should be able to:
+
+- render a component with optional services
+- query by text or automation metadata
+- trigger common interactions like click, text input, and checked-state changes
+- assert on meaningful UI semantics rather than tree positions
+
+The developer should not need to:
+
+- construct generated props types by hand unless they explicitly want to
+- manually wire a full WinUI window for logical-tree tests
+- invoke handlers through hand-rolled private test helpers scattered across the repo
+
+### 2.5 Stability promises are written down
+
+The repo should clearly document:
+
+- syntax compatibility expectations
+- runtime/generator compatibility expectations
+- supported language/runtime/tooling/testing slices
+- known limitations that are still outside the v1 promise
+
+---
+
+## 3. Scope
 
 ### In scope
 
-- centralize CSXAML MSBuild integration into shared repo-level build assets
-- define the v1 default generated-namespace convention
-- define a deterministic internal generated namespace for project-level helper output
-- replace destructive always-regenerate behavior with deterministic write-if-changed plus stale-output pruning
-- add a referenced-component metadata contract that downstream generator runs can consume from assemblies
-- support cross-project component discovery and validation
-- support cross-project component imports through the same normal `using` and `using Alias = Namespace;` model already used for external controls
-- keep resolution deterministic across:
-  - local components
-  - referenced components
-  - built-in controls
-  - referenced external controls
-- prove ordinary test-project consumption through at least one real fixture
-- add integration coverage for clean, rebuild, rename, and reference-change scenarios
-- define the public package/API boundary decisions that this milestone must not accidentally freeze in the wrong shape
-- update docs, plan truth, and roadmap truth as the design locks in
+- explicit DI syntax implementation for `inject Type name;`
+- service-aware component activation built on `IServiceProvider`
+- explicit root-host/service-provider plumbing
+- small lifecycle and cleanup model
+- async-after-unmount behavior definition and implementation
+- hostless C#-first component testing harness
+- semantic query helpers and interaction helpers
+- expanded golden/regression coverage for DI, lifecycle, and testing
+- compatibility policy documentation
+- supported feature matrix documentation
 
 ### Explicitly out of scope
 
-- switching the whole system to a Roslyn source generator
-- Visual Studio completion, editor diagnostics, formatting UI, or navigation work from Milestone 11
-- source mapping or generated-code debugging improvements from Milestone 12
-- lifecycle, async, disposal, or testing-harness semantics from Milestone 13
-- packaging and release mechanics from Milestone 15
-- a full custom SDK or NuGet-delivered build package
-- automatic folder-to-namespace mapping
-- implicit scanning of referenced project source trees
-- dynamic runtime discovery of components without an explicit generated manifest contract
-- broad rethinks of runtime reconciliation or language surface unrelated to project-system maturity
+- hook-style DI APIs as the primary language model
+- markup-based service injection
+- attribute-scanned injection such as `[Inject]` as the primary `.csxaml` model
+- keyed, named, or optional DI syntax
+- subtree service-provider overrides in markup
+- per-component child scopes
+- a custom effect framework
+- a broad new lifecycle DSL in `.csxaml`
+- full debugger/test-recorder tooling
+- performance optimization work beyond what is necessary to keep the new seams clean
 
 ### Practical boundary
 
-Milestone 10 should stay centered on:
+Milestone 13 should stay centered on:
 
-- repo-level MSBuild assets such as `Directory.Build.props`, `Directory.Build.targets`, or a `build/` folder
-- `Csxaml.Generator/Cli`
-- `Csxaml.Generator/IO`
-- `Csxaml.Generator/Semantics`
-- `Csxaml.Generator/Validation`
-- `Csxaml.Generator/Emission`
-- the small public metadata contract assembly used by generator and generated code
-- fixture projects and tests that prove multi-project behavior
-- `Csxaml.Demo` only where namespace/default-namespace migration is required
-- `LANGUAGE-SPEC.md`
-- `ROADMAP.md`
+- stability
+- explicitness
+- narrow DI
+- narrow lifecycle
+- testability
+- documented promises
 
-Do not let Milestone 10 silently become:
+It should not drift into:
 
-- a tooling milestone
-- a source-generator rewrite
-- a packaging milestone
-- a lifecycle/test-harness milestone
-- a general "clean up the whole solution" milestone
+- framework magic
+- container feature parity wars
+- a second language layered on top of C#
+- a large testing DSL
 
 ---
 
-## 3. Existing Architecture Baseline
+## 4. Acceptance Scenarios To Freeze Before Coding
 
-### 3.1 Build integration is duplicated and bespoke
+These scenarios should be written down first and then converted into tests as the milestone lands.
 
-Today the repo has project-local generation targets rather than one shared CSXAML build path.
+They are the milestone's contract surface, not optional examples.
 
-Concrete examples:
+### 4.1 DI authoring and resolution
 
-- [Csxaml.Demo.csproj](./Csxaml.Demo/Csxaml.Demo.csproj) defines a custom `GenerateCsxaml` target
-- [Csxaml.Runtime.Tests.csproj](./Csxaml.Runtime.Tests/Csxaml.Runtime.Tests.csproj) defines a separate `GenerateDemoCsxaml` target
+- rendering a component with no `inject` declarations and no services behaves exactly as it does today
+- rendering a component with `inject` declarations and a valid `IServiceProvider` resolves each declared service once per component instance
+- injected services are available in helper code, event handlers, and ordinary expression islands
+- a missing required service fails with a CSXAML-specific message that names the component and injected member
+- injected services do not appear in generated props or markup usage surfaces
 
-Both targets:
+### 4.2 DI diagnostics
 
-- collect references manually
-- write a references file manually
-- invoke `dotnet run --project ..\\Csxaml.Generator`
-- include generated `.g.cs` files manually
+- malformed `inject` declarations fail with parser or validator diagnostics tied to `.csxaml` source
+- duplicate injected names fail deterministically
+- collisions between props/state/injected-service names fail deterministically
+- invalid placement of `inject` declarations fails deterministically
 
-This works for the current repo, but it is not yet a project system. It is two hand-maintained call sites.
+### 4.3 Activation, retention, and disposal
 
-### 3.2 Generation is currently full and destructive
+- a simple root-instance host path still works without DI
+- a service-aware root host path works with `IServiceProvider`
+- child components are activated through the explicit activator rather than raw reflection calls
+- retained keyed children preserve component identity and do not re-resolve injected services
+- removed child components are disposed once
+- disposing the host disposes the root component and any retained children exactly once
 
-The current project targets call:
+### 4.4 Async-after-unmount behavior
 
-- `RemoveDir` on the generated directory
-- `MakeDir`
-- generator invocation
-- wildcard compile include
+- state updates after unmount do not schedule rerender
+- async completions after unmount do not resurrect removed components
+- cleanup guidance for long-running work is documented and test-backed
+
+### 4.5 Testing-harness behavior
+
+- tests can render components with and without services
+- tests can query by automation id, automation name, and visible text where represented in logical properties
+- tests can drive click, text input, and checked-state interactions without bespoke per-test helpers
+- tests can provide service overrides without changing component props
+
+### 4.6 Interop and compatibility protection
+
+- supported external-control interop still works after activation changes
+- docs clearly distinguish supported, specified-but-not-implemented, and intentionally unsupported features
+
+---
+
+## 5. Current Baseline
+
+The repo already has useful ingredients to build on:
+
+- generated component props are explicit and strongly typed
+- runtime rendering already flows through a logical tree plus a coordinator
+- hostless logical-tree tests already exist in `Csxaml.Runtime.Tests`
+- semantic automation metadata support already exists through attached properties
+- runtime exception context from Milestone 12 already provides a good place to attach DI/lifecycle failures
+
+The current gaps are equally clear:
+
+- `CsxamlHost` only accepts a `Panel` plus a prebuilt root component instance
+- `ComponentTreeCoordinator` only knows about a root instance, not an activation/service context
+- `ChildComponentStore` creates child components with raw `Activator.CreateInstance`
+- component instances have no explicit mount/unmount or disposal contract
+- child component instances are retained/replaced, but their cleanup semantics are not explicit
+- `State<T>` always invalidates through an action callback and has no concept of component mount state
+- tests already prove hostless logical rendering, but the testing APIs are still repo-internal helper code rather than a deliberate user-facing harness
+- compatibility policy and supported feature matrix are not yet published
+
+Milestone 13 should close those gaps with small, explicit seams rather than a sweeping rewrite.
+
+---
+
+## 6. Core Design Decisions
+
+These should be treated as milestone constraints.
+
+### 6.1 Keep props, state, and services distinct
+
+This is the most important semantic boundary in the milestone.
+
+Rules:
+
+- component parameters remain the public prop surface
+- `State<T>` remains local mutable UI state
+- `inject` declares ambient app services
+- injected services never appear as markup attributes
+- DI must not become a second ambient props channel
+
+If this boundary gets blurry, the milestone is failing even if the code works.
+
+### 6.2 Public DI boundary is `IServiceProvider`
+
+CSXAML should work with the ordinary .NET `IServiceProvider` story.
 
 That means:
 
-- every generation run destroys the previous output set
-- unchanged outputs are rewritten
-- rename/delete scenarios are handled by brute-force directory replacement rather than explicit stale-output management
-- the build does not yet have a meaningful "fast inner loop"
+- public host/test APIs should accept `IServiceProvider`
+- CSXAML should not require a library-specific container type at the boundary
+- `ActivatorUtilities` may be used internally, but it must not become the user-facing contract
 
-This is acceptable for the prototype. It is not acceptable as the steady-state milestone-10 behavior.
+This keeps the compatibility story honest: CSXAML works with any DI setup that can provide or adapt to `IServiceProvider`.
 
-### 3.3 The generator still lacks project-level namespace context
+### 6.3 `inject` is the only DI language syntax in v1
 
-The current emitter falls back to:
-
-- `GeneratedCsxaml` when a file does not declare an explicit namespace
-
-Relevant file:
-
-- [ComponentEmitter.cs](./Csxaml.Generator/Emission/ComponentEmitter.cs)
-
-That hardcoded fallback was fine while everything lived in one project and the demo support types opted into the same placeholder namespace. It becomes actively harmful once:
-
-- multiple component libraries exist
-- test projects reference component libraries
-- downstream projects need deterministic namespace discovery
-
-### 3.4 Project-level helper output still assumes the old fallback namespace
-
-The current generated external-control registration file is emitted into:
-
-- `namespace GeneratedCsxaml;`
-
-Relevant file:
-
-- [GeneratedExternalControlRegistrationEmitter.cs](./Csxaml.Generator/Emission/GeneratedExternalControlRegistrationEmitter.cs)
-
-That is a hidden project-system hazard because component files with explicit namespaces and project-level helper output with hardcoded fallback namespaces are on a collision course.
-
-Milestone 10 needs to solve this explicitly rather than hoping all projects stay namespace-less.
-
-### 3.5 Demo support code still leans on the placeholder namespace
-
-The demo currently keeps support types in `GeneratedCsxaml`, for example:
-
-- [TodoItemModel.cs](./Csxaml.Demo/Models/TodoItemModel.cs)
-- [TodoColors.cs](./Csxaml.Demo/Support/TodoColors.cs)
-- [TodoStyles.cs](./Csxaml.Demo/Support/TodoStyles.cs)
-
-That is useful evidence:
-
-- the fallback namespace is not just a generator detail anymore
-- changing the fallback will have visible downstream consequences
-
-Milestone 10 therefore needs an explicit migration step for demo and fixture code.
-
-### 3.6 Component discovery is still local and simple-name based
-
-The current component catalog:
-
-- indexes only components from the current generator invocation
-- keys them by simple component name
-- has no concept of namespace-qualified component identity
-- has no concept of referenced component assemblies
-
-Relevant files:
-
-- [ComponentCatalog.cs](./Csxaml.Generator/Validation/ComponentCatalog.cs)
-- [ComponentCatalogBuilder.cs](./Csxaml.Generator/Validation/ComponentCatalogBuilder.cs)
-
-That is intentionally narrow for earlier milestones, but it is not enough for cross-project resolution.
-
-### 3.7 Import resolution is already more advanced for external controls than for components
-
-The current tag resolver already understands:
-
-- file-level `using Namespace;`
-- file-level `using Alias = Namespace;`
-- alias-qualified external control tags
-- ambiguity diagnostics for imported external control names
-
-Relevant files:
-
-- [ImportScope.cs](./Csxaml.Generator/Semantics/ImportScope.cs)
-- [MarkupTagResolver.cs](./Csxaml.Generator/Semantics/MarkupTagResolver.cs)
-
-That is a good foundation, but the current resolver still only treats components as:
-
-- local simple names
-
-Milestone 10 should extend that existing import model rather than inventing a second one for components.
-
-### 3.8 There is no referenced-component metadata contract yet
-
-Downstream generation currently has no explicit way to ask a referenced assembly:
-
-- which CSXAML components it exports
-- what namespaces they live in
-- what props they accept
-- whether they support default child content
-- what generated component type and props type should be emitted
-
-That contract must become explicit in Milestone 10.
-
-Without it, downstream resolution would be forced into one of several bad options:
-
-- source scanning
-- reflection over generated naming conventions
-- hand-authored registration files
-
-### 3.9 Test-project proof still relies on duplicate generation
-
-`Csxaml.Runtime.Tests` currently regenerates the demo components from source with its own target rather than consuming them through a normal project reference.
-
-That has been useful so far because it let runtime tests stay focused on runtime behavior, but it is still a milestone-10 gap relative to the roadmap promise:
-
-- "test projects can consume generated components predictably without hand-authored duplicate generation wiring"
-
-Milestone 10 needs at least one honest proof of the normal-reference path.
-
-### 3.10 Clean/rebuild/rename and design-time behavior are not yet first-class proofs
-
-The roadmap explicitly calls out:
-
-- incremental generation
-- deterministic `obj` behavior
-- clean/rebuild and rename scenarios
-- design-time/build-time stability
-
-Today those are not yet backed by dedicated fixture-level proof.
-
-Milestone 10 should not claim maturity until those scenarios are tested directly.
-
----
-
-## 4. Decisions To Lock In Up Front
-
-These decisions should guide the milestone unless a failing proof test forces a rethink.
-
-### 4.1 Keep the current generator model for this milestone
-
-Milestone 10 should improve the existing CLI-driven generation path rather than replacing it with a source generator or custom MSBuild task.
-
-Why:
-
-- the current generator already expresses the language and runtime contract clearly
-- the current risk is project-system maturity, not generator capability
-- jumping to a different generation technology would multiply unknowns and make milestone truth harder to judge
-
-This milestone should leave the codebase with a cleaner seam for future generator-host changes, not use milestone pressure as an excuse to rewrite the host.
-
-### 4.2 Introduce one shared build entry point
-
-Recommended direction:
-
-- repo-level `build/Csxaml.props`
-- repo-level `build/Csxaml.targets`
-- imported once for participating projects through root `Directory.Build.props` and `Directory.Build.targets`, or through explicit imports if that stays clearer
-
-Projects should opt in with one obvious property, such as:
-
-- `<EnableCsxaml>true</EnableCsxaml>`
-
-Do not keep copy-paste generation targets in every project.
-
-### 4.3 Define a boring default namespace rule now
-
-Recommended default namespace behavior:
-
-- if the file declares an explicit file-scoped namespace, use it
-- otherwise use `$(RootNamespace)` if present
-- otherwise use `$(AssemblyName)`
-
-Do not add folder mirroring in v1.
-
-This satisfies the language-spec requirement that the fallback be:
-
-- deterministic
-- discoverable
-
-and it avoids the uncanny valley where authors have to guess whether folders silently rewrite namespaces.
-
-### 4.4 Separate author-facing component namespaces from internal generated infrastructure
-
-Milestone 10 should introduce a deterministic internal infrastructure namespace, separate from the author-facing component namespace.
-
-Recommended direction:
-
-- author-facing component namespace:
-  - explicit file namespace, or
-  - project default namespace fallback
-- internal generated namespace:
-  - `<ProjectDefaultNamespace>.__CsxamlGenerated`
-
-Project-level helper output such as:
-
-- component manifest providers
-- external-control registration
-- other future internal support files
-
-should live there.
-
-This keeps:
-
-- user-facing examples clean
-- internal generated support predictable
-- cross-file explicit namespaces from colliding with project-level helper output
-
-### 4.5 Referenced component discovery must use an explicit manifest contract
-
-Do not infer referenced components from:
-
-- class-name suffixes
-- props-record naming conventions
-- ad hoc reflection over all public types
-
-Recommended direction:
-
-- generate a project-level manifest provider into the built assembly
-- expose it through a small public metadata contract
-- let downstream generator runs load that manifest explicitly from referenced assemblies
-
-That contract should include at least:
-
-- component name
-- component namespace
-- assembly identity
-- generated component CLR type name
-- generated props CLR type name, if any
-- parameter names and parameter type names in order
-- whether default child content is supported
-
-### 4.6 Cross-project component imports should use the same normal `using` and alias model as other imports
-
-Milestone 10 should support both:
-
-- `using MyCompany.Widgets;` plus bare `<TodoCard />` when unambiguous
-- `using Widgets = MyCompany.Widgets;` plus `<Widgets:TodoCard />` when explicit qualification is desired
-
-This keeps the mental model aligned with the direction already set for:
-
-- external controls
-- attached-property owner lookup
-- file-local helper code and file-scoped namespaces
-
-If milestone implementation adds alias-qualified component tags, update the language spec in the same change so the project does not drift into undocumented behavior.
-
-### 4.7 Resolution rules must stay deterministic and boring
-
-Recommended simple-tag resolution rule:
-
-1. built-in native controls by exact simple name
-2. local components from the current compilation by exact simple name
-3. imported referenced components and imported external controls from visible namespaces
-4. clear diagnostics for ambiguity or unsupported imported matches
-
-Recommended alias-qualified resolution rule:
-
-1. resolve alias to exactly one namespace
-2. search referenced components and external controls visible in that namespace
-3. if one supported match exists, use it
-4. if multiple supported matches exist, fail with a diagnostic
-5. if only unsupported matches exist, fail with the explicit unsupported reason
-
-Do not add heuristic fallback searches.
-
-### 4.8 Test projects should behave like ordinary consumers
-
-Milestone 10 should prove that at least one test project can:
-
-- reference a component project or component library
-- compile against its generated components
-- instantiate or render those generated components
-
-without:
-
-- a duplicate `GenerateCsxaml` target aimed at the referenced source files
-- hand-maintained generated-file includes
-- hand-authored mirrored support code
-
-### 4.9 Incremental means both target skipping and write stability
-
-This milestone should not call something "incremental" unless both are true:
-
-- MSBuild can skip generator invocation when inputs and reference outputs are unchanged
-- when generation does run, unchanged generated files keep their content and timestamps
-
-Deleting and rewriting every generated file on every input change is still churn, even if the target itself sometimes skips.
-
-### 4.10 Generated app code must not depend on generator internals
-
-Generated project code may depend on:
-
-- `Csxaml.Runtime`
-- the chosen public metadata contract assembly
-
-Generated project code must not depend on:
-
-- `Csxaml.Generator` internals
-- test-only helpers
-- repo-local build helper types that do not ship as normal references
-
-This is part of the package/API boundary discipline Milestone 10 is supposed to lock down.
-
----
-
-## 5. Tempting Wrong Approaches
-
-### Wrong approach: switch to a Roslyn source generator now
-
-That would multiply the problem space:
-
-- new hosting model
-- new incremental model
-- new design-time story
-- new debugging surface
-
-before the current project contract is even explicit.
-
-Milestone 10 should make the current generator host predictable first.
-
-### Wrong approach: keep copy-paste targets and just "clean them up a little"
-
-If `Csxaml.Demo`, fixture projects, and test projects all keep their own near-duplicate targets, the repo will drift immediately.
-
-The right fix is one shared integration path.
-
-### Wrong approach: preserve `GeneratedCsxaml` as the default forever
-
-That namespace is:
-
-- not project specific
-- not discoverable from normal .NET conventions
-- likely to collide across libraries
-- hostile to cross-project imports
-
-Milestone 10 should retire it as the fallback convention, not bless it.
-
-### Wrong approach: infer referenced components from naming conventions
-
-For example:
-
-- find public types ending in `Component`
-- guess the tag name by trimming the suffix
-- guess the props type by appending `Props`
-
-That is brittle, opaque, and hard to version intentionally.
-
-The manifest contract must be explicit.
-
-### Wrong approach: scan referenced source trees or `obj` folders
-
-That would make build behavior dependent on:
-
-- source layout
-- intermediate output layout
-- project-to-project file visibility quirks
-
-The downstream contract should be assembly-based and deterministic.
-
-### Wrong approach: treat test projects as a permanent special case
-
-If milestone proof still requires a test project to regenerate someone else's `.csxaml` files manually, the roadmap promise has not actually landed.
-
-### Wrong approach: keep destructive `RemoveDir` generation
-
-That hides stale-file logic instead of solving it and guarantees needless churn.
-
-### Wrong approach: make folder structure rewrite namespaces automatically
-
-Folder mirroring sounds convenient until someone asks:
-
-- what happens on rename
-- what happens on partial namespace declarations
-- how tooling displays the effective namespace
-
-Milestone 10 should favor explicit file namespaces plus a simple project-default fallback.
-
-### Wrong approach: freeze package boundaries accidentally
-
-Do not let the easiest local implementation quietly decide forever:
-
-- which assembly owns component manifest types
-- whether generated projects reference generator-only assemblies
-- whether internal build helpers become runtime surface area
-
-Those boundaries need an intentional decision while the blast radius is still manageable.
-
----
-
-## 6. Recommended V1 Project Model
-
-### 6.1 Project opt-in should be obvious
-
-Recommended project shape:
-
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <EnableCsxaml>true</EnableCsxaml>
-    <RootNamespace>MyCompany.Widgets</RootNamespace>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <CsxamlSource Include="**\*.csxaml" Exclude="bin\**;obj\**" />
-  </ItemGroup>
-</Project>
-```
-
-The project should not need to know:
-
-- where the generator output folder lives
-- how references are collected
-- how manifests are emitted
-- how stale files are pruned
-
-Those are shared-build concerns.
-
-### 6.2 Namespace behavior should be unsurprising
-
-Examples:
+The language spec now chooses:
 
 ```csharp
-// No explicit namespace in UserAvatar.csxaml
-component Element UserAvatar(string UserId) {
-    return <TextBlock Text={UserId} />;
-}
+inject IFoo foo;
 ```
 
-If `RootNamespace` is `MyCompany.Widgets`, the generated component lives in:
+That means Milestone 13 should not spend time hedging among several syntaxes.
 
-- `MyCompany.Widgets`
+Do not add:
 
-If the file declares:
+- `UseService<T>()` hook-style APIs as the primary model
+- DI through component parameters
+- markup-level service expressions
+- attribute-scanned injection
 
-```csharp
-namespace MyCompany.Widgets.Admin;
+### 6.4 Component activation must become an explicit seam
 
-component Element AuditBadge(string Label) {
-    return <TextBlock Text={Label} />;
-}
-```
+Today, child activation is a hidden `Activator.CreateInstance` call in `ChildComponentStore`.
 
-the generated component lives in:
+Milestone 13 should replace that with a small explicit activator seam so:
 
-- `MyCompany.Widgets.Admin`
+- service-aware activation has one obvious home
+- root and child activation follow the same model
+- manual root-instance activation remains supported
+- future testing and lifecycle logic have one place to attach
 
-No hidden folder convention should intervene.
+### 6.5 Generated components should stay boring
 
-### 6.3 Internal generated support should be hidden but deterministic
+The language feature is `inject`, not constructor archaeology.
 
-For the same project, internal support files should live in:
+Preferred generated shape:
 
-- `MyCompany.Widgets.__CsxamlGenerated`
+- keep generated components simple and predictable
+- resolve injected services once per instance
+- cache them in private fields or equivalent write-once instance members
+- avoid resolving services during each render
 
-For example:
+The generator should target a small runtime hook in `ComponentInstance`, not force arbitrary semantic scanning of helper code.
 
-- `MyCompany.Widgets.__CsxamlGenerated.GeneratedComponentManifest`
-- `MyCompany.Widgets.__CsxamlGenerated.GeneratedExternalControlRegistration`
+### 6.6 Lifecycle should be smaller than an effect framework
 
-Generated component code may reference those types with fully-qualified names.
+Milestone 13 needs lifecycle semantics, but it does not need hooks, dependency arrays, or effect DSLs.
 
-User-authored code should not need to import or know them.
+The smallest acceptable model is:
 
-### 6.4 Referenced component consumption should feel like ordinary C#
+- a mount notification
+- explicit cleanup/disposal on unmount
+- clear behavior for async completions after unmount
 
-Consumer example:
+Anything larger needs a very strong justification and likely belongs in a later milestone.
 
-```csharp
-using MyCompany.Widgets;
-using Admin = MyCompany.Widgets.Admin;
+### 6.7 Unmounted invalidation should no-op
 
-component Element Dashboard(string UserId) {
-    return <StackPanel>
-        <UserAvatar UserId={UserId} />
-        <Admin:AuditBadge Label="Verified" />
-    </StackPanel>;
-}
-```
+When async work completes after unmount, the old component instance should not schedule a rerender.
 
-That is the right mental model:
+The preferred behavior is:
 
-- bring namespaces into scope with `using`
-- use bare names when unambiguous
-- use aliases when explicit qualification makes the code clearer
+- state mutation may still happen on the old instance object
+- render invalidation after unmount becomes a no-op
+- cleanup/cancellation remains explicit user code, typically through disposal patterns
 
-### 6.5 Test projects should stop pretending they are special
+This is boring and unsurprising.
 
-Recommended proof scenario:
+### 6.8 Hostless testing should sit over the logical tree
 
-- `Csxaml.ProjectSystem.TestComponents` class library contains `.csxaml` components
-- `Csxaml.ProjectSystem.Tests` references that project normally
-- tests instantiate or render generated component types directly
+The testing harness should build on the logical tree/coordinator path first.
 
-No duplicate generator target in the test project.
+That means:
 
-That is the kind of proof Milestone 10 needs.
+- no full WinUI activation requirement for ordinary component tests
+- semantic queries and interactions operate on logical native nodes
+- live WinUI projection tests remain useful, but they are a narrower layer
+
+### 6.9 Documentation is part of the milestone, not cleanup
+
+Compatibility policy, feature matrix, lifecycle semantics, and testing guidance are part of the implementation.
+
+Do not leave them implicit.
 
 ---
 
-## 7. Required Architecture Changes
+## 7. Proposed Architecture
 
-### 7.1 Centralize build logic into shared repo assets
+### 7.1 Generator-side `inject` model
 
-Recommended files:
+Add a small explicit injected-service model under the generator.
 
-- `build/Csxaml.props`
-- `build/Csxaml.targets`
-- optional root `Directory.Build.props`
-- optional root `Directory.Build.targets`
+Recommended responsibilities:
 
-The shared build contract should define:
+- `InjectFieldDefinition`
+  one injected-service declaration in the AST
+- parser support that recognizes `inject` as a component-prologue member
+- validator support for:
+  - duplicate injected names
+  - invalid placement
+  - obvious malformed declaration shapes
+- emission support that:
+  - generates cached service members
+  - emits a small runtime hook to resolve services once per instance
+  - preserves source spans for diagnostics and runtime context
 
-- project opt-in property such as `EnableCsxaml`
-- default generated directory, preferably under `$(IntermediateOutputPath)Csxaml`
-- generated source manifest path
-- generated reference manifest path
-- generated stamp or output manifest path
-- project default namespace
-- internal generated namespace
-- generator invocation target
-- cleanup target integration with `CoreClean`
+Recommended file boundaries:
 
-Keep the targets:
+- `Csxaml.Generator/Ast/InjectFieldDefinition.cs`
+- `Csxaml.Generator/Parsing/InjectFieldParser.cs`
+- `Csxaml.Generator/Validation/InjectFieldValidator.cs`
+- `Csxaml.Generator/Emission/InjectedServiceEmitter.cs`
 
-- short
-- literal
-- inspectable
+Do not hide this behind giant parser or emitter methods.
 
-Do not bury the actual control flow behind imported mystery targets with opaque names.
+### 7.2 Runtime activation seam
 
-### 7.2 Extend generator options to carry project context explicitly
+Introduce a dedicated component activation seam in the runtime.
 
-The generator currently only receives:
+Recommended types:
 
-- output directory
-- references-file path
-- input files
+- `IComponentActivator`
+  creates component instances given a component type and runtime context
+- `DefaultComponentActivator`
+  default implementation; may use `ActivatorUtilities` internally when services exist
+- `ComponentContext`
+  minimal per-instance runtime context; v1 MUST include `IServiceProvider Services`
 
-Milestone 10 should add explicit project context, at minimum:
+Recommended responsibilities:
 
-- default component namespace
-- internal generated namespace
-- optionally project or assembly name if that simplifies diagnostics or manifest emission
+- `CsxamlHost`
+  owns root mounting path and optionally receives services
+- `ComponentTreeCoordinator`
+  coordinates logical rendering and mount/unmount transitions
+- `ChildComponentStore`
+  uses `IComponentActivator` instead of raw `Activator.CreateInstance`
 
-Recommended additions:
+Important design constraint:
 
-- extend `GeneratorOptions`
-- extend `GeneratorOptionsParser`
-- thread the new context through `GeneratorRunner`, `CompilationContext`, and emitters
+- keep the existing `CsxamlHost(Panel, ComponentInstance)` path for simple demos/tests
+- add a service-aware path rather than replacing the simple path
 
-Do not keep project-default namespace behavior as a hardcoded emitter fallback.
+### 7.3 Runtime hook for generated injection
 
-### 7.3 Make output writing deterministic and non-destructive
+The generator should target a small runtime hook in `ComponentInstance`.
 
-`OutputWriter` should become responsible for:
+Recommended shape:
 
-- writing only when content actually changed
-- preserving unchanged file timestamps
-- deleting stale generated files within the designated generated directory
-- refusing to delete outside the designated generated directory
+- `ComponentInstance` gains an internal initialization hook that receives `ComponentContext`
+- generated components override a literal service-resolution hook such as `ResolveInjectedServices(IServiceProvider services)` or equivalent
+- the runtime ensures that hook runs once per component instance before the first render
 
-Recommended direction:
+Why this is preferable to constructor-only generation:
 
-- generator computes the exact current output file set
-- output writer writes changed files
-- output writer removes stale `.g.cs` files under the generated directory that are no longer part of the current set
-- output writer also writes a stable generated-file manifest if that helps `CoreClean` and fixture assertions
+- it preserves a simple parameterless generated shape
+- it avoids making `.csxaml` DI depend on constructor parsing or constructor signature conventions
+- it keeps manual test components and existing root-instance paths easy to preserve
 
-This is the right place to solve stale-output behavior because the generator already knows the intended file set.
+The activator may still use `ActivatorUtilities` for handwritten component constructors when a service provider exists, but the CSXAML language feature should not depend on constructor DI as its primary author-facing rule.
 
-### 7.4 Introduce a small public component-manifest contract
+### 7.4 Lifecycle and cleanup model
 
-Recommended direction:
+Choose the smallest explicit lifecycle surface that solves the real problems.
 
-- place a data-only manifest contract in `Csxaml.ControlMetadata` unless that assembly becomes semantically muddy enough to justify spinning out a tiny shared contract assembly first
+Recommended v1 runtime contract:
 
-The contract should be boring:
+- `ComponentInstance` gets a small mount notification hook such as `OnMounted()`
+- component cleanup flows through ordinary `IDisposable` / `IAsyncDisposable`
+- `ComponentTreeCoordinator` and `CsxamlHost` become disposable so they can release both native and component resources
+- child components removed from the tree are disposed once they are no longer retained
 
-- `ComponentMetadata`
-- `ComponentParameterMetadata`
-- `CompiledComponentManifest`
-- optional assembly attribute or provider interface for discovery
+Recommended explicit non-goals:
 
-The contract should not contain:
+- no `OnUpdated`
+- no dependency-array model
+- no hook call-order semantics
+- no hidden background task framework
 
-- parser logic
-- runtime rendering logic
-- build-target logic
+### 7.5 Async-after-unmount behavior
 
-Its only job is to let generated component libraries describe their exported component surface to downstream generator runs.
+Define this explicitly:
 
-### 7.5 Emit a manifest provider into each generating component project
+- once a component is unmounted, its invalidation callback becomes inert
+- state changes on the dead instance must not schedule rerender
+- cleanup/cancellation remains the component author's job through ordinary C# patterns
+- docs should recommend cancellation-token-source ownership in components that launch long-running work
 
-Milestone 10 should generate a project-level manifest provider file that contains the local component surface.
+This should be documented and tested instead of left to emergent behavior.
 
-Each entry should include at least:
+### 7.6 Testing harness architecture
 
-- tag name
-- namespace name
-- assembly identity
-- fully qualified generated component type name
-- fully qualified generated props type name, or null when the component has no props
-- ordered parameter metadata
-- default-slot support flag
+Add a deliberate testing layer over the logical tree.
 
-The provider should live in the internal generated namespace and be discoverable without naming heuristics.
+Recommended project:
 
-### 7.6 Add a referenced-component catalog builder
+- `Csxaml.Testing`
 
-The generator needs a new semantic step that:
+Recommended primary APIs:
 
-- inspects referenced assemblies
-- locates the explicit component manifest provider
-- reads referenced component metadata into a downstream catalog
+- `CsxamlTestHost.Render<TComponent>(...)`
+- `CsxamlTestHost.Render(ComponentInstance root, ...)`
+- render result object that exposes the latest logical root tree
+- semantic query helpers:
+  - `FindByAutomationId`
+  - `FindByAutomationName`
+  - `FindByText`
+  - possibly `FindAllByTag` for secondary scenarios
+- interaction helpers:
+  - `Click`
+  - `EnterText`
+  - `SetChecked`
 
-Keep this loader narrow:
+Recommended implementation approach:
 
-- load only assemblies already supplied through the build reference list
-- read only the known manifest contract
-- cache loaded manifests per assembly path during one generator run
-- surface explicit unsupported or malformed-manifest diagnostics when needed
+- build on the logical native node tree and stored event handlers
+- reuse the coordinator rather than reinventing rendering
+- keep WinUI projection tests separate and optional
 
-Do not turn this into broad reflection over every public type in every assembly.
+### 7.7 Compatibility and support docs
 
-### 7.7 Rewrite component catalogs around explicit component entries
+Milestone 13 should publish at least:
 
-The current catalog stores `ParsedComponent` by simple name.
+- `docs/compatibility-policy.md`
+- `docs/supported-feature-matrix.md`
+- `docs/lifecycle-and-async.md`
+- `docs/component-testing.md`
 
-Milestone 10 should introduce an explicit component entry model that can represent both:
+The feature matrix should cover at least:
 
-- local components from the current project
-- referenced components from manifest metadata
+- core language constructs
+- DI support
+- lifecycle support
+- built-in control/runtime support
+- external-control support boundaries
+- testing support
+- tooling support status at a milestone level
 
-Each entry should answer:
+### 7.8 Expected file and type boundaries
 
-- simple name
-- namespace name
-- assembly identity
-- full identity
-- component CLR type name
-- props CLR type name
-- ordered parameter metadata
-- default-slot support
-- whether the component is local or referenced
+Milestone 13 should follow the repository's structural rules while adding new seams.
 
-Local-only data such as source spans can remain attached separately for diagnostics.
+If an existing file starts to accumulate unrelated activation, lifecycle, DI, and testing logic, split it immediately instead of letting the milestone hide its own complexity.
 
-### 7.8 Extend tag resolution to handle referenced components cleanly
+Expected generator-side additions or extractions:
 
-`MarkupTagResolver` should evolve so that it can:
+- `Csxaml.Generator/Ast/InjectFieldDefinition.cs`
+- `Csxaml.Generator/Parsing/InjectFieldParser.cs` or a similarly narrow prologue-parsing file
+- `Csxaml.Generator/Validation/InjectFieldValidator.cs`
+- `Csxaml.Generator/Emission/InjectedServiceEmitter.cs`
+- a small emitter extraction if generated initialization logic would otherwise bloat a larger component emitter file
 
-- resolve local components
-- resolve imported referenced components
-- resolve alias-qualified referenced components
-- keep built-in native control behavior stable
-- keep imported external control behavior stable
-- produce good ambiguity diagnostics when names collide
-- diagnose duplicate referenced component identities clearly when namespace plus simple name collide across assemblies
+Expected runtime-side additions or extractions:
 
-Important guardrail:
+- `Csxaml.Runtime/Components/ComponentContext.cs`
+- `Csxaml.Runtime/Components/IComponentActivator.cs`
+- `Csxaml.Runtime/Components/DefaultComponentActivator.cs`
+- a small lifecycle/disposal state type if mount bookkeeping starts to grow
 
-Do not split tag resolution into separate hidden code paths that duplicate import rules for components and native controls. The import model should stay one coherent system.
+Expected testing-layer additions:
 
-### 7.9 Emit fully qualified component type usage
+- `Csxaml.Testing/CsxamlTestHost.cs`
+- `Csxaml.Testing/CsxamlRenderResult.cs`
+- narrow query helper files under a `Queries` folder
+- narrow interaction helper files under an `Interactions` folder
 
-`ChildNodeEmitter` currently assumes:
+Structural guardrails:
 
-- local simple component tag name
-- local props record type name
-- local component class type name
-
-Milestone 10 should switch component emission to use explicit resolved metadata, not local naming assumptions.
-
-That means the resolver result for components should provide enough information to emit:
-
-- `typeof(global::MyCompany.Widgets.UserAvatarComponent)`
-- `new global::MyCompany.Widgets.UserAvatarProps(...)`
-
-or their zero-props equivalent.
-
-This change will also make local-component emission more explicit and robust.
-
-### 7.10 Move project-level helper output off the author-facing namespace assumption
-
-Current external-control registration output should be updated so that:
-
-- it lives in the internal generated namespace
-- generated component code references it explicitly by fully qualified name
-
-This avoids hidden namespace coupling and keeps future project-level helper output in one deterministic place.
-
-### 7.11 Add real multi-project fixture coverage
-
-Milestone 10 needs honest proof fixtures, not just unit tests over generator internals.
-
-Recommended fixture shape:
-
-- `Csxaml.ProjectSystem.Components`
-  - class library
-  - contains a few `.csxaml` components
-  - includes both explicit-namespace and fallback-namespace files
-- `Csxaml.ProjectSystem.Consumer`
-  - class library or small app
-  - consumes the components through `using` imports and alias-qualified tags
-- `Csxaml.ProjectSystem.Tests`
-  - MSTest project
-  - references the component library normally
-  - instantiates generated components or runs hostless runtime proofs
-
-In addition, integration tests or fixture scripts should run:
-
-- build
-- rebuild
-- clean
-- rename/delete scenarios
-
-### 7.12 Reduce duplicate generation in existing tests where it matters
-
-Milestone 10 does not need to refactor every current test immediately, but it should leave the repo with at least one honest normal-reference proof and a clear path away from bespoke duplication.
-
-Reasonable milestone-10 target:
-
-- keep specialized demo-regeneration tests only where they are still buying focused runtime coverage
-- add at least one normal-reference test project as the canonical project-system proof
-- stop adding new duplicate-regeneration patterns once the shared build path exists
-
-### 7.13 Lock package and API boundaries intentionally
-
-Before the milestone is called complete, the plan should explicitly record:
-
-- which assembly owns the public component manifest contract
-- which assemblies generated app code is allowed to reference
-- where shared build assets live in the repo
-- which pieces are still repo-local implementation details rather than public release surface
-
-This does not require Milestone 15 packaging work, but it does require intentional boundaries.
+- `CsxamlHost` should stay focused on host setup, root ownership, and disposal
+- `ComponentTreeCoordinator` should stay focused on render coordination and lifecycle transitions, not become a test API surface
+- `ChildComponentStore` should stay focused on child retention, activation, and release, not absorb service-provider policy or query logic
+- the testing harness should consume the runtime seams, not punch through them with internal shortcuts
 
 ---
 
-## 8. Execution Plan
+## 8. Phase Plan
 
-### Phase 1 - Lock the milestone with real proof fixtures and failing tests
+Each phase should end with tests plus a brief review against the language spec, the roadmap exit criteria, and the developer experience bar.
 
-#### Goal
+### 8.1 Merge discipline
 
-Define the success surface before refactoring the build.
+Do not land Milestone 13 as one large patch.
 
-#### Tasks
+Prefer narrow vertical slices in this order:
 
-- add a small component-library fixture project dedicated to project-system proof
-- add a consumer fixture project that references that library
-- add a test-project proof that references the library normally
-- add failing tests or scripted assertions for:
-  - fallback namespace uses project default namespace
-  - explicit file namespace overrides fallback
-  - referenced component resolution through `using Namespace;`
-  - alias-qualified referenced component resolution through `using Alias = Namespace;`
-  - stale generated file cleanup after rename/delete
-  - unchanged rebuild does not rewrite outputs
-  - referenced-assembly changes rerun downstream generation
-  - test project consumes generated components without duplicate generation target
+1. acceptance scenarios, doc skeletons, and failing tests
+2. runtime activation/context seam with no language change yet
+3. `inject` parser, validator, emission, and runtime hookup
+4. lifecycle/disposal/unmount safety
+5. public testing harness extraction and migration of representative tests
+6. docs, feature matrix, dogfood scenarios, and milestone closeout review
 
-#### Guardrail
+Each slice should keep the repo buildable, keep tests green outside the intentionally failing tests being introduced, and update adjacent docs when the implementation meaningfully changes.
 
-Do not change the build system first and then "add proof later." The fixture surface is what keeps this milestone honest.
+### Phase 1 - Freeze contracts and acceptance cases
 
-### Phase 2 - Centralize the shared build contract and project context
+Goal:
 
-#### Goal
+- turn Milestone 13 into a concrete set of acceptance scenarios before new seams spread through the codebase
 
-Replace duplicated project-local generation targets with one shared integration path and explicit generator inputs.
+Tasks:
 
-#### Tasks
+- define acceptance cases for:
+  - required service resolution
+  - missing required service failure
+  - duplicate `inject` names
+  - invalid `inject` placement
+  - root host with and without services
+  - child component DI activation
+  - component disposal on unmount
+  - async completion after unmount
+  - hostless render/query/click/text/checked testing flows
+- outline compatibility policy categories:
+  - implemented and supported
+  - specified but not yet implemented
+  - intentionally unsupported
+- outline supported feature matrix sections
 
-- add shared build props/targets files
-- define the opt-in property for projects that contain `.csxaml`
-- define standard generated-directory and manifest-file paths
-- extend generator CLI options with:
-  - default component namespace
-  - internal generated namespace
-- update generating projects to use the shared target rather than handwritten inline targets
-- keep the current invocation model readable; avoid stacking shell indirection on top of MSBuild indirection
+Deliverables:
 
-#### Guardrail
+- acceptance test list
+- doc skeletons for compatibility, lifecycle, testing, and feature matrix
 
-After this phase, there should be one obvious place to read the CSXAML build contract.
+### Phase 2 - Add runtime activation and context seams
 
-### Phase 3 - Land deterministic output writing, stale-output pruning, and clean integration
+Goal:
 
-#### Goal
+- create the runtime hooks that DI and lifecycle will rely on, without changing language surface yet
 
-Make `obj` behavior boring and fast enough for real iteration.
+Tasks:
 
-#### Tasks
+- introduce `ComponentContext`
+- introduce `IComponentActivator` and default implementation
+- thread activator/context through `CsxamlHost`, `ComponentTreeCoordinator`, and `ChildComponentStore`
+- preserve the current root-instance constructor path
+- add service-aware host overloads without breaking existing call sites
+- keep all existing tests passing before `inject` lands
 
-- teach `OutputWriter` to write only changed files
-- add stale-file pruning limited to the designated generated directory
-- emit a stable generated-file manifest or equivalent output list if needed for clean and fixture assertions
-- stop deleting the whole generated directory on every generation run
-- register generated outputs with `FileWrites` or equivalent clean integration
-- add clean/rebuild/rename fixture assertions
+Deliverables:
 
-#### Guardrail
+- explicit component activation seam
+- optional `IServiceProvider` host path
+- no raw child activation left in `ChildComponentStore`
 
-Do not call the milestone "incremental" if generation still rewrites every output file whenever anything changes.
+### Phase 3 - Implement `inject` end to end
 
-### Phase 4 - Emit and load referenced component manifests
+Goal:
 
-#### Goal
+- land explicit component-level DI in the language and runtime
 
-Introduce the explicit contract that lets downstream projects understand referenced CSXAML components.
+Tasks:
 
-#### Tasks
+- add `InjectFieldDefinition` AST support
+- update component-body parsing for prologue members
+- add validation for duplicate names and malformed declarations
+- add specific placement diagnostics for `inject`
+- emit cached service members plus a runtime resolution hook
+- attach source spans/member names so missing-service runtime failures point back to `.csxaml`
+- ensure injected services never appear in component props or markup completion/validation paths
 
-- add the public component-manifest contract types
-- generate a project-level manifest provider into each producing project
-- add a referenced-component manifest loader over referenced assemblies
-- keep load behavior deterministic and local to the provided reference list
-- add validation and failure diagnostics for malformed or missing manifest expectations where appropriate
-- add unit tests for manifest generation and loading
+Deliverables:
 
-#### Guardrail
+- working `inject Type name;`
+- source diagnostics for common authoring mistakes
+- runtime missing-service failures with CSXAML context
 
-If implementation starts guessing component shape from naming conventions instead of reading the manifest contract, stop and correct it immediately.
+### Phase 4 - Land lifecycle, disposal, and async safety
 
-### Phase 5 - Rewrite component catalogs, resolution, and emission for cross-project use
+Goal:
 
-#### Goal
+- make mount/unmount and cleanup explicit and boring
 
-Make the generator understand referenced components as first-class symbols.
+Tasks:
 
-#### Tasks
+- add the chosen mount notification API
+- define unmount/disposal sequence for:
+  - removed child components
+  - root host disposal
+  - retained versus replaced component instances
+- dispose components that implement `IDisposable` or `IAsyncDisposable`
+- make invalidation inert after unmount
+- document and test async-after-unmount behavior
 
-- replace simple-name-only component catalog entries with explicit component metadata entries
-- extend `MarkupTagResolver` to resolve:
-  - local components
-  - imported referenced components
-  - alias-qualified referenced components
-  - existing imported external controls
-- preserve deterministic ambiguity diagnostics
-- update validators to use component metadata rather than local AST assumptions where needed
-- update `ChildNodeEmitter` to emit fully qualified component and props type names
-- update project-level helper emission such as external-control registration to use the internal generated namespace
+Deliverables:
 
-#### Guardrail
+- small lifecycle model
+- explicit cleanup semantics
+- async safety behavior that is easy to explain
 
-Keep resolution logic in one understandable place. Do not fork "component import logic" and "control import logic" into parallel half-systems.
+### Phase 5 - Add the C#-first testing harness
 
-### Phase 6 - Prove ordinary test-project consumption
+Goal:
 
-#### Goal
+- turn the repo's internal logical-tree testing style into a real supported testing API
 
-Close the roadmap gap where test projects still need bespoke generation wiring.
+Tasks:
 
-#### Tasks
+- create `Csxaml.Testing`
+- add render-result object over the logical tree/coordinator
+- add semantic query helpers
+- add common interaction helpers
+- add service override support for tests
+- migrate a representative set of existing runtime tests to the new harness
 
-- add or update one test project so it references a component library normally
-- use the referenced generated component types in at least one real test
-- remove duplicate generation wiring from that proof path
-- document which existing duplicate-generation tests remain temporary and why
+Deliverables:
 
-#### Guardrail
+- public or package-ready test harness
+- proof that common UI tests do not require WinUI activation
 
-Do not declare success just because build fixtures compile. A real test project must consume generated components through a normal reference path.
+### Phase 6 - Publish stability docs and feature matrix
 
-### Phase 7 - Harden reference invalidation and design-time-adjacent behavior
+Goal:
 
-#### Goal
+- make the stability story explicit enough for outside users
 
-Make the shared target predictable when references and build modes change.
+Tasks:
 
-#### Tasks
+- write compatibility policy
+- write supported feature matrix
+- write lifecycle/async guidance
+- write component testing guide
+- document DI boundaries and non-goals clearly
 
-- ensure reference-list changes trigger generation
-- ensure project-reference rebuilds propagate via referenced assembly timestamps or equivalent inputs
-- ensure package-version or referenced-control-library changes invalidate appropriately
-- run at least one design-time-style or `DesignTimeBuild=true` smoke build to confirm the target does not behave catastrophically
-- keep design-time support narrow and honest; the milestone only needs stability, not full IDE richness
+Deliverables:
 
-#### Guardrail
+- docs that match actual implementation
+- explicit known-limitations section rather than implied caveats
 
-Do not over-promise full IDE behavior. The standard for Milestone 10 is "stable enough for normal development," not "tooling is done."
+### Phase 7 - Dogfood and close honestly
 
-### Phase 8 - Migrate demo/support namespaces and update milestone truth
+Goal:
 
-#### Goal
+- prove the milestone in real repo scenarios
 
-Align the example code and docs with the new namespace reality.
+Tasks:
 
-#### Tasks
+- add at least one representative DI-backed component scenario
+- prove missing-service failure messaging in a realistic component
+- prove hostless component tests with services and interactions
+- review root-host disposal and async-after-unmount cases for leaks or surprising rerender behavior
+- compare docs, roadmap, and implementation line by line before marking the milestone complete
 
-- update demo support types away from the placeholder `GeneratedCsxaml` assumption
-- update any generated-component consumers such as app bootstrap code to use the new namespace model
-- update `LANGUAGE-SPEC.md` if alias-qualified referenced component tags or other import semantics were extended
-- update `ROADMAP.md` milestone status and notes only after the proof matrix is actually satisfied
-- add notes about any intentionally deferred project-system limits
+Deliverables:
 
-#### Guardrail
-
-Do not leave the demo and docs teaching the old placeholder namespace after the real default convention changes.
+- milestone review notes
+- roadmap update only when the exit criteria are honestly met
 
 ---
 
-## 9. Verification Matrix
+## 9. Testing Strategy
 
-### Shared build integration
+Milestone 13 should be heavily test-driven because stability work is easy to overestimate from happy-path demos.
 
-- one shared repo-level CSXAML target path exists
-- demo and any fixture projects use the shared path rather than copy-pasted targets
-- projects without `EnableCsxaml` are unaffected
+### 9.1 Generator tests
 
-### Namespace behavior
+Add focused tests for:
 
-- file with explicit `namespace` emits there
-- file without explicit namespace emits into project default namespace
-- internal helper output emits into the internal generated namespace
-- demo/support code compiles cleanly under the new convention
+- parsing valid `inject` declarations
+- rejecting malformed `inject` declarations
+- duplicate injected-name diagnostics
+- invalid-placement diagnostics
+- emission of cached service members and service-resolution hook
+- keeping injected services out of generated props records
 
-### Referenced component discovery
+### 9.2 Runtime DI tests
 
-- producing project emits a manifest provider
-- downstream generator loads the referenced manifest
-- manifest data includes props and slot support
-- manifest data includes enough identity to diagnose same-name exports from different assemblies
-- malformed or unsupported manifest conditions fail clearly
+Add focused tests for:
 
-### Resolution behavior
+- root component activation with services
+- child component activation with services
+- missing required service failures with component/member context
+- service resolution once per component instance
+- keyed child reuse preserving injected-service identity on retained instances
 
-- local simple component tags still work
-- imported referenced component tags work through `using Namespace;`
-- alias-qualified referenced component tags work through `using Alias = Namespace;`
-- imported external controls still work
-- ambiguity across referenced components yields a diagnostic
-- duplicate same-namespace same-name exports across different assemblies yield a diagnostic
-- unsupported imported matches yield explicit diagnostics
+### 9.3 Lifecycle and async tests
 
-### Emission behavior
+Add focused tests for:
 
-- emitted component references use fully qualified type names
-- zero-props components and props-bearing components both work
-- child content/default slot support survives cross-project use
+- `OnMounted()` firing once per mounted instance
+- disposal on child removal
+- disposal on host/coordinator disposal
+- invalidation after unmount becoming inert
+- async completion after unmount not triggering rerender
 
-### Incremental and cleanup behavior
+### 9.4 Testing harness tests
 
-- unchanged rebuild skips generation or at minimum does not rewrite outputs
-- changed `.csxaml` file updates only affected generated outputs
-- renamed `.csxaml` file removes the old generated file
-- deleted `.csxaml` file removes the old generated file
-- `dotnet clean` removes generated outputs predictably
+Add focused tests for:
 
-### Reference invalidation behavior
+- render with and without services
+- query by automation name/id
+- query by visible text when represented in logical properties
+- click, text input, and checked-state helpers
+- test-time service override scenarios
 
-- referenced component-library rebuild invalidates downstream generation
-- referenced external-control library change invalidates downstream generation
-- changed project default namespace invalidates generation
+### 9.5 End-to-end dogfood tests
 
-### Test-project proof
+Add repo-level proofs for:
 
-- a test project references a component library normally
-- the test project uses generated component types without duplicate generation wiring
-- proof remains understandable to a new maintainer
-
-### Milestone truth check
-
-- roadmap checklist items for Milestone 10 are satisfied by actual proof, not just code existence
-- language spec still matches the implemented import/namespace model
+- DI-backed components in ordinary runtime tests
+- external-control scenarios still behaving under the new activator seams
+- demo-style semantic queries using the testing harness rather than bespoke helpers
 
 ---
 
-## 10. Concrete Checklist
+## 10. Risks and Traps
 
-- [ ] add shared repo-level CSXAML build props/targets
-- [ ] define a single project opt-in property such as `EnableCsxaml`
-- [ ] move generating projects onto the shared build path
-- [ ] define `CsxamlGeneratedDirectory` under `$(IntermediateOutputPath)`
-- [ ] define stable source/reference/stamp manifest file paths
-- [ ] extend generator CLI options with default component namespace
-- [ ] extend generator CLI options with internal generated namespace
-- [ ] replace the hardcoded `GeneratedCsxaml` fallback in the emitter
-- [ ] define the internal generated namespace convention
-- [ ] emit project-level helper output into the internal generated namespace
-- [ ] make generated component code reference helper output by fully qualified name
-- [ ] add write-if-changed output behavior
-- [ ] add stale generated-file pruning
-- [ ] integrate generated outputs with clean behavior
-- [ ] add a public component-manifest contract
-- [ ] generate a project-level component manifest provider
-- [ ] load referenced component manifests from referenced assemblies
-- [ ] introduce explicit component catalog entries for local and referenced components
-- [ ] resolve imported referenced components through `using Namespace;`
-- [ ] resolve alias-qualified referenced components through `using Alias = Namespace;`
-- [ ] preserve existing external-control import behavior
-- [ ] preserve existing local component behavior
-- [ ] emit fully qualified referenced component and props type names
-- [ ] validate child-content support from component metadata, not local AST assumptions alone
-- [ ] add a component-library fixture project
-- [ ] add a consumer fixture project
-- [ ] add a normal-reference test-project proof
-- [ ] add build/clean/rebuild/rename integration assertions
-- [ ] add reference-invalidation integration assertions
-- [ ] migrate demo/support code off the placeholder namespace assumption
-- [ ] update spec wording if alias-qualified component tags become part of the implemented model
-- [ ] update roadmap truth only after proof scenarios pass
+Milestone 13 has a few easy ways to go wrong.
 
----
+### 10.1 Service locator creep
 
-## 11. Prove-Yourself-Wrong Loop
+If helper code starts normalizing `GetRequiredService()` calls everywhere, the language feature exists but the design loses.
 
-Use this loop after every phase and before calling the milestone complete.
+Keep `inject` as the preferred source model.
 
-1. Did the build contract actually get simpler?
+### 10.2 Constructor-shape coupling
 
-- If the answer is "not really" because multiple projects still carry custom targets, keep going.
+If `.csxaml` DI starts depending on constructor signature rules, the generator/runtime contract becomes harder to reason about and existing manual components become easier to break.
 
-2. Did we accidentally preserve `GeneratedCsxaml` in a way that still matters?
+Keep the language model centered on explicit `inject` declarations plus a small runtime initialization hook.
 
-- If demo code, support code, or generated helper code still depends on it as the real default story, the milestone is not done.
+### 10.3 Lifecycle sprawl
 
-3. Are referenced components discovered through an explicit contract?
+If Milestone 13 starts inventing effect APIs, dependency arrays, or update hooks, it will sprawl badly.
 
-- If the code is still guessing from type names, stop and fix it.
+Keep the lifecycle API small.
 
-4. Does imported component resolution feel like the same world as external-control imports?
+### 10.4 Disposal blind spots
 
-- If components and external controls now use visibly different namespace mental models, the plan is drifting away from the roadmap direction.
+If child components are replaced without disposal or root disposal does not flow down, the milestone will create subtle leaks while claiming to improve reliability.
 
-5. Did we accidentally create a build system that looks incremental but still churns files?
+Test disposal paths explicitly.
 
-- Check both target skipping and file timestamp stability.
+### 10.5 Testing API overfitting
 
-6. Can a test project consume components without re-running generation over the referenced source files?
+If the testing harness becomes a pile of repo-specific helpers, it will not be a real v1 capability.
 
-- If not, the test-project goal is still open.
+Prefer generic semantic queries and a tiny set of common interactions.
 
-7. Did we accidentally force generated code to reference generator-only internals?
+### 10.6 Documentation lag
 
-- If yes, fix the boundary before continuing.
+If compatibility policy and feature matrix lag behind the code, the milestone is not done.
 
-8. Did project-level helper output become clearer or murkier?
-
-- If manifests, registration, and support files are scattered across namespaces with no clean rule, stop and simplify.
-
-9. Did the resolver stay understandable?
-
-- If the tag-resolution code now feels like multiple interleaved search engines, refactor before moving on.
-
-10. Would a new engineer know how to import a referenced component?
-
-- The intended answer should be one sentence:
-  - "Use a normal `using`, and alias it if you need to qualify the tag."
-
-If the answer requires caveats, there is probably still too much magic.
+Docs are part of the implementation surface here.
 
 ---
 
-## 12. Stop Conditions
+## 11. Required Review Loop
 
-Stop and refactor before continuing if any of these happen:
+At the end of each phase, ask:
 
-- shared build logic starts splitting into per-project variants again
-- generator output still rewrites unchanged files after the incremental phase
-- referenced component discovery relies on naming heuristics instead of manifest metadata
-- generated app code gains a compile dependency on `Csxaml.Generator`
-- namespace fallback becomes more complicated than explicit-file-namespace or project-default-namespace
-- component and external-control import logic diverge into separate mental models
-- test-project proof still depends on duplicate generation wiring
-- design-time stabilization work starts turning into Milestone 11 tooling implementation
+1. Are props, state, and services still visibly distinct?
+2. Does the public DI boundary still rest on `IServiceProvider` rather than a container-specific API?
+3. Did we keep generated component code boring and deterministic?
+4. Is lifecycle smaller than a custom effect framework?
+5. Does async-after-unmount behavior now have one explicit, documented answer?
+6. Would a new user know how to write a component test without reading internal runtime tests?
+7. Are compatibility promises explicit enough to be quoted back by another engineer?
+8. Did any file or type become a god object while adding activation, lifecycle, or testing seams?
+9. Did docs and roadmap stay aligned with implementation?
 
-Do not push through these warnings. Simplify first.
+If any answer is "no", fix the structure before continuing.
 
 ---
 
-## 13. Exit Criteria Restated
+## 12. Concrete Implementation Checklist
 
-Milestone 10 is complete only when:
+- [ ] freeze Milestone 13 acceptance scenarios before code changes
+- [ ] draft compatibility policy categories and supported feature matrix shape
+- [ ] add explicit runtime activation seam over child and root component creation
+- [ ] plumb optional `IServiceProvider` through `CsxamlHost`, `ComponentTreeCoordinator`, and child activation
+- [ ] preserve the simple root-instance host path for non-DI scenarios
+- [ ] add AST/parser support for `inject Type name;`
+- [ ] validate duplicate and misplaced `inject` declarations
+- [ ] emit cached injected-service members and a once-per-instance resolution hook
+- [ ] keep injected services out of generated props and markup usage
+- [ ] add missing-service runtime failures with component/member context
+- [ ] define mount notification API
+- [ ] define component disposal behavior on unmount and host shutdown
+- [ ] make post-unmount invalidation inert
+- [ ] document async-after-unmount behavior
+- [ ] add `Csxaml.Testing` hostless render harness
+- [ ] add semantic query helpers
+- [ ] add click/text/checked interaction helpers
+- [ ] support service overrides in tests
+- [ ] expand golden generator coverage for injected-service emission
+- [ ] expand runtime regression coverage for DI, lifecycle, cleanup, and async safety
+- [ ] add interop regressions to prove external-control behavior survives the new seams
+- [ ] publish compatibility policy
+- [ ] publish supported feature matrix
+- [ ] publish lifecycle/async guide
+- [ ] publish component testing guide
+- [ ] update `ROADMAP.md` only when the real exit criteria are met
 
-- there is one shared, understandable CSXAML build path
-- project default namespace behavior is explicit, deterministic, and no longer centered on `GeneratedCsxaml`
-- internal generated support files have a deterministic home
-- referenced component libraries export an explicit manifest contract
-- downstream projects can import referenced components through normal `using` semantics
-- test projects can consume generated components through normal references without duplicate generation wiring
-- unchanged builds avoid needless regeneration churn
-- rename/delete/clean/rebuild scenarios are covered by proof
-- roadmap and language-spec documentation match the implementation that actually landed
+---
 
-If any one of those is still unproven, Milestone 10 is not done.
+## 13. Definition of Done
+
+Milestone 13 is complete only when all of the following are true:
+
+- the repo publishes explicit compatibility and support docs
+- `inject Type name;` works end to end and remains clearly separate from props and markup
+- runtime service resolution uses an `IServiceProvider` boundary and resolves once per component instance
+- missing required services fail with component/member context rather than raw container errors alone
+- mount, unmount, cleanup, and async-after-unmount behavior are explicit and tested
+- hostless C#-first component tests exist as a real harness rather than ad hoc internal helpers
+- representative DI, lifecycle, testing, and interop scenarios are covered by regression tests
+- docs, roadmap, language spec, and implementation all tell the same story
+
+If a developer still has to guess how service injection, cleanup, or component testing are supposed to work, Milestone 13 is not done.

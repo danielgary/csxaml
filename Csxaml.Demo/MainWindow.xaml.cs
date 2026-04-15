@@ -1,3 +1,4 @@
+using System;
 using Csxaml.Runtime;
 using Microsoft.UI.Xaml;
 
@@ -7,11 +8,11 @@ public sealed partial class MainWindow : Window
 {
     private readonly CsxamlHost _host;
 
-    public MainWindow()
+    public MainWindow(IServiceProvider services)
     {
         InitializeComponent();
 
-        _host = new CsxamlHost(ComponentHost, new TodoBoardComponent());
+        _host = new CsxamlHost(ComponentHost, typeof(TodoBoardComponent), services);
         _host.Render();
     }
 }

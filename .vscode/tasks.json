@@ -20,6 +20,66 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "build-csxaml-vsix",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}\\Csxaml.VisualStudio\\Csxaml.VisualStudio.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-nr:false",
+        "-p:UseSharedCompilation=false"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "DOTNET_CLI_HOME": "${workspaceFolder}\\.dotnet-home",
+          "NUGET_PACKAGES": "${workspaceFolder}\\.dotnet-home\\.nuget\\packages"
+        }
+      },
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "build-csxaml-language-server",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}\\Csxaml.LanguageServer\\Csxaml.LanguageServer.csproj"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "launch-visual-studio-exp-csxaml",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\Run-CsxamlVisualStudioBootstrap.ps1",
+        "-Configuration",
+        "Debug"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     }
   ]
 }

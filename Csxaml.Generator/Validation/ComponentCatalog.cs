@@ -45,4 +45,9 @@ internal sealed class ComponentCatalog
     {
         return _entries.Where(entry => entry.IsLocal).ToList();
     }
+
+    public IReadOnlyList<ComponentCatalogEntry> GetAll()
+    {
+        return _entries;
+    }
 }

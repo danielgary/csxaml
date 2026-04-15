@@ -5,18 +5,23 @@ using WinUi = Microsoft.UI.Xaml.Controls;
 namespace Csxaml.Demo;
 
 component Element TodoBoard {
-    State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(
-        new List<TodoItemModel>
-        {
-            new TodoItemModel("todo-1", "Draft plan", "Sketch the interaction model for controlled inputs.", false),
-            new TodoItemModel("todo-2", "Wire runtime", "Reconcile the renderer and adapter flow.", true),
-            new TodoItemModel("todo-3", "Write tests", "Cover metadata, generator, and runtime behavior.", false)
-        });
-    State<string> SelectedItemId = new State<string>("todo-1");
+    inject ITodoService todoService;
+
+    State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(todoService.LoadItems());
+    State<string> SelectedItemId = new State<string>(Items.Value[0].Id);
 
     TodoItemModel SelectedItem()
     {
         return Items.Value.Single(item => item.Id == SelectedItemId.Value);
+    }
+
+    void UpdateItem(string itemId, Func<TodoItemModel, TodoItemModel> update)
+    {
+        var updatedItems = Items.Value
+            .Select(item => item.Id == itemId ? update(item) : item)
+            .ToList();
+        Items.Value = updatedItems;
+        todoService.SaveItems(updatedItems);
     }
 
     void SelectItem(string itemId)
@@ -26,32 +31,7 @@ component Element TodoBoard {
 
     void ToggleItem(string itemId)
     {
-        Items.Value = Items.Value
-            .Select(item => item.Id == itemId ? item with { IsDone = !item.IsDone } : item)
-            .ToList();
-    }
-
-    void UpdateSelected(Func<TodoItemModel, TodoItemModel> update)
-    {
-        var selectedItemId = SelectedItemId.Value;
-        Items.Value = Items.Value
-            .Select(item => item.Id == selectedItemId ? update(item) : item)
-            .ToList();
-    }
-
-    void UpdateSelectedTitle(string value)
-    {
-        UpdateSelected(item => item with { Title = value });
-    }
-
-    void UpdateSelectedNotes(string value)
-    {
-        UpdateSelected(item => item with { Notes = value });
-    }
-
-    void UpdateSelectedDone(bool value)
-    {
-        UpdateSelected(item => item with { IsDone = value });
+        UpdateItem(itemId, item => item with { IsDone = !item.IsDone });
     }
 
     var selected = SelectedItem();
@@ -110,11 +90,12 @@ component Element TodoBoard {
             Grid.Row={2}
             Grid.Column={1}
             AutomationProperties.Name="Task Editor"
+            ItemId={selected.Id}
             Title={selected.Title}
             Notes={selected.Notes}
             IsDone={selected.IsDone}
-            OnTitleChanged={UpdateSelectedTitle}
-            OnNotesChanged={UpdateSelectedNotes}
-            OnDoneChanged={UpdateSelectedDone} />
+            OnTitleChanged={(itemId, value) => UpdateItem(itemId, item => item with { Title = value })}
+            OnNotesChanged={(itemId, value) => UpdateItem(itemId, item => item with { Notes = value })}
+            OnDoneChanged={(itemId, value) => UpdateItem(itemId, item => item with { IsDone = value })} />
     </Grid>;
 }

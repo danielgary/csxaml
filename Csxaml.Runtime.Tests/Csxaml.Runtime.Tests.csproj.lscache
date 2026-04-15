@@ -60,6 +60,11 @@ TemporaryDependencyNodeTargetIdentifier=net10.0-windows10.0.19041.0
 ../Csxaml.Demo/
  Models/TodoItemModel.cs
   @folderNames=Demo
+ Services/
+  InMemoryTodoService.cs
+   @folderNames=Demo,Services
+  ITodoService.cs
+   @folderNames=Demo,Services
  Support/
   TodoColors.cs
    @folderNames=Demo
@@ -79,8 +84,13 @@ Adapters/
  ReferenceEqualityListTests.cs
  ScrollViewerControlAdapterTests.cs
  TextSelectionRangeTests.cs
-Demo/TodoDemoTests.cs
+Demo/
+ InMemoryTodoServiceTests.cs
+ RecordingTodoService.cs
+ TodoDemoTests.cs
+Diagnostics/RuntimeExceptionContextTests.cs
 GlobalUsings.cs
+Hosting/CsxamlHostTests.cs
 MSTestSettings.cs
 obj/Debug/net10.0-windows10.0.19041.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
@@ -94,10 +104,13 @@ obj/Debug/net10.0-windows10.0.19041.0/
   TodoEditor.g.cs
   TodoPanel.g.cs
 Reconciliation/
+ ComponentActivationTests.cs
+ ComponentLifecycleTests.cs
  ComponentTreeCoordinatorAttachedPropertyTests.cs
  ComponentTreeCoordinatorReconciliationTests.cs
  ComponentTreeCoordinatorSlotTests.cs
  ComponentTreeCoordinatorStateTests.cs
+ InjectedServiceResolutionTests.cs
 Rendering/
  FakeControlAdapter.cs
  FakeElement.cs
@@ -107,15 +120,27 @@ Rendering/
 RuntimeTreeHelpers.cs
 State/StateTests.cs
 TestComponents/
+ AsyncDisposableProbeComponent.cs
  AttachedRootComponent.cs
  CardItemModel.cs
  CardViewComponent.cs
  CardViewProps.cs
+ ConstructorInjectedChildComponent.cs
+ ConstructorInjectedRootComponent.cs
+ DisposableProbeChildComponent.cs
+ DisposableProbeHostComponent.cs
  FixedParentComponent.cs
+ InjectedGreetingComponent.cs
+ InjectedGreetingHostComponent.cs
  KeyedBoardComponent.cs
+ MountedProbeChildComponent.cs
+ MountedProbeHostComponent.cs
+ ParentUsesConstructorInjectedChildComponent.cs
  SlottedBoardComponent.cs
  SlotWrapperComponent.cs
  SlotWrapperProps.cs
+Testing/CsxamlTestHostTests.cs
+TestServices/GreetingService.cs
 WinUiTestEnvironment.cs
 
 [metadataReferences]
@@ -123,6 +148,7 @@ WinUiTestEnvironment.cs
  Csxaml.ControlMetadata/obj/Debug/net10.0/ref/Csxaml.ControlMetadata.dll
  Csxaml.ExternalControls/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.ExternalControls.dll
  Csxaml.Runtime/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.Runtime.dll
+ Csxaml.Testing/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.Testing.dll
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.5/ref/net10.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll
@@ -294,6 +320,8 @@ WinUiTestEnvironment.cs
 <NUGET>/
  microsoft.applicationinsights/2.23.0/lib/netstandard2.0/Microsoft.ApplicationInsights.dll
  microsoft.diasymreader/2.0.0/lib/netstandard2.0/Microsoft.DiaSymReader.dll
+ microsoft.extensions.dependencyinjection.abstractions/10.0.0/lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+ microsoft.extensions.dependencyinjection/10.0.0/lib/net10.0/Microsoft.Extensions.DependencyInjection.dll
  microsoft.extensions.dependencymodel/6.0.2/lib/netstandard2.0/Microsoft.Extensions.DependencyModel.dll
  microsoft.testing.extensions.codecoverage/18.1.0/lib/net8.0/
   Microsoft.CodeCoverage.Core.dll

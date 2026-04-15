@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Csxaml.Runtime;
 using Microsoft.UI.Xaml;
 
 namespace Csxaml.Runtime.Tests;
@@ -40,6 +41,8 @@ internal static class WinUiTestEnvironment
     {
         return exception switch
         {
+            CsxamlRuntimeException runtimeException when runtimeException.InnerException is not null =>
+                GetRelevantException(runtimeException.InnerException),
             TargetInvocationException invocationException when invocationException.InnerException is not null =>
                 GetRelevantException(invocationException.InnerException),
             TypeInitializationException initializationException when initializationException.InnerException is not null =>

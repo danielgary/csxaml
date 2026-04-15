@@ -10,6 +10,9 @@
       "include": "#componentDeclaration"
     },
     {
+      "include": "#injectDeclaration"
+    },
+    {
       "include": "#stateDeclaration"
     },
     {
@@ -149,6 +152,26 @@
               "include": "source.csxaml.embedded.csharp"
             }
           ]
+        }
+      ]
+    },
+    "injectDeclaration": {
+      "begin": "\\b(inject)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration.inject.csxaml"
+        }
+      },
+      "end": "(;)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.terminator.statement.csxaml"
+        }
+      },
+      "contentName": "meta.embedded.inject.csxaml",
+      "patterns": [
+        {
+          "include": "source.csxaml.embedded.csharp"
         }
       ]
     },

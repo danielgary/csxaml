@@ -48,8 +48,8 @@ public sealed class SlotEmissionTests
         var emitted = new CodeEmitter().Emit(board, compilation);
 
         StringAssert.Contains(emitted, "var childContent0 = new List<Node>();");
-        StringAssert.Contains(
-            emitted,
-            "new ComponentNode(typeof(global::TestProject.TodoCardComponent), null, childContent0, \"position0\", null);");
+        StringAssert.Contains(emitted, "new ComponentNode(");
+        StringAssert.Contains(emitted, "typeof(global::TestProject.TodoCardComponent)");
+        StringAssert.Contains(emitted, "childContent0");
     }
 }

@@ -43,6 +43,8 @@ internal sealed class MarkupTagResolver
         return ResolveImportedMatches(
             source,
             node,
+            imports,
+            compilation,
             componentMatches,
             nativeMatch,
             unsupportedReason);
@@ -106,7 +108,10 @@ internal sealed class MarkupTagResolver
         throw DiagnosticFactory.FromSpan(
             source,
             node.Tag.Span,
-            $"unsupported tag name '{node.TagName}'");
+            DiagnosticMessageFormatter.WithSuggestion(
+                $"unsupported tag name '{node.TagName}'",
+                node.TagName,
+                CollectVisibleTagNames(currentNamespace, imports, compilation)));
     }
 
     private static IReadOnlyList<ComponentCatalogEntry> CollectComponentMatches(
@@ -168,6 +173,8 @@ internal sealed class MarkupTagResolver
     private static ResolvedTag ResolveImportedMatches(
         SourceDocument source,
         MarkupNode node,
+        ImportScope imports,
+        CompilationContext compilation,
         IReadOnlyList<ComponentCatalogEntry> componentMatches,
         ControlMetadataModel? nativeMatch,
         string? unsupportedReason)
@@ -203,7 +210,55 @@ internal sealed class MarkupTagResolver
         throw DiagnosticFactory.FromSpan(
             source,
             node.Tag.Span,
-            $"unsupported tag name '{node.TagName}'");
+            DiagnosticMessageFormatter.WithSuggestion(
+                $"unsupported tag name '{node.TagName}'",
+                node.TagName,
+                CollectVisibleTagNames(null, imports, compilation)));
+    }
+
+    private static IReadOnlyList<string> CollectVisibleTagNames(
+        string? currentNamespace,
+        ImportScope imports,
+        CompilationContext compilation)
+    {
+        var namespaces = new List<string>();
+        if (currentNamespace is not null)
+        {
+            namespaces.Add(currentNamespace);
+        }
+
+        namespaces.AddRange(imports.ImportedNamespaces);
+
+        var tags = new List<string>();
+        tags.AddRange(ControlMetadataRegistry.Controls.Select(control => control.TagName));
+        foreach (var namespaceName in namespaces.Distinct(StringComparer.Ordinal))
+        {
+            tags.AddRange(
+                compilation.NativeControls.ExternalControls
+                    .Where(control => GetNamespace(control.ClrTypeName) == namespaceName)
+                    .Select(control => GetName(control.ClrTypeName)));
+        }
+
+        tags.AddRange(
+            compilation.Components.GetAll()
+                .Where(component => namespaces.Contains(component.NamespaceName, StringComparer.Ordinal))
+                .Select(component => component.Name));
+
+        return tags
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static string GetNamespace(string clrTypeName)
+    {
+        var separatorIndex = clrTypeName.LastIndexOf('.');
+        return separatorIndex < 0 ? string.Empty : clrTypeName[..separatorIndex];
+    }
+
+    private static string GetName(string clrTypeName)
+    {
+        var separatorIndex = clrTypeName.LastIndexOf('.');
+        return separatorIndex < 0 ? clrTypeName : clrTypeName[(separatorIndex + 1)..];
     }
 
     private static ControlMetadataModel? TryResolveNativeControl(

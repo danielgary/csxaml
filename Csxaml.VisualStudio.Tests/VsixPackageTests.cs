@@ -1,0 +1,33 @@
+using System.IO.Compression;
+
+namespace Csxaml.VisualStudio.Tests;
+
+[TestClass]
+public sealed class VsixPackageTests
+{
+    [TestMethod]
+    public void Packaged_vsix_contains_language_server_payload()
+    {
+        var vsixPath = Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..",
+                "..",
+                "..",
+                "..",
+                "Csxaml.VisualStudio",
+                "bin",
+                "Debug",
+                "net8.0-windows8.0",
+                "Csxaml.VisualStudio.vsix"));
+
+        using var archive = ZipFile.OpenRead(vsixPath);
+        var entries = archive.Entries
+            .Select(entry => entry.FullName)
+            .ToList();
+
+        CollectionAssert.Contains(entries, "LanguageServer/Csxaml.LanguageServer.exe");
+        CollectionAssert.Contains(entries, "LanguageServer/Csxaml.LanguageServer.runtimeconfig.json");
+        CollectionAssert.Contains(entries, "LanguageServer/Csxaml.Tooling.Core.dll");
+    }
+}

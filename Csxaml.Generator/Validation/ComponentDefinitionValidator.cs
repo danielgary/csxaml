@@ -9,11 +9,10 @@ internal sealed class ComponentDefinitionValidator
     {
         ValidateUniqueNames(
             component.Source,
-            component.Definition.Parameters.Select(parameter => (parameter.Name, parameter.Span)));
-
-        ValidateUniqueNames(
-            component.Source,
-            component.Definition.StateFields.Select(field => (field.Name, field.Span)));
+            component.Definition.Parameters
+                .Select(parameter => (parameter.Name, parameter.Span))
+                .Concat(component.Definition.InjectFields.Select(field => (field.Name, field.Span)))
+                .Concat(component.Definition.StateFields.Select(field => (field.Name, field.Span))));
 
         _slotDefinitionValidator.Validate(component.Source, component.Definition);
 

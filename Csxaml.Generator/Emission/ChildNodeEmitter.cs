@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Csxaml.Generator;
 
 internal sealed class ChildNodeEmitter
@@ -8,7 +6,7 @@ internal sealed class ChildNodeEmitter
     private readonly ParsedComponent _component;
     private readonly MarkupTagResolver _tagResolver = new();
     private readonly LocalNameGenerator _localNameGenerator = new();
-    private readonly NativeAttributeEmitter _nativeAttributeEmitter = new();
+    private readonly NativeAttributeEmitter _nativeAttributeEmitter;
     private readonly RenderPositionIdGenerator _renderPositionIdGenerator = new();
     private readonly IndentedCodeWriter _writer;
 
@@ -20,6 +18,7 @@ internal sealed class ChildNodeEmitter
         _writer = writer;
         _component = component;
         _compilation = compilation;
+        _nativeAttributeEmitter = new NativeAttributeEmitter(component.Source, component.Definition.Name);
     }
 
     public void EmitRenderBody(ChildNode root)
@@ -44,11 +43,16 @@ internal sealed class ChildNodeEmitter
         }
 
         var arguments = component.Parameters
-            .Select(parameter => FormatValue(GetRequiredProperty(markupNode, parameter.Name)));
+            .Select(parameter => FormatComponentArgument(GetRequiredProperty(markupNode, parameter.Name)))
+            .ToList();
 
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"new {FormatTypeLiteral(component.PropsTypeName!)}({string.Join(", ", arguments)})");
+        return
+            $$"""
+            new {{FormatTypeLiteral(component.PropsTypeName!)}}
+            (
+            {{FormatArgumentList(arguments)}}
+            )
+            """;
     }
 
     private void EmitChildStatements(IReadOnlyList<ChildNode> childNodes, string listName)
@@ -69,8 +73,8 @@ internal sealed class ChildNodeEmitter
                     EmitMarkupNodeAppend(markupNode, listName);
                     break;
 
-                case SlotOutletNode:
-                    EmitSlotOutlet(listName);
+                case SlotOutletNode slotOutlet:
+                    EmitSlotOutlet(slotOutlet, listName);
                     break;
             }
         }
@@ -85,19 +89,53 @@ internal sealed class ChildNodeEmitter
         var childContentExpression = BuildChildContentExpression(markupNode.Children);
         var attachedPropertiesExpression = _nativeAttributeEmitter.BuildAttachedPropertiesExpression(markupNode);
         var keyExpression = _nativeAttributeEmitter.BuildKeyExpression(markupNode);
-        var hasAttachedProperties = _nativeAttributeEmitter.HasAttachedProperties(markupNode);
         var renderPositionId = _renderPositionIdGenerator.Next();
+        var sourceInfoExpression = SourceInfoEmitter.Emit(
+            _component.Source,
+            _component.Definition.Name,
+            markupNode.Span,
+            tagName: markupNode.TagName);
 
-        _writer.WriteLine(
-            hasAttachedProperties
-                ? $"var {variableName} = new ComponentNode(typeof({FormatTypeLiteral(component.ComponentTypeName)}), {propsExpression}, {childContentExpression}, {attachedPropertiesExpression}, \"{renderPositionId}\", {keyExpression});"
-                : $"var {variableName} = new ComponentNode(typeof({FormatTypeLiteral(component.ComponentTypeName)}), {propsExpression}, {childContentExpression}, \"{renderPositionId}\", {keyExpression});");
+        var declaration =
+            $$"""
+            var {{variableName}} = new ComponentNode(
+            {{FormatArgumentList(
+                [
+                    $"typeof({FormatTypeLiteral(component.ComponentTypeName)})",
+                    propsExpression,
+                    childContentExpression,
+                    attachedPropertiesExpression,
+                    $"\"{renderPositionId}\"",
+                    keyExpression,
+                    sourceInfoExpression
+                ])}}
+            );
+            """;
+
+        _writer.WriteMappedBlock(
+            declaration,
+            _component.Source,
+            markupNode.Span,
+            "component-usage",
+            markupNode.TagName);
     }
 
     private void EmitForEachBlock(ForEachBlockNode forEachBlock, string listName)
     {
-        _writer.WriteLine($"foreach (var {forEachBlock.ItemName} in {forEachBlock.CollectionExpression})");
-        _writer.WriteLine("{");
+        var header =
+            $$"""
+            foreach (var {{forEachBlock.ItemName}} in
+            {{CodeBlockFormatter.Indent(LineDirectiveFormatter.Wrap(_component.Source, forEachBlock.CollectionSpan, forEachBlock.CollectionExpression), 4)}}
+                )
+            {
+            """;
+
+        _writer.WriteMappedBlock(
+            header,
+            _component.Source,
+            forEachBlock.Span,
+            "foreach-block",
+            forEachBlock.ItemName);
         _writer.PushIndent();
         EmitChildStatements(forEachBlock.Children, listName);
         _writer.PopIndent();
@@ -106,8 +144,20 @@ internal sealed class ChildNodeEmitter
 
     private void EmitIfBlock(IfBlockNode ifBlock, string listName)
     {
-        _writer.WriteLine($"if ({ifBlock.ConditionExpression})");
-        _writer.WriteLine("{");
+        var header =
+            $$"""
+            if (
+            {{CodeBlockFormatter.Indent(LineDirectiveFormatter.Wrap(_component.Source, ifBlock.ConditionSpan, ifBlock.ConditionExpression), 4)}}
+                )
+            {
+            """;
+
+        _writer.WriteMappedBlock(
+            header,
+            _component.Source,
+            ifBlock.Span,
+            "if-block",
+            "if");
         _writer.PushIndent();
         EmitChildStatements(ifBlock.Children, listName);
         _writer.PopIndent();
@@ -121,9 +171,14 @@ internal sealed class ChildNodeEmitter
         _writer.WriteLine($"{listName}.Add({variableName});");
     }
 
-    private void EmitSlotOutlet(string listName)
+    private void EmitSlotOutlet(SlotOutletNode slotOutlet, string listName)
     {
-        _writer.WriteLine($"{listName}.AddRange(ChildContent);");
+        _writer.WriteMappedLine(
+            $"{listName}.AddRange(ChildContent);",
+            _component.Source,
+            slotOutlet.Span,
+            "slot-outlet",
+            "Slot");
     }
 
     private void EmitMarkupNodeDeclaration(MarkupNode markupNode, string variableName)
@@ -158,7 +213,6 @@ internal sealed class ChildNodeEmitter
         var propertiesExpression = _nativeAttributeEmitter.BuildPropertiesExpression(markupNode, control);
         var attachedPropertiesExpression = _nativeAttributeEmitter.BuildAttachedPropertiesExpression(markupNode);
         var eventsExpression = _nativeAttributeEmitter.BuildEventsExpression(markupNode, control);
-        var hasAttachedProperties = _nativeAttributeEmitter.HasAttachedProperties(markupNode);
         var childrenExpression = "Array.Empty<Node>()";
 
         if (markupNode.Children.Count > 0)
@@ -169,10 +223,33 @@ internal sealed class ChildNodeEmitter
             childrenExpression = childrenVariableName;
         }
 
-        _writer.WriteLine(
-            hasAttachedProperties
-                ? $"var {variableName} = new NativeElementNode(\"{runtimeTagName}\", {keyExpression}, {propertiesExpression}, {attachedPropertiesExpression}, {eventsExpression}, {childrenExpression});"
-                : $"var {variableName} = new NativeElementNode(\"{runtimeTagName}\", {keyExpression}, {propertiesExpression}, {eventsExpression}, {childrenExpression});");
+        var sourceInfoExpression = SourceInfoEmitter.Emit(
+            _component.Source,
+            _component.Definition.Name,
+            markupNode.Span,
+            tagName: markupNode.TagName);
+        var declaration =
+            $$"""
+            var {{variableName}} = new NativeElementNode(
+            {{FormatArgumentList(
+                [
+                    $"\"{runtimeTagName}\"",
+                    keyExpression,
+                    propertiesExpression,
+                    attachedPropertiesExpression,
+                    eventsExpression,
+                    childrenExpression,
+                    sourceInfoExpression
+                ])}}
+            );
+            """;
+
+        _writer.WriteMappedBlock(
+            declaration,
+            _component.Source,
+            markupNode.Span,
+            "native-tag",
+            markupNode.TagName);
     }
 
     private string BuildChildContentExpression(IReadOnlyList<ChildNode> childNodes)
@@ -188,6 +265,13 @@ internal sealed class ChildNodeEmitter
         return childContentName;
     }
 
+    private string FormatComponentArgument(PropertyNode property)
+    {
+        return property.ValueKind == PropertyValueKind.StringLiteral
+            ? $"\"{EscapeString(property.ValueText)}\""
+            : LineDirectiveFormatter.Wrap(_component.Source, property.ValueSpan, property.ValueText);
+    }
+
     private static string EscapeString(string value)
     {
         return value
@@ -200,11 +284,23 @@ internal sealed class ChildNodeEmitter
         return $"global::{clrTypeName.Replace("+", ".", StringComparison.Ordinal)}";
     }
 
-    private static string FormatValue(PropertyNode property)
+    private static string FormatArgumentList(IReadOnlyList<string> arguments)
     {
-        return property.ValueKind == PropertyValueKind.StringLiteral
-            ? $"\"{EscapeString(property.ValueText)}\""
-            : property.ValueText;
+        if (arguments.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var lines = new List<string>(arguments.Count);
+        for (var index = 0; index < arguments.Count; index++)
+        {
+            lines.Add(
+                index == arguments.Count - 1
+                    ? CodeBlockFormatter.FormatLastArgument(arguments[index], 4)
+                    : CodeBlockFormatter.FormatArgument(arguments[index], 4));
+        }
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private static PropertyNode GetRequiredProperty(MarkupNode node, string propertyName)

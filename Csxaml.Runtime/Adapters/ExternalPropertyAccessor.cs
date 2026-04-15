@@ -36,14 +36,25 @@ internal sealed class ExternalPropertyAccessor
             return;
         }
 
-        var converted = ExternalPropertyValueConverter.Convert(nodeProperty, _propertyType);
-        if (_dependencyProperty is not null)
+        try
         {
-            ((DependencyObject)element).SetValue(_dependencyProperty, converted);
-            return;
-        }
+            var converted = ExternalPropertyValueConverter.Convert(nodeProperty, _propertyType);
+            if (_dependencyProperty is not null)
+            {
+                ((DependencyObject)element).SetValue(_dependencyProperty, converted);
+                return;
+            }
 
-        _property.SetValue(element, converted);
+            _property.SetValue(element, converted);
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "external property application",
+                sourceInfo: nodeProperty.SourceInfo ?? node.SourceInfo,
+                detail: Name);
+        }
     }
 
     public static ExternalPropertyAccessor Create(

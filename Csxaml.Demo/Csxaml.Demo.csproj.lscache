@@ -76,6 +76,9 @@ obj/x64/Debug/net10.0-windows10.0.19041.0/
   TodoCard.g.cs
   TodoEditor.g.cs
   TodoPanel.g.cs
+Services/
+ InMemoryTodoService.cs
+ ITodoService.cs
 Support/
  TodoColors.cs
  TodoStyles.cs
@@ -254,6 +257,8 @@ Support/
  System.Xml.XPath.XDocument.dll
  WindowsBase.dll
 <NUGET>/
+ microsoft.extensions.dependencyinjection.abstractions/10.0.0/lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+ microsoft.extensions.dependencyinjection/10.0.0/lib/net10.0/Microsoft.Extensions.DependencyInjection.dll
  microsoft.web.webview2/1.0.3179.45/lib_manual/net8.0-windows10.0.17763.0/Microsoft.Web.WebView2.Core.Projection.dll
  microsoft.windows.sdk.net.ref/10.0.19041.57/lib/net8.0/
   Microsoft.Windows.SDK.NET.dll

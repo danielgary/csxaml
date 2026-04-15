@@ -5,7 +5,10 @@
       "name": "Run CSXAML Extension",
       "type": "extensionHost",
       "request": "launch",
+      "preLaunchTask": "Build CSXAML Language Server",
       "args": [
+        "${workspaceFolder}/../csxaml-extension-host.code-workspace",
+        "--new-window",
         "--extensionDevelopmentPath=${workspaceFolder}"
       ]
     }

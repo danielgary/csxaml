@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml;
 
 namespace Csxaml.Runtime;
 
-public sealed class WinUiNodeRenderer
+public sealed class WinUiNodeRenderer : IDisposable
 {
     private readonly ControlAdapterRegistry _registry;
     private RenderedNativeElement? _root;
@@ -19,9 +19,19 @@ public sealed class WinUiNodeRenderer
 
     public UIElement Render(NativeNode node)
     {
-        return RenderProjectedRoot(node) as UIElement ??
-            throw new InvalidOperationException(
-                "The projected root must be a UIElement.");
+        try
+        {
+            return RenderProjectedRoot(node) as UIElement ??
+                throw new InvalidOperationException(
+                    "The projected root must be a UIElement.");
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "root projection",
+                sourceInfo: (node as NativeElementNode)?.SourceInfo);
+        }
     }
 
     internal object RenderProjectedRoot(NativeNode node)
@@ -38,11 +48,22 @@ public sealed class WinUiNodeRenderer
 
     private RenderedNativeElement CreateElement(NativeElementNode node)
     {
-        var adapter = _registry.Get(node.TagName);
-        var element = adapter.Create();
-        var rendered = new RenderedNativeElement(node.TagName, node.Key, element, adapter);
-        ApplyElement(rendered, node);
-        return rendered;
+        try
+        {
+            var adapter = _registry.Get(node.TagName);
+            var element = adapter.Create();
+            var rendered = new RenderedNativeElement(node.TagName, node.Key, element, adapter);
+            ApplyElement(rendered, node);
+            return rendered;
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "native element creation",
+                sourceInfo: node.SourceInfo,
+                detail: node.TagName);
+        }
     }
 
     private RenderedNativeElement RenderElement(
@@ -58,8 +79,19 @@ public sealed class WinUiNodeRenderer
         var retained = existing ?? throw new InvalidOperationException(
             "Retained render path requires an existing native element.");
         retained.UpdateKey(node.Key);
-        ApplyElement(retained, node);
-        return retained;
+        try
+        {
+            ApplyElement(retained, node);
+            return retained;
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "native element update",
+                sourceInfo: node.SourceInfo,
+                detail: node.TagName);
+        }
     }
 
     private static bool CanReuse(RenderedNativeElement? existing, NativeElementNode node)
@@ -115,6 +147,12 @@ public sealed class WinUiNodeRenderer
         }
     }
 
+    public void Dispose()
+    {
+        _root?.Dispose();
+        _root = null;
+    }
+
     private void ApplyElement(RenderedNativeElement rendered, NativeElementNode node)
     {
         rendered.Adapter.ApplyProperties(rendered.Element, node);
@@ -136,7 +174,18 @@ public sealed class WinUiNodeRenderer
                 $"Projected element for '{node.TagName}' must be a FrameworkElement.");
         }
 
-        AttachedPropertyApplicator.Apply(frameworkElement, node);
+        try
+        {
+            AttachedPropertyApplicator.Apply(frameworkElement, node);
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "attached property application",
+                sourceInfo: node.SourceInfo,
+                detail: node.TagName);
+        }
     }
 
     private void UpdateChildren(RenderedNativeElement rendered, NativeElementNode node)
@@ -153,6 +202,17 @@ public sealed class WinUiNodeRenderer
 
         matcher.DisposeUnmatched();
         rendered.ReplaceChildren(updatedChildren);
-        rendered.Adapter.SetChildren(rendered.Element, ProjectChildElements(updatedChildren));
+        try
+        {
+            rendered.Adapter.SetChildren(rendered.Element, ProjectChildElements(updatedChildren));
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "child projection",
+                sourceInfo: node.SourceInfo,
+                detail: node.TagName);
+        }
     }
 }

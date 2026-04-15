@@ -6,7 +6,8 @@ public sealed record NativeElementNode(
     IReadOnlyList<NativePropertyValue> Properties,
     IReadOnlyList<NativeAttachedPropertyValue> AttachedProperties,
     IReadOnlyList<NativeEventValue> Events,
-    IReadOnlyList<Node> Children) : NativeNode
+    IReadOnlyList<Node> Children,
+    CsxamlSourceInfo? SourceInfo = null) : NativeNode
 {
     public NativeElementNode(
         string tagName,
@@ -14,7 +15,7 @@ public sealed record NativeElementNode(
         IReadOnlyList<NativePropertyValue> properties,
         IReadOnlyList<NativeEventValue> events,
         IReadOnlyList<Node> children)
-        : this(tagName, key, properties, Array.Empty<NativeAttachedPropertyValue>(), events, children)
+        : this(tagName, key, properties, Array.Empty<NativeAttachedPropertyValue>(), events, children, null)
     {
     }
 }

@@ -31,10 +31,11 @@ public sealed class NativeElementReaderTests
             Array.Empty<NativeEventValue>(),
             Array.Empty<Node>());
 
-        var error = Assert.ThrowsExactly<InvalidOperationException>(
+        var error = Assert.ThrowsExactly<CsxamlRuntimeException>(
             () => NativeElementReader.TryGetPropertyValue<double>(node, "Spacing", out _));
 
         StringAssert.Contains(error.Message, "Native property 'Spacing'");
+        Assert.IsInstanceOfType<InvalidOperationException>(error.InnerException);
     }
 
     [TestMethod]
@@ -112,9 +113,10 @@ public sealed class NativeElementReaderTests
             Array.Empty<NativeEventValue>(),
             Array.Empty<Node>());
 
-        var error = Assert.ThrowsExactly<InvalidOperationException>(
+        var error = Assert.ThrowsExactly<CsxamlRuntimeException>(
             () => NativeElementReader.TryGetPropertyValue<bool>(node, "IsChecked", out _));
 
         StringAssert.Contains(error.Message, "Native property 'IsChecked'");
+        Assert.IsInstanceOfType<InvalidOperationException>(error.InnerException);
     }
 }

@@ -21,8 +21,12 @@ internal static class NativeElementReader
                 return true;
             }
 
-            throw new InvalidOperationException(
-                $"Native event '{name}' on '{node.TagName}' expected handler type '{typeof(TDelegate).Name}'.");
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                new InvalidOperationException(
+                    $"Native event '{name}' on '{node.TagName}' expected handler type '{typeof(TDelegate).Name}'."),
+                "native event read",
+                sourceInfo: eventValue.SourceInfo ?? node.SourceInfo,
+                detail: eventValue.Name);
         }
 
         handler = null;
@@ -46,8 +50,12 @@ internal static class NativeElementReader
                 return true;
             }
 
-            throw new InvalidOperationException(
-                $"Native property '{name}' on '{node.TagName}' expected value type '{typeof(T).Name}'.");
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                new InvalidOperationException(
+                    $"Native property '{name}' on '{node.TagName}' expected value type '{typeof(T).Name}'."),
+                "native property read",
+                sourceInfo: property.SourceInfo ?? node.SourceInfo,
+                detail: property.Name);
         }
 
         value = default!;
@@ -73,8 +81,12 @@ internal static class NativeElementReader
                 return true;
             }
 
-            throw new InvalidOperationException(
-                $"Attached property '{property.QualifiedName}' on '{node.TagName}' expected value type '{typeof(T).Name}'.");
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                new InvalidOperationException(
+                    $"Attached property '{property.QualifiedName}' on '{node.TagName}' expected value type '{typeof(T).Name}'."),
+                "attached property read",
+                sourceInfo: property.SourceInfo ?? node.SourceInfo,
+                detail: property.QualifiedName);
         }
 
         value = default!;

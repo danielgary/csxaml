@@ -6,6 +6,7 @@ internal sealed record PropertyNode(
     string PropertyName,
     PropertyValueKind ValueKind,
     string ValueText,
+    TextSpan ValueSpan,
     TextSpan Span)
 {
     public bool IsAttached => OwnerName is not null;

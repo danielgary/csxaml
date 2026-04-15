@@ -1,5 +1,7 @@
 using Csxaml.ExternalControls;
 using Csxaml.Demo;
+using Csxaml.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Csxaml.Runtime.Tests.Demo;
@@ -21,21 +23,21 @@ public sealed class TodoDemoTests
     [TestMethod]
     public void TodoBoard_UsesGridLayoutAndSemanticHooks()
     {
-        var component = new TodoBoardComponent();
-
-        var tree = (NativeElementNode)new ComponentTreeCoordinator(component).Render();
+        using var render = CsxamlTestHost.Render<TodoBoardComponent>(CreateServices());
+        var tree = render.Root;
 
         Assert.AreEqual("Grid", tree.TagName);
-        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "Todo Board Title"));
-        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "Selection Status Button"));
-        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "External WinUI Proof"));
-        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "Todo List"));
-        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationName(tree, "Task Editor"));
-        Assert.IsNotNull(RuntimeTreeHelpers.FindByAutomationId(tree, "SelectedTodoTitle"));
+        Assert.IsNotNull(render.FindByAutomationName("Todo Board Title"));
+        Assert.IsNotNull(render.FindByAutomationName("Selection Status Button"));
+        Assert.IsNotNull(render.FindByAutomationName("External WinUI Proof"));
+        Assert.IsNotNull(render.FindByAutomationName("Todo List"));
+        Assert.IsNotNull(render.FindByAutomationName("Task Editor"));
+        Assert.IsNotNull(render.FindByAutomationId("SelectedTodoTitle"));
+        Assert.IsNotNull(render.FindByText("Draft plan"));
         Assert.AreEqual(
             1,
             RuntimeTreeHelpers.GetAttachedProperty<int>(
-                RuntimeTreeHelpers.FindByAutomationName(tree, "Task Editor")!,
+                render.FindByAutomationName("Task Editor"),
                 "Grid",
                 "Column"));
     }
@@ -45,7 +47,7 @@ public sealed class TodoDemoTests
     {
         var component = new TodoBoardComponent();
 
-        var tree = (NativeElementNode)new ComponentTreeCoordinator(component).Render();
+        var tree = (NativeElementNode)new ComponentTreeCoordinator(component, CreateServices()).Render();
         var statusButton = RuntimeTreeHelpers.FindByAutomationName(tree, "Selection Status Button");
         var infoBar = RuntimeTreeHelpers.FindByAutomationName(tree, "External WinUI Proof");
 
@@ -61,7 +63,7 @@ public sealed class TodoDemoTests
     {
         var component = new TodoBoardComponent();
 
-        var tree = (NativeElementNode)new ComponentTreeCoordinator(component).Render();
+        var tree = (NativeElementNode)new ComponentTreeCoordinator(component, CreateServices()).Render();
         var statusButton = RuntimeTreeHelpers.FindByAutomationName(tree, "Selection Status Button");
         var infoBar = RuntimeTreeHelpers.FindByAutomationName(tree, "External WinUI Proof");
 
@@ -75,7 +77,7 @@ public sealed class TodoDemoTests
     public void TodoBoard_SelectingItemUpdatesEditorFields()
     {
         var component = new TodoBoardComponent();
-        var coordinator = new ComponentTreeCoordinator(component);
+        var coordinator = new ComponentTreeCoordinator(component, CreateServices());
 
         var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
         Assert.AreEqual("Draft plan", GetTitleEditorText(firstRoot));
@@ -91,7 +93,7 @@ public sealed class TodoDemoTests
     public void TodoBoard_StatusButtonResetsSelectionToFirstItem()
     {
         var component = new TodoBoardComponent();
-        var coordinator = new ComponentTreeCoordinator(component);
+        var coordinator = new ComponentTreeCoordinator(component, CreateServices());
 
         var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
         RuntimeTreeHelpers.GetEventHandler<Action>(GetSelectButton(firstRoot, 1), "OnClick")();
@@ -108,22 +110,21 @@ public sealed class TodoDemoTests
     [TestMethod]
     public void TodoBoard_TitleEditorUpdatesSelectedTodoTitle()
     {
-        var component = new TodoBoardComponent();
-        var coordinator = new ComponentTreeCoordinator(component);
+        var service = new RecordingTodoService(new InMemoryTodoService().LoadItems());
+        using var render = CsxamlTestHost.Render<TodoBoardComponent>(CreateServices(service));
 
-        var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
-        RuntimeTreeHelpers.GetEventHandler<Action<string>>(GetTitleEditor(firstRoot), "OnTextChanged")("Ship Milestone 6");
+        render.EnterText(render.FindByAutomationId("SelectedTodoTitle"), "Ship Milestone 6");
 
-        var secondRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
-        Assert.AreEqual("Ship Milestone 6", GetTitleEditorText(secondRoot));
-        Assert.AreEqual("Ship Milestone 6", GetCardTitle(secondRoot, 0));
+        Assert.AreEqual("Ship Milestone 6", GetTitleEditorText(RuntimeTreeHelpers.RootGrid(render.Root)));
+        Assert.AreEqual("Ship Milestone 6", GetCardTitle(RuntimeTreeHelpers.RootGrid(render.Root), 0));
+        Assert.AreEqual("Ship Milestone 6", service.Snapshot()[0].Title);
     }
 
     [TestMethod]
     public void TodoBoard_TogglingOtherItemKeepsSelectedEditorContent()
     {
         var component = new TodoBoardComponent();
-        var coordinator = new ComponentTreeCoordinator(component);
+        var coordinator = new ComponentTreeCoordinator(component, CreateServices());
 
         var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
         RuntimeTreeHelpers.GetEventHandler<Action>(GetToggleButton(firstRoot, 1), "OnClick")();
@@ -139,7 +140,7 @@ public sealed class TodoDemoTests
     public void TodoBoard_NotesEditorUpdatesSelectedTodoNotes()
     {
         var component = new TodoBoardComponent();
-        var coordinator = new ComponentTreeCoordinator(component);
+        var coordinator = new ComponentTreeCoordinator(component, CreateServices());
 
         var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
         RuntimeTreeHelpers.GetEventHandler<Action<string>>(GetNotesEditor(firstRoot), "OnTextChanged")("Add Grid and ScrollViewer support.");
@@ -151,16 +152,32 @@ public sealed class TodoDemoTests
     [TestMethod]
     public void TodoBoard_CheckBoxUpdatesSelectedTodoDoneState()
     {
-        var component = new TodoBoardComponent();
-        var coordinator = new ComponentTreeCoordinator(component);
+        using var render = CsxamlTestHost.Render<TodoBoardComponent>(CreateServices());
 
-        var firstRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
-        RuntimeTreeHelpers.GetEventHandler<Action<bool>>(GetDoneCheckBox(firstRoot), "OnCheckedChanged")(true);
+        render.SetChecked(render.FindByAutomationId("SelectedTodoDone"), true);
 
-        var secondRoot = RuntimeTreeHelpers.RootGrid(coordinator.Render());
+        var root = RuntimeTreeHelpers.RootGrid(render.Root);
+        Assert.IsTrue(RuntimeTreeHelpers.GetProperty<bool?>(GetDoneCheckBox(root), "IsChecked") ?? false);
+        Assert.AreEqual("Done", GetCardStatus(root, 0));
+    }
 
-        Assert.IsTrue(RuntimeTreeHelpers.GetProperty<bool?>(GetDoneCheckBox(secondRoot), "IsChecked") ?? false);
-        Assert.AreEqual("Done", GetCardStatus(secondRoot, 0));
+    [TestMethod]
+    public void TodoBoard_LoadsInitialItemsFromInjectedService()
+    {
+        var service = new RecordingTodoService(
+            new[]
+            {
+                new TodoItemModel("custom-1", "Review injected seed", "Loaded from the test service.", false),
+                new TodoItemModel("custom-2", "Confirm persistence", "Wire edits back through the service.", true)
+            });
+        using var render = CsxamlTestHost.Render<TodoBoardComponent>(CreateServices(service));
+
+        var root = RuntimeTreeHelpers.RootGrid(render.Root);
+        var statusButton = GetSelectionStatusButton(root);
+
+        Assert.IsNotNull(render.FindByText("Review injected seed"));
+        Assert.AreEqual("custom-1", RuntimeTreeHelpers.GetProperty<string>(statusButton, "BadgeText"));
+        Assert.AreEqual("Review injected seed", GetTitleEditorText(root));
     }
 
     private static NativeElementNode GetCard(NativeElementNode root, int index)
@@ -230,5 +247,12 @@ public sealed class TodoDemoTests
     private static string GetTitleEditorText(NativeElementNode root)
     {
         return RuntimeTreeHelpers.GetProperty<string>(GetTitleEditor(root), "Text") ?? string.Empty;
+    }
+
+    private static IServiceProvider CreateServices(ITodoService? todoService = null)
+    {
+        return new ServiceCollection()
+            .AddSingleton<ITodoService>(todoService ?? new InMemoryTodoService())
+            .BuildServiceProvider();
     }
 }

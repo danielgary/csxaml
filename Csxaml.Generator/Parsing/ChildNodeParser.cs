@@ -48,6 +48,7 @@ internal sealed class ChildNodeParser
         _context.ReadIdentifier("var", message);
         var itemName = _context.ReadIdentifier(message);
         _context.ReadIdentifier("in", message);
+        var collectionStart = _context.Current.Span.Start;
         var collectionExpression = _context.ReadRawUntilMatching(')', message).Trim();
         _context.ReadSymbol(")", message);
         var openBrace = _context.ReadSymbol("{", message);
@@ -55,6 +56,7 @@ internal sealed class ChildNodeParser
         return new ForEachBlockNode(
             itemName.Text,
             collectionExpression,
+            new TextSpan(collectionStart, Math.Max(collectionExpression.Length, 0)),
             children,
             new TextSpan(start, openBrace.Span.End - start));
     }
@@ -64,12 +66,14 @@ internal sealed class ChildNodeParser
         const string message = "invalid if block";
         var start = _context.PreviousTokenStart;
         _context.ReadSymbol("(", message);
+        var conditionStart = _context.Current.Span.Start;
         var conditionExpression = _context.ReadRawUntilMatching(')', message).Trim();
         _context.ReadSymbol(")", message);
         var openBrace = _context.ReadSymbol("{", message);
         var children = ParseBlockChildren(message);
         return new IfBlockNode(
             conditionExpression,
+            new TextSpan(conditionStart, Math.Max(conditionExpression.Length, 0)),
             children,
             new TextSpan(start, openBrace.Span.End - start));
     }
@@ -103,6 +107,7 @@ internal sealed class ChildNodeParser
 
         if (_context.TryReadSymbol("{"))
         {
+            var valueStart = _context.Current.Span.Start;
             var value = _context.ReadRawUntilMatching('}', $"unsupported prop name '{name}'").Trim();
             var closeBrace = _context.ReadSymbol("}", $"unsupported prop name '{name}'");
             return new PropertyNode(
@@ -111,6 +116,7 @@ internal sealed class ChildNodeParser
                 propertyName,
                 PropertyValueKind.Expression,
                 value,
+                new TextSpan(valueStart, Math.Max(value.Length, 0)),
                 new TextSpan(nameSpan.Start, closeBrace.Span.End - nameSpan.Start));
         }
 
@@ -121,6 +127,7 @@ internal sealed class ChildNodeParser
             propertyName,
             PropertyValueKind.StringLiteral,
             stringToken.Text,
+            stringToken.Span,
             new TextSpan(nameSpan.Start, stringToken.Span.End - nameSpan.Start));
     }
 

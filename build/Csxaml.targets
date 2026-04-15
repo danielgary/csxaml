@@ -72,6 +72,7 @@
       <FileWrites Include="$(CsxamlProjectContextFile)" />
       <FileWrites Include="$(CsxamlStampFile)" />
       <FileWrites Include="$(CsxamlGeneratedDirectory)\**\*.g.cs" Condition="Exists('$(CsxamlGeneratedDirectory)')" />
+      <FileWrites Include="$(CsxamlIntermediateRoot)\Maps\**\*.json" Condition="Exists('$(CsxamlIntermediateRoot)\Maps')" />
     </ItemGroup>
   </Target>
 

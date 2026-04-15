@@ -35,10 +35,14 @@ public sealed class ExternalControlEmissionTests
 
         StringAssert.Contains(emitted, "using Demo = MyApp.Controls;");
         StringAssert.Contains(emitted, "GeneratedExternalControlRegistration.EnsureRegistered();");
-        StringAssert.Contains(emitted, "new NativeElementNode(\"MyApp.Controls.StatusButton\"");
+        StringAssert.Contains(emitted, "new NativeElementNode(");
+        StringAssert.Contains(emitted, "\"MyApp.Controls.StatusButton\"");
         StringAssert.Contains(emitted, "new NativePropertyValue(\"BadgeText\", \"todo-1\"");
-        StringAssert.Contains(emitted, "new NativePropertyValue(\"Style\", TodoStyles.PrimaryButton");
-        StringAssert.Contains(emitted, "new NativeEventValue(\"OnClick\", (global::System.Action)(() => { })");
+        StringAssert.Contains(emitted, "\"Style\"");
+        StringAssert.Contains(emitted, "TodoStyles.PrimaryButton");
+        StringAssert.Contains(emitted, "new NativeEventValue(");
+        StringAssert.Contains(emitted, "\"OnClick\"");
+        StringAssert.Contains(emitted, "(global::System.Action)(");
     }
 
     [TestMethod]

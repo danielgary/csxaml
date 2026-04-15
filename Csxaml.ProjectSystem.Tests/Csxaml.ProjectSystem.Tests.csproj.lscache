@@ -244,6 +244,8 @@ ProjectSystemTreeHelpers.cs
 <NUGET>/
  microsoft.applicationinsights/2.23.0/lib/netstandard2.0/Microsoft.ApplicationInsights.dll
  microsoft.diasymreader/2.0.0/lib/netstandard2.0/Microsoft.DiaSymReader.dll
+ microsoft.extensions.dependencyinjection.abstractions/10.0.0/lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+ microsoft.extensions.dependencyinjection/10.0.0/lib/net10.0/Microsoft.Extensions.DependencyInjection.dll
  microsoft.extensions.dependencymodel/6.0.2/lib/netstandard2.0/Microsoft.Extensions.DependencyModel.dll
  microsoft.testing.extensions.codecoverage/18.1.0/lib/net8.0/
   Microsoft.CodeCoverage.Core.dll

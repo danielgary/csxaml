@@ -14,10 +14,21 @@ internal sealed class ChildComponentStore
 
     public void CompleteRenderPass()
     {
+        DisposeRemovedComponents();
         _previous = _current;
     }
 
-    public ComponentInstance Resolve(ComponentNode node)
+    public void AbortRenderPass()
+    {
+        DisposeNewComponents();
+        _current = new Dictionary<string, ComponentInstance>();
+        _positionOccurrences = new Dictionary<string, int>();
+    }
+
+    public ComponentInstance Resolve(
+        ComponentNode node,
+        ComponentContext context,
+        IComponentActivator activator)
     {
         var matchKey = ComponentMatchKey.Create(node, _positionOccurrences);
         if (_current.ContainsKey(matchKey.Value))
@@ -28,21 +39,78 @@ internal sealed class ChildComponentStore
 
         if (!_previous.TryGetValue(matchKey.Value, out var instance))
         {
-            instance = CreateComponentInstance(node.ComponentType);
+            instance = activator.CreateComponent(node.ComponentType, context);
         }
 
+        instance.Initialize(context);
         _current[matchKey.Value] = instance;
         return instance;
     }
 
-    private static ComponentInstance CreateComponentInstance(Type componentType)
+    public void DisposeAll()
     {
-        if (Activator.CreateInstance(componentType) is not ComponentInstance instance)
+        foreach (var component in EnumerateDistinctComponents())
         {
-            throw new InvalidOperationException(
-                $"Type '{componentType.FullName}' is not a component instance.");
+            ComponentDisposer.Dispose(component);
         }
 
-        return instance;
+        _current = new Dictionary<string, ComponentInstance>();
+        _previous = new Dictionary<string, ComponentInstance>();
+        _positionOccurrences = new Dictionary<string, int>();
+    }
+
+    public async ValueTask DisposeAllAsync()
+    {
+        foreach (var component in EnumerateDistinctComponents())
+        {
+            await ComponentDisposer.DisposeAsync(component);
+        }
+
+        _current = new Dictionary<string, ComponentInstance>();
+        _previous = new Dictionary<string, ComponentInstance>();
+        _positionOccurrences = new Dictionary<string, int>();
+    }
+
+    private void DisposeRemovedComponents()
+    {
+        foreach (var pair in _previous)
+        {
+            if (_current.ContainsKey(pair.Key))
+            {
+                continue;
+            }
+
+            pair.Value.MarkUnmounted();
+            ComponentDisposer.Dispose(pair.Value);
+        }
+    }
+
+    private void DisposeNewComponents()
+    {
+        foreach (var pair in _current)
+        {
+            if (_previous.ContainsKey(pair.Key))
+            {
+                continue;
+            }
+
+            ComponentDisposer.Dispose(pair.Value);
+        }
+    }
+
+    private IReadOnlyList<ComponentInstance> EnumerateDistinctComponents()
+    {
+        var seen = new HashSet<ComponentInstance>(ReferenceEqualityComparer.Instance);
+        var values = new List<ComponentInstance>();
+
+        foreach (var component in _previous.Values.Concat(_current.Values))
+        {
+            if (seen.Add(component))
+            {
+                values.Add(component);
+            }
+        }
+
+        return values;
     }
 }

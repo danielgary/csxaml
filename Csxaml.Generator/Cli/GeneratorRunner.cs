@@ -20,7 +20,7 @@ internal sealed class GeneratorRunner
 
         var compilation = _validator.Validate(parsedComponents, project, options.ReferencePaths);
         var files = parsedComponents
-            .Select(component => CreateGeneratedFile(options.OutputDirectory, component, compilation))
+            .SelectMany(component => CreateGeneratedFiles(options.OutputDirectory, component, compilation))
             .ToList();
         files.Add(CreateComponentManifestFile(options.OutputDirectory, compilation));
         if (compilation.HasExternalControls)
@@ -36,7 +36,7 @@ internal sealed class GeneratorRunner
         return new SourceDocument(path, File.ReadAllText(path));
     }
 
-    private GeneratedFile CreateGeneratedFile(
+    private IReadOnlyList<GeneratedFile> CreateGeneratedFiles(
         string outputDirectory,
         ParsedComponent component,
         CompilationContext compilation)
@@ -44,9 +44,25 @@ internal sealed class GeneratorRunner
         var outputPath = Path.Combine(
             outputDirectory,
             Path.GetFileNameWithoutExtension(component.Source.FilePath) + ".g.cs");
+        var document = _codeEmitter.EmitDocument(component, compilation);
+        var mapPath = Path.Combine(
+            Directory.GetParent(outputDirectory)?.FullName ?? outputDirectory,
+            "Maps",
+            Path.GetFileNameWithoutExtension(component.Source.FilePath) + ".map.json");
+        var map = new GeneratedSourceMap(
+            outputPath,
+            component.Source.FilePath,
+            component.Definition.Name,
+            document.SourceMapEntries);
 
-        var content = _codeEmitter.Emit(component, compilation);
-        return new GeneratedFile(outputPath, content);
+        return
+        [
+            new GeneratedFile(outputPath, document.Text, outputDirectory),
+            new GeneratedFile(
+                mapPath,
+                GeneratedSourceMapWriter.Write(map),
+                Path.Combine(Directory.GetParent(outputDirectory)?.FullName ?? outputDirectory, "Maps"))
+        ];
     }
 
     private static GeneratedFile CreateExternalRegistrationFile(
@@ -57,7 +73,8 @@ internal sealed class GeneratorRunner
         new GeneratedExternalControlRegistrationEmitter(writer).Emit(compilation);
         return new GeneratedFile(
             Path.Combine(outputDirectory, "GeneratedExternalControlRegistration.g.cs"),
-            writer.ToString());
+            writer.ToString(),
+            outputDirectory);
     }
 
     private static GeneratedFile CreateComponentManifestFile(
@@ -70,6 +87,7 @@ internal sealed class GeneratorRunner
             compilation.Components.FindLocalComponents());
         return new GeneratedFile(
             Path.Combine(outputDirectory, "GeneratedComponentManifest.g.cs"),
-            writer.ToString());
+            writer.ToString(),
+            outputDirectory);
     }
 }

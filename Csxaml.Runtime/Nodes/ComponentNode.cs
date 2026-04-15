@@ -6,7 +6,8 @@ public sealed record ComponentNode(
     IReadOnlyList<Node> ChildContent,
     IReadOnlyList<NativeAttachedPropertyValue> AttachedProperties,
     string RenderPositionId,
-    string? Key) : Node
+    string? Key,
+    CsxamlSourceInfo? SourceInfo = null) : Node
 {
     public ComponentNode(
         Type componentType,
@@ -19,7 +20,8 @@ public sealed record ComponentNode(
             Array.Empty<Node>(),
             Array.Empty<NativeAttachedPropertyValue>(),
             renderPositionId,
-            key)
+            key,
+            null)
     {
     }
 
@@ -35,7 +37,8 @@ public sealed record ComponentNode(
             childContent,
             Array.Empty<NativeAttachedPropertyValue>(),
             renderPositionId,
-            key)
+            key,
+            null)
     {
     }
 
@@ -51,7 +54,8 @@ public sealed record ComponentNode(
             Array.Empty<Node>(),
             attachedProperties,
             renderPositionId,
-            key)
+            key,
+            null)
     {
     }
 }

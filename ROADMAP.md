@@ -66,6 +66,7 @@ The project has already established early groundwork in these areas:
 - proof that one CSXAML component library can be consumed from another CSXAML project through ordinary `using` imports and aliases
 - proof that an ordinary C# test project can consume generated CSXAML components through normal `ProjectReference` usage without duplicate generator wiring
 - deterministic generated-file writing, stale-file pruning, and clean integration through the shared `obj` pipeline
+- source-first diagnostics for parser/validator failures, `#line`-mapped build errors from direct C# regions, deterministic source-map sidecars under `obj`, and wrapped runtime exception context
 
 This roadmap starts from that point and moves toward a credible v1.
 
@@ -84,6 +85,7 @@ CSXAML v1 is ready when all of the following are true:
 - component libraries, external controls, and attached-property owners use one normal `namespace`/`using` model rather than parallel import systems
 - external WinUI and library-provided controls can be consumed through ordinary `using`-based imports and aliases rather than bespoke interop glue
 - async work, lifecycle, and cleanup behavior are explicit and testable
+- app-level services can flow into components through an explicit DI model that stays separate from props and local state
 - styling and theming stay intentionally thin and compose cleanly with WinUI styles and resources
 - Visual Studio provides IntelliSense, diagnostics, and navigation
 - build and project system behavior are predictable
@@ -710,11 +712,22 @@ Production readiness depends on reliable builds, stable multi-project behavior, 
 
 # Milestone 11 - Visual Studio Integration and IntelliSense
 
-**Status:** [ ]
+**Status:** [x]
+
+## Status note
+
+Milestone 11 is now landed for the current Visual Studio 18 host path.
+
+- `Csxaml.Tooling.Core`, `Csxaml.LanguageServer`, and `Csxaml.VisualStudio` now form one shared authoring stack rather than a Visual-Studio-only semantic implementation
+- the extension activates in Visual Studio 18 experimental instances with the VSIX/runtime-host/bootstrap issues resolved
+- semantic coloring, tag and attribute completion, projected C# completion, diagnostics, formatting, and go-to-definition are all available through the shared language-server boundary
+- repo coverage now includes tooling-core behavior tests, protocol-level language-server smoke tests, and VSIX packaging tests for both runtime targeting and language-server payload contents
+
+Remaining work around richer source mapping, readable build/runtime failure translation, and explicit debugging workflows belongs to Milestone 12 rather than keeping Milestone 11 open
 
 ## Purpose
 
-Provide a first-class authoring experience in Visual Studio.
+Provide a first-class authoring experience in Visual Studio without trapping CSXAML language intelligence in a Visual-Studio-only implementation.
 
 ## Why it matters
 
@@ -740,23 +753,40 @@ This is one of the explicit v1 goals. Developers should not have to guess syntax
 
 ## Checklist
 
-- [ ] define tooling-facing metadata API
-- [ ] expose native control metadata to tooling layer
-- [ ] expose imported external control metadata and import-resolution context to the tooling layer
-- [ ] expose component symbol metadata to tooling layer
-- [ ] implement syntax highlighting
-- [ ] implement completion for tags
-- [ ] implement completion for props and events
-- [ ] implement completion for component props
-- [ ] implement editor diagnostics
-- [ ] implement baseline formatting and indentation rules for mixed markup/C# files
-- [ ] implement basic navigation or go-to-definition
+- [x] add a shared tooling-core project for milestone 11 bootstrap work
+- [x] add an initial Visual Studio host project and VSIX packaging path
+- [x] prove an experimental-instance bootstrap loop that stages the built extension and launches Visual Studio
+- [x] stand up a shared language-server or equivalent shared request boundary so Visual Studio lands first without forcing a second semantic implementation for VS Code later
+- [x] define tooling-facing metadata API
+- [x] expose native control metadata to tooling layer
+- [x] expose imported external control metadata and import-resolution context to the tooling layer
+- [x] expose component symbol metadata to tooling layer
+- [x] implement syntax highlighting
+- [x] implement completion for tags
+- [x] implement completion for props and events
+- [x] implement completion for component props
+- [x] implement editor diagnostics
+- [x] implement baseline formatting and indentation rules for mixed markup/C# files
+- [x] implement basic navigation or go-to-definition
 
 ---
 
 # Milestone 12 - Diagnostics, Source Mapping, and Debugging
 
-**Status:** [ ]
+**Status:** [x]
+
+## Status note
+
+Milestone 12 is now landed.
+
+- generator diagnostics now carry richer source spans instead of only point locations
+- validator and tag-resolution failures now provide targeted suggestions for close native props, component props, and visible tag names
+- emitted components now carry deterministic source-map sidecars under `obj\<tfm>\Csxaml\Maps` plus narrow `#line` coverage for direct source-authored C# regions
+- representative helper-code and expression-island compiler failures now map back to `.csxaml`
+- runtime failures now wrap with staged component/file/tag/member context through `CsxamlRuntimeException`
+- the debugging workflow is documented in [docs/debugging-and-diagnostics.md](docs/debugging-and-diagnostics.md)
+
+Remaining unmapped cases are intentionally narrow: internal scaffold or framework-contract compile failures may still remain on generated `.g.cs`, and the sidecar map is the truthful fallback breadcrumb for those cases rather than a fake precise remap
 
 ## Purpose
 
@@ -788,18 +818,18 @@ Should produce a CSXAML diagnostic like:
 
 ## Checklist
 
-- [ ] improve source-span tracking in parser and emitter
-- [ ] map diagnostics back to `.csxaml`
-- [ ] add helpful suggestion messages where possible
-- [ ] improve runtime exception context
-- [ ] define source mapping format or strategy
-- [ ] document debugging workflow
+- [x] improve source-span tracking in parser and emitter
+- [x] map diagnostics back to `.csxaml`
+- [x] add helpful suggestion messages where possible
+- [x] improve runtime exception context
+- [x] define source mapping format or strategy
+- [x] document debugging workflow
 
 ---
 
 # Milestone 13 - Stabilization, Compatibility, and Test Hardening
 
-**Status:** [ ]
+**Status:** [x]
 
 ## Purpose
 
@@ -815,33 +845,110 @@ Production readiness is as much about stability and change control as features. 
 - documented supported control set
 - compatibility policy for generator/runtime changes
 - explicit lifecycle/disposal guidance that avoids framework magic
+- explicit component service injection that builds on `IServiceProvider` / `Microsoft.Extensions.DependencyInjection` instead of a CSXAML-specific container
 - C#-first component testing APIs that do not require generated-code spelunking
 - broad regression coverage
+
+## Dependency injection direction
+
+CSXAML should support dependency injection, but it should do so in a way that keeps the line between props, state, and services easy to see.
+
+The intended v1 direction is:
+
+- props remain the way parent components pass render data and callbacks
+- `State<T>` remains the way a component owns mutable UI state
+- DI is reserved for app services such as repositories, clocks, navigation, dialogs, logging, or other long-lived collaborators
+- the runtime should build on the normal .NET `IServiceProvider` story rather than inventing a second container abstraction
+- component activation should become explicitly service-aware, but rendering should not turn into ad hoc service-locator calls on every rerender
+
+Representative authoring target:
+
+```csharp
+component Element TodoBoard {
+    inject ITodoRepository Todos;
+    inject IClock Clock;
+
+    State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(LoadInitialItems());
+
+    List<TodoItemModel> LoadInitialItems()
+    {
+        return Todos.LoadAll(Clock.Now);
+    }
+
+    return <StackPanel>
+        ...
+    </StackPanel>;
+}
+```
+
+Representative host/testing target:
+
+```csharp
+var services = new ServiceCollection()
+    .AddSingleton<ITodoRepository, TodoRepository>()
+    .AddSingleton<IClock, SystemClock>()
+    .BuildServiceProvider();
+
+var host = new CsxamlHost(ComponentHost, typeof(TodoBoardComponent), services);
+host.Render();
+```
+
+The preferred implementation shape is intentionally narrow:
+
+- add optional `IServiceProvider` plumbing through `CsxamlHost`, the tree coordinator, and child-component activation
+- replace raw `Activator.CreateInstance` child creation with an explicit component activator that can use `ActivatorUtilities`
+- keep the existing root-instance path for simple demos and tests that do not use DI
+- add explicit component-level `inject Type Name;` declarations near `State<T>` declarations rather than hiding DI inside markup attributes or helper-code conventions; this is now the intended v1 spec surface
+- generate constructor-injected readonly members or equivalent cached component members so injected services are resolved once per component instance, not once per render
+- keep DI scoped to components for v1; external controls should continue to follow the explicit supported-constructor rules already documented for interop
+
+Intentional non-goals for the first DI slice:
+
+- no implicit "props from DI" behavior
+- no property injection or magical member scanning
+- no per-component child scopes
+- no subtree provider overrides in markup
+- no requirement that every app use DI just to mount a component
+- no external-control constructor injection story in v1
 
 ## Exit criteria
 
 - compatibility policy exists
 - supported feature matrix exists
 - lifecycle/async/disposal model exists and is documented
+- components can consume registered app services through an explicit DI model that preserves the distinction between props, state, and services
 - developers can write automated component tests against CSXAML components without manually booting a full app when logical-tree testing is sufficient
 - regression suite covers major language/runtime features
 - breaking changes are documented and versioned intentionally
 
 ## Checklist
 
-- [ ] define syntax compatibility policy
-- [ ] define runtime/generator compatibility policy
-- [ ] publish supported control/feature matrix
-- [ ] define the minimal lifecycle/disposal model and keep it smaller than a custom effect framework
-- [ ] define async state-update behavior and unmounted-component behavior
-- [ ] add a hostless C#-first component testing harness over the logical tree/runtime coordinator path
-- [ ] add semantic query helpers that prefer text, name, and automation metadata over brittle child-index assertions
-- [ ] add interaction helpers for common component tests such as click, text input, and checked-state changes
-- [ ] expand golden tests for generator output
-- [ ] expand runtime reconciliation regression tests
-- [ ] add regression tests for mount/unmount cleanup and async completion safety
-- [ ] add interop regression tests, including referenced package and solution-local controls
-- [ ] document known limitations clearly
+- [x] define syntax compatibility policy
+- [x] define runtime/generator compatibility policy
+- [x] publish supported control/feature matrix
+- [x] define the minimal lifecycle/disposal model and keep it smaller than a custom effect framework
+- [x] plumb optional `IServiceProvider` support through the host, tree coordinator, and component activation path
+- [x] replace raw child-component activation with an explicit activator that can use `ActivatorUtilities`
+- [x] define and implement explicit `inject Type Name;` declarations as the first DI authoring syntax
+- [x] define root-host scope ownership and disposal behavior without introducing per-component scopes
+- [x] define async state-update behavior and unmounted-component behavior
+- [x] add a hostless C#-first component testing harness over the logical tree/runtime coordinator path
+- [x] add semantic query helpers that prefer text, name, and automation metadata over brittle child-index assertions
+- [x] add interaction helpers for common component tests such as click, text input, and checked-state changes
+- [x] expand golden tests for generator output
+- [x] expand runtime reconciliation regression tests
+- [x] add DI regression tests for required service resolution, missing-service failures, keyed child reuse, and test-time service overrides
+- [x] add regression tests for mount/unmount cleanup and async completion safety
+- [x] add interop regression tests, including referenced package and solution-local controls
+- [x] document known limitations clearly
+
+## Notes
+
+- Milestone 13 adds `Csxaml.Testing` as the supported hostless logical-tree test surface.
+- Runtime DI now flows through `IServiceProvider`, an explicit activator seam, and `inject Type name;` generated resolution hooks.
+- The Todo demo now dogfoods the DI path end to end: `App` builds a standard `ServiceCollection`, `MainWindow` mounts `TodoBoardComponent` through the root-type host path, and `TodoBoard` injects `ITodoService` for initial load plus snapshot persistence through `SaveItems(...)` while local `State<>` remains the live UI source of truth.
+- Lifecycle remains intentionally small: mount-once notification, subtree disposal, and post-unmount invalidation no-op behavior are implemented and documented.
+- Dedicated lifecycle authoring syntax inside `.csxaml` source remains intentionally out of scope; the runtime hook exists for handwritten `ComponentInstance` types.
 
 ---
 
@@ -918,7 +1025,7 @@ A production-ready v1 needs packaging, samples, templates, docs, and a clear sup
 - [ ] write native props/events guide
 - [x] write external control interop guide
 - [ ] write component testing guide
-- [ ] write debugging and diagnostics guide
+- [x] write debugging and diagnostics guide
 - [ ] publish release process and versioning notes
 - [ ] tag and announce v1 release
 
@@ -982,6 +1089,7 @@ Use this section to track recurring risks as the project evolves.
 - [ ] runtime and WinUI-specific rendering become too coupled
 - [ ] metadata model becomes inconsistent between runtime, generator, and tooling
 - [ ] component props drift toward weakly typed bags
+- [ ] dependency injection becomes a second ambient props channel instead of a narrow app-service boundary
 - [ ] control adapter layer turns into giant switch statements
 - [ ] external control interop depends on broad implicit assembly scanning instead of a deterministic metadata path
 - [ ] helper-code support turns the parser into a quasi-general-purpose C# parser
@@ -1042,3 +1150,18 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-13: Milestone 8 completed. Built-in and supported external controls now accept `Style` values through shared metadata and runtime coercion, the demo reuses keyed application styles through ordinary CSXAML expressions, and hostless tests assert deferred style intent without requiring live WinUI activation. The styling story remains intentionally thin: WinUI styles/resources and typed C# helpers are the reuse mechanism, not a new CSXAML-specific styling DSL.
 - 2026-04-13: Milestone 9 completed. `.csxaml` files now support one file-scoped `namespace`, file-local helper declarations, and component-local helper code before the final render return. Components can accept explicit default child content through a bare `<Slot />` outlet, while named slots and root-level slot pass-through remain intentionally deferred. The demo now uses named local helper functions plus a reusable slotted `TodoPanel`, and hostless generator/runtime tests cover helper-code scanning, slot validation, emitted child-content transport, keyed identity retention through wrapper composition, and wrapper rerender stability.
 - 2026-04-13: Milestone 10 completed. CSXAML now uses shared repo-level build assets for opt-in generation, deterministic project-default and file-scoped component namespaces, deterministic internal generated namespaces, explicit generated component manifests for referenced-assembly discovery, write-if-changed plus stale-output pruning under `obj`, and fixture proof for both library-to-library component imports and ordinary test-project consumption through normal `ProjectReference` usage. Clean/rebuild behavior is covered by the shared intermediate-root cleanup path plus output-writer regression coverage for shrinking generated sets.
+- 2026-04-14: Milestone 11 is now in progress. The repo contains a first `Csxaml.Tooling.Core` bootstrap slice with unit coverage, a `Csxaml.VisualStudio` host that builds a real `.vsix`, and a documented/scripted experimental-instance loop that stages the built extension into the Visual Studio `Exp` hive and launches the repo solution there. IntelliSense is not closed yet, and version-18 host activation still needs explicit validation before the bootstrap gap can be treated as closed.
+- 2026-04-14: Milestone 11 planning now explicitly treats Visual Studio as the first client over a shared language-service boundary so future VS Code reuse does not require re-implementing completion, diagnostics, navigation, or formatting semantics in a second stack.
+- 2026-04-14: Milestone 11 implementation is broader than the bootstrap slice now in the repo: `Csxaml.LanguageServer` exists over `Csxaml.Tooling.Core`, the Visual Studio host packages that server into a real `.vsix`, and the codebase contains completion, navigation, formatting, semantic-coloring, and source-diagnostic paths. The milestone remains in progress until the Visual Studio 2026 extension host reliably activates that package and those features are re-verified end to end.
+- 2026-04-14: Milestone 11 also added projected C# editor semantics for helper code, state declarations, control-flow expressions, and markup expression islands. Tooling now maps those regions into synthetic C# documents backed by Roslyn compilation so helper/local symbols, member access, and C# errors surface through the same shared language-service boundary instead of editor-specific heuristics.
+- 2026-04-14: Milestone 11 bootstrap hardening now forces `devenv /RootSuffix Exp /UpdateConfiguration`, clears stale experimental-instance caches, and emits both an activity log and a lightweight extension startup log. That supportability path matters because new `.csxaml` document-type and language-server contributions can otherwise be present on disk but invisible to Visual Studio until the Exp hive is refreshed.
+- 2026-04-14: Milestone 11 debugging uncovered a second host-activation trap after the package itself began loading: Visual Studio 18 was injecting its private `.NET 8` `DOTNET_ROOT`, which caused the framework-dependent `Csxaml.LanguageServer` `net10.0` executable to die immediately with a `ConnectionLostException` in the editor. The Visual Studio host now resolves a compatible runtime root from the language server's `.runtimeconfig.json` and prefers a matching machine-wide `C:\Program Files\dotnet` install when the injected Visual Studio root is incompatible.
+- 2026-04-14: Milestone 11 editor diagnostics now honor the metadata-driven CSXAML coercions for brush, style, and thickness values inside projected C# documents. This closes a false-positive tooling gap where valid expressions such as `ArgbColor` backgrounds, `DeferredStyle` style values, and numeric thickness shorthands compiled and rendered correctly at runtime but still showed type-conversion squiggles in Visual Studio.
+- 2026-04-14: Milestone 11 bootstrap packaging now rewrites the generated VSIX manifest to declare `DotnetTargetVersions` as `net8.0;net10.0`, and a focused manifest test now guards that output. This closes a Visual Studio 18 extension-manager warning where the package appeared to support only `net8.0` even though the host can run on both `.NET 8` and `.NET 10`.
+- 2026-04-14: Repo-level restore configuration now includes `NuGet.org` again instead of only the local cache plus the Visual Studio offline feed. This closes a project-system regression where Visual Studio and ordinary repo restores could fail on newer `.NET 10` runtime-pack patch versions such as `10.0.5` even though command lines that manually appended `https://api.nuget.org/v3/index.json` succeeded.
+- 2026-04-14: Milestone 11 is now considered complete for the current Visual Studio 18 path. The shared tooling core, language server, and VSIX host now cover semantic coloring, completion, diagnostics, formatting, and component-definition navigation, and the repo now carries protocol-level plus VSIX-packaging regression coverage so the milestone closes on proof rather than screenshots.
+- 2026-04-14: Dependency injection is now being treated as part of the v1 runtime/testing story rather than an app-level workaround. The preferred direction is a narrow `IServiceProvider`-based model: service-aware host/component activation, explicit `inject Type Name;` declarations for components, cached per-instance service resolution, and no drift toward props-from-DI, per-component scopes, or a second framework-owned container.
+- 2026-04-14: Milestone 12 completed. Generator diagnostics now carry richer spans and suggestions, emitted components now produce deterministic `obj\<tfm>\Csxaml\Maps\*.map.json` sidecars plus narrow `#line` mappings for direct source-authored C# regions, representative build failures land back on `.csxaml`, runtime failures wrap with staged component/tag/member context, and the debugging workflow is documented in `docs/debugging-and-diagnostics.md`.
+- 2026-04-15: The language spec now defines DI more explicitly: component-scoped services use dedicated `inject Type Name;` declarations in the component prologue, remain separate from props and markup, resolve once per component instance from the ambient service provider, and intentionally exclude markup injection, attribute scanning, and service-locator-first patterns from the intended v1 model.
+- 2026-04-15: The Todo demo now exercises the DI slice end to end. `App` builds a normal `ServiceCollection`, `TodoBoard` consumes `inject ITodoService todoService;`, and runtime demo tests verify both injected seed data and persisted edits through that service boundary.
+- 2026-04-15: The demo todo service boundary now treats the component as the owner of live UI state again. `ITodoService` exposes `SaveItems(...)` for persistence, while `TodoBoard` keeps one local `UpdateItem(itemId, updater)` helper and persists updated snapshots instead of treating the service as an item-level store.

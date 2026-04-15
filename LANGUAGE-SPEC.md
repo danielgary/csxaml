@@ -69,6 +69,7 @@ CSXAML v1 should optimize for the following.
 ### 2.4 Developer Experience
 
 - Component parameters MUST be strongly typed.
+- App-level services SHOULD use explicit component-level `inject` declarations rather than component parameters, markup conventions, or ad hoc service-locator calls.
 - Native control attributes MUST validate against metadata rather than fail only at runtime.
 - `.csxaml` files SHOULD allow ordinary local helper code so authors can name calculations and behavior near the view instead of collapsing into giant inline expressions.
 - Generated code MUST be boring, stable, and deterministic.
@@ -94,6 +95,7 @@ CSXAML is deliberately hybrid.
 | UI tree structure | XAML-like tags and attributes | Preserve familiar visual authoring |
 | Native control vocabulary | WinUI control/property/event metadata | Stay aligned with the platform |
 | Component inputs | Named props with strong typing | Combine XAML readability with C# safety |
+| App services | Explicit `inject` declarations | Keep services separate from props and local state |
 | Event handlers | C# delegates and lambdas | Avoid string handler names |
 | Build pipeline | Source generation to ordinary C# | Keep normal .NET compilation and debugging |
 
@@ -162,6 +164,7 @@ For developer experience, the file name SHOULD normally match the component name
 CSXAML relies on the host C# compilation context for resolving:
 
 - types referenced in component parameters
+- types referenced in injected-service declarations
 - types referenced in `State<T>`
 - types referenced inside C# expression islands
 - component namespaces imported from other CSXAML libraries
@@ -255,6 +258,7 @@ The current core language reserves at least these keywords:
 
 - `component`
 - `Element`
+- `inject`
 - `State`
 - `return`
 - `if`
@@ -306,10 +310,15 @@ parameter-list        ::= "(" parameter ("," parameter)* ")"
 parameter             ::= csharp-type identifier
 
 component-body        ::= "{"
-                           state-field*
+                           component-prologue-member*
                            component-helper-code*
                            "return" markup-node ";"
                          "}"
+
+component-prologue-member ::= inject-field
+                            | state-field
+
+inject-field          ::= "inject" csharp-type identifier ";"
 
 state-field           ::= "State" "<" csharp-type ">" identifier
                           "=" "new" "State" "<" csharp-type ">"
@@ -370,6 +379,7 @@ The parser does not attempt to fully parse all embedded C# syntax.
 Instead, it treats C# as bounded islands in places where the grammar already knows C# is expected:
 
 - component parameter type names
+- injected service type names
 - `State<T>` type names
 - `State<T>(...)` initializer bodies
 - attribute expression values inside `{ ... }`
@@ -420,7 +430,8 @@ The parser SHOULD allow file-local helper declarations and component-local helpe
 A practical v1 rule is:
 
 - file-local helper declarations are scanned as opaque C# declarations between top-level forms
-- after the last state field, component-local helper code is scanned as ordinary C# until the first outermost `return` immediately followed by a markup opener `<`
+- component prologue members such as `inject` declarations and `State<T>` declarations are parsed explicitly before helper-code scanning begins
+- after the last component prologue member, component-local helper code is scanned as ordinary C# until the first outermost `return` immediately followed by a markup opener `<`
 - nested `return` tokens inside local functions, lambdas, or nested blocks do not terminate the component prologue
 - helper code MUST not itself contain CSXAML markup fragments
 
@@ -466,12 +477,90 @@ Component parameters:
 - define the public prop surface of the component
 - MUST remain strongly typed
 - SHOULD be generated as a stable props record or equivalent structure in emitted C#
+- MUST NOT be used to declare injected services
 
 CSXAML MUST not degrade component props into weak dynamic bags.
 
-### 9.4 Local Helper Code
+Injected services are not props. They MUST remain a separate declaration form so parent components do not pass them through markup and tooling does not surface them as component attributes.
 
-After state declarations and before the final render return, a component body MAY contain ordinary C# local declarations and local functions.
+### 9.4 Injected Services
+
+CSXAML MAY declare required component-scoped services using explicit `inject` declarations in the component prologue.
+
+For example:
+
+```csharp
+component Element TodoBoard {
+    inject ITodoService todoService;
+    inject ILogger<TodoBoard> logger;
+
+    State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(new());
+
+    async Task LoadAsync() {
+        logger.LogInformation("Loading todos");
+        Items.Value = await todoService.GetTodosAsync();
+    }
+
+    return <StackPanel>
+        <Button Content="Refresh" OnClick={async () => await LoadAsync()} />
+    </StackPanel>;
+}
+```
+
+Injected services:
+
+- use a C# type plus identifier name
+- are not component props
+- MUST NOT appear in the component parameter list
+- MUST NOT be supplied through markup attributes on component usage
+- SHOULD use camelCase identifiers in source
+
+### 9.4.1 Placement and Availability
+
+`inject` declarations:
+
+- MAY appear only in the component body prologue before ordinary helper code and before the final render return
+- MAY be interleaved with `State<T>` declarations
+- MUST NOT appear in markup child positions
+- SHOULD be available to component helper code and C# expression islands like ordinary component members
+
+### 9.4.2 Resolution Semantics
+
+Each `inject` declaration resolves once per component instance from the ambient component service provider.
+
+The runtime SHOULD build on the ordinary .NET `IServiceProvider` model rather than inventing a second container abstraction.
+
+The host container's normal singleton, scoped, and transient behavior SHOULD remain authoritative. CSXAML SHOULD NOT add language-level lifetime syntax for v1.
+
+Generated code SHOULD lower injected services to boring cached members such as constructor-initialized readonly fields or equivalent instance-level bindings, rather than re-resolving services during each render.
+
+Component helper code SHOULD prefer explicit `inject` declarations over ad hoc service-locator calls such as `GetRequiredService()` sprinkled through render logic.
+
+### 9.4.3 Failure Behavior and Mutability
+
+Missing required services MUST fail with a component-specific diagnostic or exception message that identifies the component and injected member name.
+
+For example, a failure should read in source terms such as:
+
+> Failed to resolve required service `ITodoService` for `TodoBoard.todoService`.
+
+Implementations SHOULD wrap or enrich raw container exceptions with this CSXAML component context rather than surfacing only a low-level container error.
+
+Injected services are read-only bindings. They MUST NOT be assignable from markup and MUST NOT flow through generated component props.
+
+### 9.4.4 Deliberate Exclusions for v1
+
+To keep the model small and explicit, v1 SHOULD NOT center dependency injection on:
+
+- component parameters that blur props with services
+- markup-based injection forms or service mini-languages
+- attribute-based injection such as `[Inject]` that requires arbitrary member scanning to discover dependencies
+- keyed, named, or optional service syntax
+- property injection or service values forwarded through generated props
+
+### 9.5 Local Helper Code
+
+After injected-service declarations and state declarations and before the final render return, a component body MAY contain ordinary C# local declarations and local functions.
 
 This exists so authors can:
 
@@ -494,7 +583,7 @@ component Element TodoBoard {
 
 This helper code SHOULD remain ordinary C# and SHOULD NOT require a second statement language.
 
-### 9.5 Required Return
+### 9.6 Required Return
 
 Each component body currently contains exactly one outermost `return` of a markup node.
 
@@ -504,9 +593,9 @@ Nested `return` tokens inside local functions, lambdas, or nested C# blocks do n
 
 This restriction keeps the core grammar simple and easy to reason about while still allowing local helper code before the view is returned.
 
-### 9.6 Duplicate Names
+### 9.7 Duplicate Names
 
-Duplicate parameter names and duplicate state field names are invalid.
+Duplicate parameter names, duplicate injected-service names, and duplicate state field names are invalid.
 
 Diagnostics SHOULD point to the duplicate declaration span in the `.csxaml` file.
 
@@ -567,6 +656,17 @@ v1 SHOULD define at least:
 - how explicit state updates from async work remain predictable and testable
 
 The goal is explicit, boring behavior rather than ambient framework magic.
+
+### 10.6 Relationship to Injected Services
+
+`State<T>` and `inject` serve different roles and SHOULD remain visibly distinct:
+
+- `State<T>` represents component-owned mutable UI state
+- `inject` represents ambient app services supplied by the host
+- state is mutable from component logic
+- injected services are read-only bindings
+
+This distinction helps preserve one of the language's clearest boundaries: props are public inputs, state is local mutable UI state, and injected services are ambient collaborators.
 
 ---
 
@@ -973,6 +1073,7 @@ For component elements:
 - unknown props are invalid
 - duplicate props are invalid
 - missing required props are invalid
+- injected services are not part of the markup prop surface and MUST NOT be accepted as attributes
 - child content is invalid unless the callee declares a default slot outlet
 - when child content is allowed, it is transported separately from the public props record
 - named slots are intentionally deferred; v1 supports one default slot only
@@ -1027,6 +1128,7 @@ Diagnostics SHOULD point to `.csxaml` spans for:
 - unknown native props
 - unknown native events
 - invalid component props
+- invalid or misplaced `inject` declarations
 - duplicate attributes
 - child-content violations
 
@@ -1054,6 +1156,10 @@ Generated C# SHOULD be:
 - boring
 
 Developers should not need to live in generated code, but when they do open it, it should make sense.
+
+### 19.4 Runtime Context
+
+Runtime failures such as missing required injected services SHOULD identify the component name, source file when known, and injected member name rather than surfacing raw container or activation errors alone.
 
 ---
 
@@ -1103,6 +1209,7 @@ The language should feel pleasant in everyday use.
 The recommended mental model is:
 
 - write structure in tags
+- declare ambient app services explicitly with `inject`
 - compute local values in ordinary C# helper code before the final render return
 - write values in C#
 - write behavior in lambdas or method calls
@@ -1115,7 +1222,7 @@ The following conventions are strongly recommended:
 
 - PascalCase for component names and native tags
 - PascalCase for native prop and event names
-- camelCase for local/state parameter names when they are true variables
+- camelCase for local variables, injected service names, and state names when they are true variables
 - one component per file
 - small components with explicit props
 - prefer named local values and helper functions over repeating heavy expressions inline
@@ -1177,7 +1284,8 @@ Known gaps relative to the intended v1 experience:
 - broader attached-property owner resolution through file-level imports and external metadata is not yet implemented
 - named slots, slot fallback content, and fragment-root slot pass-through are intentionally deferred
 - explicit lifecycle/disposal semantics are not yet finished
-- richer source mapping and editor tooling are still ahead
+- explicit component-level `inject` declarations and service-aware component activation are now part of the intended v1 spec surface, but they are not yet implemented in the current prototype
+- parser/validator diagnostics, direct source-authored build failures, deterministic source-map sidecars under `obj`, and staged runtime exception context are now implemented for the current slice; fuller debugger integration and broader IDE coverage are still ahead
 - formatting support is not yet defined end to end
 - repo-local project-system build behavior is now explicit and deterministic, but NuGet-delivered build packaging and richer IDE design-time tooling are still ahead
 

@@ -35,27 +35,49 @@ internal sealed class ExternalControlAdapter : INativeControlAdapter
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
-        foreach (var eventBinder in _eventBinders)
+        try
         {
-            NativeElementReader.TryGetEventHandler<Action>(node, eventBinder.ExposedName, out var handler);
-            bindingStore.Rebind(
-                eventBinder.ExposedName,
-                handler,
-                action => eventBinder.Bind(element, action));
+            foreach (var eventBinder in _eventBinders)
+            {
+                NativeElementReader.TryGetEventHandler<Action>(node, eventBinder.ExposedName, out var handler);
+                bindingStore.Rebind(
+                    eventBinder.ExposedName,
+                    handler,
+                    action => eventBinder.Bind(element, action));
+            }
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "external event application",
+                sourceInfo: node.SourceInfo,
+                detail: TagName);
         }
     }
 
     public void ApplyProperties(object element, NativeElementNode node)
     {
-        if (element is not DependencyObject)
+        try
         {
-            throw new InvalidOperationException(
-                $"External control '{TagName}' must create a DependencyObject.");
-        }
+            if (element is not DependencyObject)
+            {
+                throw new InvalidOperationException(
+                    $"External control '{TagName}' must create a DependencyObject.");
+            }
 
-        foreach (var propertyAccessor in _propertyAccessors)
+            foreach (var propertyAccessor in _propertyAccessors)
+            {
+                propertyAccessor.Apply(element, node);
+            }
+        }
+        catch (Exception exception)
         {
-            propertyAccessor.Apply(element, node);
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "external property application",
+                sourceInfo: node.SourceInfo,
+                detail: TagName);
         }
     }
 

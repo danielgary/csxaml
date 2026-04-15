@@ -1,7 +1,7 @@
 {
   "name": "csxaml-vscode-extension",
   "displayName": "CSXAML",
-  "description": "Syntax highlighting, snippets, and lightweight semantic tokens for CSXAML.",
+  "description": "Syntax highlighting, snippets, and shared language-server support for CSXAML.",
   "version": "0.0.1",
   "publisher": "csxaml",
   "license": "UNLICENSED",
@@ -10,7 +10,8 @@
     "vscode": "^1.90.0"
   },
   "activationEvents": [
-    "onLanguage:csxaml"
+    "onLanguage:csxaml",
+    "onCommand:csxaml.restartLanguageServer"
   ],
   "categories": [
     "Programming Languages",
@@ -23,6 +24,22 @@
     "csharp"
   ],
   "contributes": {
+    "commands": [
+      {
+        "command": "csxaml.restartLanguageServer",
+        "title": "CSXAML: Restart Language Server"
+      }
+    ],
+    "configuration": {
+      "title": "CSXAML",
+      "properties": {
+        "csxaml.languageServer.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional path to `Csxaml.LanguageServer.exe`. Relative paths resolve from the first workspace folder when available, otherwise from the extension folder."
+        }
+      }
+    },
     "languages": [
       {
         "id": "csxaml",
@@ -50,6 +67,7 @@
         "embeddedLanguages": {
           "meta.embedded.expression.csxaml": "csharp",
           "meta.embedded.header.csxaml": "csharp",
+          "meta.embedded.inject.csxaml": "csharp",
           "meta.embedded.parameters.csxaml": "csharp",
           "meta.embedded.state.csxaml": "csharp"
         }
@@ -62,5 +80,8 @@
         }
       }
     ]
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   }
 }

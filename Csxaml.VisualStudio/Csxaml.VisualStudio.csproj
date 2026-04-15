@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows8.0</TargetFramework>
+    <VsixDotnetTargetVersions>net8.0%3Bnet10.0</VsixDotnetTargetVersions>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Csxaml.VisualStudio</AssemblyName>
+    <RootNamespace>Csxaml.VisualStudio</RootNamespace>
+    <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\Csxaml.Tooling.Core\\Csxaml.Tooling.Core.csproj" />
+    <ProjectReference
+      Include="..\\Csxaml.LanguageServer\\Csxaml.LanguageServer.csproj"
+      ReferenceOutputAssembly="false"
+      SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include=".vsextension\\string-resources.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\\Csxaml.LanguageServer\\bin\\$(Configuration)\\net10.0\\**\\*">
+      <Link>LanguageServer\\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Target
+    Name="UpdateGeneratedVsixRuntimeTargets"
+    AfterTargets="CoreCompile"
+    Condition="Exists('$(IntermediateOutputPath)extension.vsixmanifest')">
+    <XmlPoke
+      XmlInputPath="$(IntermediateOutputPath)extension.vsixmanifest"
+      Query="/pkg:PackageManifest/pkg:Installation/pkg:DotnetTargetVersions"
+      Namespaces="&lt;Namespace Prefix='pkg' Uri='http://schemas.microsoft.com/developer/vsx-schema/2011' /&gt;"
+      Value="$(VsixDotnetTargetVersions)" />
+  </Target>
+
+  <Target
+    Name="UpdateOutputVsixRuntimeTargets"
+    AfterTargets="CopyFilesToOutputDirectory"
+    Condition="Exists('$(OutDir)extension.vsixmanifest')">
+    <XmlPoke
+      XmlInputPath="$(OutDir)extension.vsixmanifest"
+      Query="/pkg:PackageManifest/pkg:Installation/pkg:DotnetTargetVersions"
+      Namespaces="&lt;Namespace Prefix='pkg' Uri='http://schemas.microsoft.com/developer/vsx-schema/2011' /&gt;"
+      Value="$(VsixDotnetTargetVersions)" />
+  </Target>
+</Project>

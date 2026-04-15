@@ -1,6 +1,6 @@
 # CSXAML VS Code Extension
 
-This folder contains a standalone VS Code extension that adds syntax highlighting for `.csxaml` files.
+This folder contains a VS Code extension for `.csxaml` files.
 
 ## Goals
 
@@ -19,7 +19,7 @@ The current extension contributes:
 - a language configuration for comments and core bracket pairs
 - a hybrid TextMate grammar
 - snippets for common CSXAML constructs
-- a lightweight semantic token provider
+- a shared language-server client for completion, diagnostics, formatting, definitions, and semantic tokens
 
 The grammar intentionally splits the file into two broad regions:
 
@@ -31,14 +31,15 @@ The grammar intentionally splits the file into two broad regions:
   - `foreach (...)` headers
   - attribute expressions such as `Text={Title}` or `OnClick={() => Save()}`
 
-The semantic token provider adds a second layer on top of the grammar:
+The language server adds the semantic/editor layer on top of the grammar:
 
-- native WinUI tags are marked as default-library classes
-- component tags are marked as component classes
-- native props are marked as properties
-- native events are marked as events
-- component props are marked as parameters
-- `Key` is marked as a reserved readonly framework attribute
+- tag completion for built-in controls, imported external controls, and workspace components
+- attribute completion for native props, events, component props, attached properties, and `Key`
+- projected C# completion inside helper-code regions and expression islands
+- editor diagnostics
+- go-to-definition for component tags
+- document formatting
+- semantic tokens produced by the shared tooling stack
 
 ## Why This Approach
 
@@ -48,21 +49,19 @@ This matches the language spec:
 - expressions should stay ordinary C#
 - parseability matters
 - the language should remain easy to reason about and easy to tool
+- editor semantics should come from the same shared stack used by the Visual Studio extension
 
-The TextMate grammar is a good first phase because it gives immediate value with low complexity.
+The TextMate grammar still matters because it gives immediate structure-aware coloring, while the shared language server provides richer editor behavior.
 
 ## Current Limitations
 
-This is a syntax-highlighting-first extension, not a full language server.
+This extension now uses the shared `Csxaml.LanguageServer`, but the server still only exposes the features that exist in the current tooling stack.
 
 That means:
 
-- it does not validate native props or component props
-- it does not provide completion, hover, go-to-definition, or diagnostics
-- deeply complex nested C# may still benefit from a future parser-backed semantic token layer
-- semantic tokens currently use a lightweight workspace scan rather than the full compiler parser
-
-The grammar is designed so a later semantic layer can sit on top of it cleanly.
+- hover is not implemented yet
+- the local development loop assumes you have built `Csxaml.LanguageServer`
+- packaged VS Code distribution is not hardened yet; this folder is aimed first at local iteration in the repo
 
 ## Best Results
 
@@ -73,11 +72,11 @@ The markup side does not depend on an external XAML extension because the gramma
 ## Folder Layout
 
 - `package.json`: VS Code extension manifest
-- `extension.js`: activation and provider registration
+- `extension.js`: activation and language-client startup
 - `language-configuration.json`: comments and pair behavior
 - `syntaxes/csxaml.tmLanguage.json`: hybrid TextMate grammar
 - `syntaxes/csxaml-embedded-csharp.tmLanguage.json`: recursive embedded C# regions for expressions and control-flow headers
-- `src/`: lightweight semantic-token and workspace-catalog logic
+- `src/languageServerPathResolver.js`: resolves local and packaged language-server paths
 - `snippets/csxaml.code-snippets`: common CSXAML snippets
 
 ## Development
@@ -85,14 +84,24 @@ The markup side does not depend on an external XAML extension because the gramma
 Typical workflow:
 
 1. Open `VSCodeExtension` as the workspace folder in VS Code.
-2. Press `F5` to launch an Extension Development Host.
-3. Open a `.csxaml` file in the extension host and inspect tokenization.
-4. Refine scopes based on the language spec and real sample files.
+2. Run `npm install`.
+3. Press `F5` to launch an Extension Development Host.
+4. The launch profile opens the repo root and runs a prelaunch `dotnet build` for `Csxaml.LanguageServer`.
+5. Open a `.csxaml` file in the extension host and test completion, diagnostics, formatting, and navigation.
+
+The extension resolves the language server in this order:
+
+1. `csxaml.languageServer.path` if configured
+2. `LanguageServer/Csxaml.LanguageServer.exe` under the extension folder
+3. `../Csxaml.LanguageServer/bin/Debug/net10.0/Csxaml.LanguageServer.exe`
+4. `../Csxaml.LanguageServer/bin/Release/net10.0/Csxaml.LanguageServer.exe`
+
+Use the `CSXAML: Restart Language Server` command after rebuilding the server while iterating.
 
 ## Next Steps
 
 Good follow-up work for this extension:
 
-- surface native tag, prop, and event metadata from the compiler metadata model
-- add component-prop completion from generated component catalogs
-- replace the lightweight semantic token parser with a parser-backed provider
+- harden packaging so the VS Code extension carries its own `LanguageServer/` payload
+- add hover and richer code actions once the shared language server grows them
+- add VS Code-side smoke coverage for startup and core LSP flows

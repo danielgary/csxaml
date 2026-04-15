@@ -45,7 +45,10 @@ internal sealed class ComponentTagValidator
                 throw DiagnosticFactory.FromSpan(
                     source,
                     property.Span,
-                    $"prop validation failure: unsupported prop name '{property.Name}' on component '{node.TagName}'");
+                    DiagnosticMessageFormatter.WithSuggestion(
+                        $"prop validation failure: unsupported prop name '{property.Name}' on component '{node.TagName}'",
+                        property.Name,
+                        component.Parameters.Select(parameter => parameter.Name)));
             }
         }
 

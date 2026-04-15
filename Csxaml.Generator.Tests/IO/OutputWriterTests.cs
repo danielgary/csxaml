@@ -73,7 +73,7 @@ public sealed class OutputWriterTests
     public void WriteAll_RejectsPathsOutsideTheConfiguredOutputDirectory()
     {
         var outputDirectory = CreateOutputDirectory();
-        var invalidPath = Path.Combine(outputDirectory, "..", "Escaped.g.cs");
+        var invalidPath = Path.Combine(outputDirectory, "..", "..", "Escaped.g.cs");
 
         try
         {
@@ -99,15 +99,17 @@ public sealed class OutputWriterTests
             AppContext.BaseDirectory,
             "OutputWriterTests",
             Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        return root;
+        var outputDirectory = Path.Combine(root, "Generated");
+        Directory.CreateDirectory(outputDirectory);
+        return outputDirectory;
     }
 
     private static void DeleteOutputDirectory(string outputDirectory)
     {
-        if (Directory.Exists(outputDirectory))
+        var root = Directory.GetParent(outputDirectory)?.FullName ?? outputDirectory;
+        if (Directory.Exists(root))
         {
-            Directory.Delete(outputDirectory, recursive: true);
+            Directory.Delete(root, recursive: true);
         }
     }
 }

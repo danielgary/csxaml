@@ -67,7 +67,13 @@ internal sealed class NativeElementValidator
             throw DiagnosticFactory.FromSpan(
                 source,
                 property.Span,
-                $"unknown attribute '{property.Name}' on native control '{node.TagName}'");
+                DiagnosticMessageFormatter.WithSuggestion(
+                    $"unknown attribute '{property.Name}' on native control '{node.TagName}'",
+                    property.Name,
+                    control.Properties.Select(candidate => candidate.Name)
+                        .Concat(control.Events.Select(candidate => candidate.ExposedName))
+                        .Concat(["Key"])
+                        .Concat(AttachedPropertyMetadataRegistry.Properties.Select(candidate => candidate.QualifiedName))));
         }
     }
 

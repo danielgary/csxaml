@@ -1,3 +1,6 @@
 namespace Csxaml.Generator;
 
-internal sealed record GeneratedFile(string OutputPath, string Content);
+internal sealed record GeneratedFile(
+    string OutputPath,
+    string Content,
+    string? ManagedDirectory = null);

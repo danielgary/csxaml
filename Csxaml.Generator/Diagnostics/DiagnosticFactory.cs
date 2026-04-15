@@ -7,8 +7,15 @@ internal static class DiagnosticFactory
         int position,
         string message)
     {
-        var (line, column) = GetLineAndColumn(source.Text, position);
-        return new DiagnosticException(new Diagnostic(source.FilePath, line, column, message));
+        var coordinate = SourceTextCoordinateConverter.GetLineAndColumn(source.Text, position);
+        return new DiagnosticException(
+            new Diagnostic(
+                source.FilePath,
+                coordinate.Line,
+                coordinate.Column,
+                coordinate.Line,
+                coordinate.Column + 1,
+                message));
     }
 
     public static DiagnosticException FromSpan(
@@ -16,27 +23,16 @@ internal static class DiagnosticFactory
         TextSpan span,
         string message)
     {
-        return FromPosition(source, span.Start, message);
-    }
-
-    private static (int Line, int Column) GetLineAndColumn(string text, int position)
-    {
-        var line = 1;
-        var column = 1;
-
-        for (var index = 0; index < position && index < text.Length; index++)
-        {
-            if (text[index] == '\n')
-            {
-                line++;
-                column = 1;
-            }
-            else
-            {
-                column++;
-            }
-        }
-
-        return (line, column);
+        var safeEnd = span.Length == 0 ? span.Start : Math.Max(span.Start, span.End - 1);
+        var start = SourceTextCoordinateConverter.GetLineAndColumn(source.Text, span.Start);
+        var end = SourceTextCoordinateConverter.GetLineAndColumn(source.Text, safeEnd);
+        return new DiagnosticException(
+            new Diagnostic(
+                source.FilePath,
+                start.Line,
+                start.Column,
+                end.Line,
+                end.Column + 1,
+                message));
     }
 }

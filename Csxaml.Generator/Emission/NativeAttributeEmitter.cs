@@ -4,6 +4,15 @@ namespace Csxaml.Generator;
 
 internal sealed class NativeAttributeEmitter
 {
+    private readonly string _componentName;
+    private readonly SourceDocument _source;
+
+    public NativeAttributeEmitter(SourceDocument source, string componentName)
+    {
+        _source = source;
+        _componentName = componentName;
+    }
+
     public string BuildEventsExpression(MarkupNode markupNode, ControlMetadataModel control)
     {
         var events = markupNode.Properties
@@ -12,15 +21,13 @@ internal sealed class NativeAttributeEmitter
             .Select(property => BuildEventValue(control, property))
             .ToList();
 
-        return events.Count == 0
-            ? "Array.Empty<NativeEventValue>()"
-            : $"new NativeEventValue[] {{ {string.Join(", ", events)} }}";
+        return FormatArray("NativeEventValue", events);
     }
 
     public string BuildKeyExpression(MarkupNode markupNode)
     {
         var key = markupNode.Properties.SingleOrDefault(property => property.Name == "Key");
-        return key is null ? "null" : FormatValue(key);
+        return key is null ? "null" : FormatArgumentValue(key);
     }
 
     public string BuildPropertiesExpression(MarkupNode markupNode, ControlMetadataModel control)
@@ -33,9 +40,7 @@ internal sealed class NativeAttributeEmitter
             .Select(property => BuildPropertyValue(control, property))
             .ToList();
 
-        return properties.Count == 0
-            ? "Array.Empty<NativePropertyValue>()"
-            : $"new NativePropertyValue[] {{ {string.Join(", ", properties)} }}";
+        return FormatArray("NativePropertyValue", properties);
     }
 
     public bool HasAttachedProperties(MarkupNode markupNode)
@@ -50,40 +55,87 @@ internal sealed class NativeAttributeEmitter
             .Select(BuildAttachedPropertyValue)
             .ToList();
 
-        return properties.Count == 0
-            ? "Array.Empty<NativeAttachedPropertyValue>()"
-            : $"new NativeAttachedPropertyValue[] {{ {string.Join(", ", properties)} }}";
+        return FormatArray("NativeAttachedPropertyValue", properties);
     }
 
-    private static string BuildEventValue(ControlMetadataModel control, PropertyNode property)
+    private string BuildEventValue(ControlMetadataModel control, PropertyNode property)
     {
         var eventMetadata = control.Events.Single(
             metadata => metadata.ExposedName == property.Name);
 
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"new NativeEventValue(\"{eventMetadata.ExposedName}\", ({FormatHandlerType(eventMetadata.HandlerTypeName)})({FormatValue(property)}), {FormatValueKindHint(eventMetadata.ValueKindHint)})");
+        return
+            $$"""
+            new NativeEventValue(
+                "{{eventMetadata.ExposedName}}",
+                ({{FormatHandlerType(eventMetadata.HandlerTypeName)}})(
+            {{CodeBlockFormatter.Indent(FormatExpressionValue(property), 8)}}
+                    ),
+                {{FormatValueKindHint(eventMetadata.ValueKindHint)}},
+                {{FormatSourceInfo(property, property.Name)}})
+            """;
     }
 
-    private static string BuildPropertyValue(ControlMetadataModel control, PropertyNode property)
+    private string BuildPropertyValue(ControlMetadataModel control, PropertyNode property)
     {
         var propertyMetadata = control.Properties.Single(
             metadata => metadata.Name == property.Name);
+        if (property.ValueKind == PropertyValueKind.StringLiteral)
+        {
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"new NativePropertyValue(\"{propertyMetadata.Name}\", {FormatArgumentValue(property)}, {FormatValueKindHint(propertyMetadata.ValueKindHint)}, {FormatSourceInfo(property, property.Name)})");
+        }
 
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"new NativePropertyValue(\"{propertyMetadata.Name}\", {FormatValue(property)}, {FormatValueKindHint(propertyMetadata.ValueKindHint)})");
+        return
+            $$"""
+            new NativePropertyValue(
+                "{{propertyMetadata.Name}}",
+            {{CodeBlockFormatter.Indent(FormatExpressionValue(property), 8)}}
+                ,
+                {{FormatValueKindHint(propertyMetadata.ValueKindHint)}},
+                {{FormatSourceInfo(property, property.Name)}})
+            """;
     }
 
-    private static string BuildAttachedPropertyValue(PropertyNode property)
+    private string BuildAttachedPropertyValue(PropertyNode property)
     {
         var metadata = AttachedPropertyMetadataRegistry.GetProperty(
             property.OwnerName!,
             property.PropertyName);
 
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"new NativeAttachedPropertyValue(\"{metadata.OwnerName}\", \"{metadata.PropertyName}\", {FormatValue(property)}, {FormatValueKindHint(metadata.ValueKindHint)})");
+        if (property.ValueKind == PropertyValueKind.StringLiteral)
+        {
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"new NativeAttachedPropertyValue(\"{metadata.OwnerName}\", \"{metadata.PropertyName}\", {FormatArgumentValue(property)}, {FormatValueKindHint(metadata.ValueKindHint)}, {FormatSourceInfo(property, property.Name)})");
+        }
+
+        return
+            $$"""
+            new NativeAttachedPropertyValue(
+                "{{metadata.OwnerName}}",
+                "{{metadata.PropertyName}}",
+            {{CodeBlockFormatter.Indent(FormatExpressionValue(property), 8)}}
+                ,
+                {{FormatValueKindHint(metadata.ValueKindHint)}},
+                {{FormatSourceInfo(property, property.Name)}})
+            """;
+    }
+
+    private static string FormatArray(string elementTypeName, IReadOnlyList<string> entries)
+    {
+        if (entries.Count == 0)
+        {
+            return $"Array.Empty<{elementTypeName}>()";
+        }
+
+        return
+            $$"""
+            new {{elementTypeName}}[]
+            {
+            {{string.Join(Environment.NewLine, entries.Select(entry => CodeBlockFormatter.FormatListItem(entry, 4)))}}
+            }
+            """;
     }
 
     private static string FormatValueKindHint(ValueKindHint hint)
@@ -105,10 +157,24 @@ internal sealed class NativeAttributeEmitter
             .Replace("\"", "\\\"", StringComparison.Ordinal);
     }
 
-    private static string FormatValue(PropertyNode property)
+    private static string FormatArgumentValue(PropertyNode property)
     {
         return property.ValueKind == PropertyValueKind.StringLiteral
             ? $"\"{EscapeString(property.ValueText)}\""
             : property.ValueText;
+    }
+
+    private string FormatExpressionValue(PropertyNode property)
+    {
+        return LineDirectiveFormatter.Wrap(_source, property.ValueSpan, property.ValueText);
+    }
+
+    private string FormatSourceInfo(PropertyNode property, string memberName)
+    {
+        return SourceInfoEmitter.Emit(
+            _source,
+            _componentName,
+            property.Span,
+            memberName: memberName);
     }
 }

@@ -66,6 +66,7 @@ Ast/
  FileScopedNamespaceDefinition.cs
  ForEachBlockNode.cs
  IfBlockNode.cs
+ InjectFieldDefinition.cs
  MarkupNode.cs
  MarkupTagName.cs
  PropertyNode.cs
@@ -80,19 +81,26 @@ Cli/
  Program.cs
  ReferenceListFileReader.cs
 Diagnostics/
+ ClosestNameSuggester.cs
  Diagnostic.cs
  DiagnosticException.cs
  DiagnosticFactory.cs
+ DiagnosticMessageFormatter.cs
+ SourceTextCoordinate.cs
+ SourceTextCoordinateConverter.cs
 Emission/
  ChildNodeEmitter.cs
+ CodeBlockFormatter.cs
  CodeEmitter.cs
  ComponentEmitter.cs
  GeneratedComponentManifestEmitter.cs
  GeneratedExternalControlRegistrationEmitter.cs
  IndentedCodeWriter.cs
+ LineDirectiveFormatter.cs
  LocalNameGenerator.cs
  NativeAttributeEmitter.cs
  RenderPositionIdGenerator.cs
+ SourceInfoEmitter.cs
 GlobalUsings.cs
 IO/
  GeneratedFile.cs
@@ -109,6 +117,7 @@ Parsing/
  ComponentHelperCodeParser.cs
  CSharpTextScanner.cs
  FileMemberBoundaryScanner.cs
+ MisplacedComponentPrologueDetector.cs
  NamespaceDirectiveParser.cs
  Parser.cs
  ParserContext.cs
@@ -130,6 +139,12 @@ Semantics/
  ReferencedComponentCatalogBuilder.cs
  ResolvedTag.cs
  ResolvedTagKind.cs
+SourceMapping/
+ GeneratedCodeDocument.cs
+ GeneratedDiagnosticMapper.cs
+ GeneratedSourceMap.cs
+ GeneratedSourceMapEntry.cs
+ GeneratedSourceMapWriter.cs
 Syntax/
  TextSpan.cs
  Token.cs

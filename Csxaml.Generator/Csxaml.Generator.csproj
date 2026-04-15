@@ -12,5 +12,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Csxaml.Generator.Tests" />
+    <InternalsVisibleTo Include="Csxaml.Tooling.Core" />
   </ItemGroup>
 </Project>

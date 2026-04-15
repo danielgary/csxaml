@@ -26,8 +26,12 @@ internal static class AttachedPropertyApplicator
                 GridAttachedPropertyApplicator.Apply(element, property);
                 break;
             default:
-                throw new InvalidOperationException(
-                    $"Unsupported attached property owner '{property.OwnerName}'.");
+                throw CsxamlRuntimeExceptionBuilder.Wrap(
+                    new InvalidOperationException(
+                        $"Unsupported attached property owner '{property.OwnerName}'."),
+                    "attached property application",
+                    sourceInfo: property.SourceInfo,
+                    detail: property.QualifiedName);
         }
     }
 }

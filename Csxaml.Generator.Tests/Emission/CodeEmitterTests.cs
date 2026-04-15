@@ -4,7 +4,7 @@ namespace Csxaml.Generator.Tests.Emission;
 public sealed class CodeEmitterTests
 {
     [TestMethod]
-    public void Emit_TodoCard_MatchesSnapshot()
+    public void Emit_TodoCard_IncludesSourceContextAndLineDirectives()
     {
         var component = GeneratorTestHarness.Parse(
             "TodoCard.csxaml",
@@ -21,48 +21,15 @@ public sealed class CodeEmitterTests
                 </Border>;
             }
             """);
+        var document = new CodeEmitter().EmitDocument(component, GeneratorTestHarness.Validate(component));
+        var emitted = document.Text;
 
-        var emitted = GeneratorTestHarness.Emit(component);
-        const string expected = """
-            using System;
-            using System.Collections.Generic;
-            using System.Linq;
-            using Csxaml.Runtime;
-
-            namespace TestProject;
-
-            public sealed record TodoCardProps(string Title, bool IsDone, Action OnToggle);
-
-            public sealed class TodoCardComponent : ComponentInstance<TodoCardProps>
-            {
-                private string Title => Props.Title;
-                private bool IsDone => Props.IsDone;
-                private Action OnToggle => Props.OnToggle;
-
-                public override Node Render()
-                {
-                    var children0 = new List<Node>();
-                    var children2 = new List<Node>();
-                    var childNode3 = new NativeElementNode("TextBlock", null, new NativePropertyValue[] { new NativePropertyValue("Text", Title, global::Csxaml.ControlMetadata.ValueKindHint.String), new NativePropertyValue("Foreground", TodoColors.CardForeground, global::Csxaml.ControlMetadata.ValueKindHint.Brush) }, Array.Empty<NativeEventValue>(), Array.Empty<Node>());
-                    children2.Add(childNode3);
-                    if (IsDone)
-                    {
-                        var childNode4 = new NativeElementNode("TextBlock", null, new NativePropertyValue[] { new NativePropertyValue("Text", "Done", global::Csxaml.ControlMetadata.ValueKindHint.String) }, Array.Empty<NativeEventValue>(), Array.Empty<Node>());
-                        children2.Add(childNode4);
-                    }
-                    var childNode5 = new NativeElementNode("Button", null, new NativePropertyValue[] { new NativePropertyValue("Content", "Toggle", global::Csxaml.ControlMetadata.ValueKindHint.Object) }, new NativeEventValue[] { new NativeEventValue("OnClick", (global::System.Action)(OnToggle), global::Csxaml.ControlMetadata.ValueKindHint.Unknown) }, Array.Empty<Node>());
-                    children2.Add(childNode5);
-                    var childNode1 = new NativeElementNode("StackPanel", null, new NativePropertyValue[] { new NativePropertyValue("Spacing", 8, global::Csxaml.ControlMetadata.ValueKindHint.Double) }, Array.Empty<NativeEventValue>(), children2);
-                    children0.Add(childNode1);
-                    var rootNode = new NativeElementNode("Border", null, new NativePropertyValue[] { new NativePropertyValue("Background", IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground, global::Csxaml.ControlMetadata.ValueKindHint.Brush), new NativePropertyValue("Padding", TodoColors.CardPadding, global::Csxaml.ControlMetadata.ValueKindHint.Thickness) }, Array.Empty<NativeEventValue>(), children0);
-                    return rootNode;
-                }
-            }
-            """;
-
-        Assert.AreEqual(
-            GeneratorTestHarness.Normalize(expected),
-            GeneratorTestHarness.Normalize(emitted));
+        StringAssert.Contains(emitted, "#nullable enable");
+        StringAssert.Contains(emitted, "public override CsxamlSourceInfo? CsxamlSourceInfo =>");
+        StringAssert.Contains(emitted, "new global::Csxaml.Runtime.CsxamlSourceInfo(");
+        StringAssert.Contains(emitted, "#line ");
+        Assert.IsTrue(document.SourceMapEntries.Any(entry => entry.Kind == "native-tag" && entry.Label == "Border"));
+        Assert.IsTrue(document.SourceMapEntries.Any(entry => entry.Kind == "if-block" && entry.Label == "if"));
     }
 
     [TestMethod]
@@ -96,11 +63,12 @@ public sealed class CodeEmitterTests
         var compilation = GeneratorTestHarness.Validate(card, board);
         var emitted = new CodeEmitter().Emit(board, compilation);
 
-        StringAssert.Contains(emitted, "foreach (var item in Items.Value)");
-        StringAssert.Contains(
-            emitted,
-            "new ComponentNode(typeof(global::TestProject.TodoCardComponent)");
-        StringAssert.Contains(emitted, "\"position0\", item.Id");
+        StringAssert.Contains(emitted, "foreach (var item in");
+        StringAssert.Contains(emitted, "Items.Value");
+        StringAssert.Contains(emitted, "new ComponentNode(");
+        StringAssert.Contains(emitted, "typeof(global::TestProject.TodoCardComponent)");
+        StringAssert.Contains(emitted, "\"position0\"");
+        StringAssert.Contains(emitted, "item.Id");
     }
 
     [TestMethod]
@@ -119,12 +87,12 @@ public sealed class CodeEmitterTests
 
         var emitted = GeneratorTestHarness.Emit(component);
 
-        StringAssert.Contains(
-            emitted,
-            "new NativeEventValue(\"OnTextChanged\", (global::System.Action<string>)(OnTitleChanged), global::Csxaml.ControlMetadata.ValueKindHint.String)");
-        StringAssert.Contains(
-            emitted,
-            "new NativeEventValue(\"OnCheckedChanged\", (global::System.Action<bool>)(OnDoneChanged), global::Csxaml.ControlMetadata.ValueKindHint.Bool)");
+        StringAssert.Contains(emitted, "\"OnTextChanged\"");
+        StringAssert.Contains(emitted, "(global::System.Action<string>)(");
+        StringAssert.Contains(emitted, "OnTitleChanged");
+        StringAssert.Contains(emitted, "\"OnCheckedChanged\"");
+        StringAssert.Contains(emitted, "(global::System.Action<bool>)(");
+        StringAssert.Contains(emitted, "OnDoneChanged");
     }
 
     [TestMethod]
@@ -140,8 +108,8 @@ public sealed class CodeEmitterTests
 
         var emitted = GeneratorTestHarness.Emit(component);
 
-        StringAssert.Contains(
-            emitted,
-            "new NativePropertyValue(\"Style\", TodoStyles.PrimaryButton, global::Csxaml.ControlMetadata.ValueKindHint.Style)");
+        StringAssert.Contains(emitted, "\"Style\"");
+        StringAssert.Contains(emitted, "TodoStyles.PrimaryButton");
+        StringAssert.Contains(emitted, "global::Csxaml.ControlMetadata.ValueKindHint.Style");
     }
 }

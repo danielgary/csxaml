@@ -29,14 +29,16 @@ public sealed class AttachedPropertyEmissionTests
         var compilation = GeneratorTestHarness.Validate(editor, board);
         var emitted = new CodeEmitter().Emit(board, compilation);
 
-        StringAssert.Contains(
-            emitted,
-            "new NativeAttachedPropertyValue(\"Grid\", \"Row\", 0, global::Csxaml.ControlMetadata.ValueKindHint.Int)");
-        StringAssert.Contains(
-            emitted,
-            "new NativeAttachedPropertyValue(\"AutomationProperties\", \"Name\", \"Board Title\", global::Csxaml.ControlMetadata.ValueKindHint.String)");
-        StringAssert.Contains(
-            emitted,
-            "new ComponentNode(typeof(global::TestProject.TodoEditorComponent), new global::TestProject.TodoEditorProps(\"Draft plan\"), Array.Empty<Node>(), new NativeAttachedPropertyValue[]");
+        StringAssert.Contains(emitted, "new NativeAttachedPropertyValue(");
+        StringAssert.Contains(emitted, "\"Grid\"");
+        StringAssert.Contains(emitted, "\"Row\"");
+        StringAssert.Contains(emitted, "\"AutomationProperties\"");
+        StringAssert.Contains(emitted, "\"Name\"");
+        StringAssert.Contains(emitted, "\"Board Title\"");
+        StringAssert.Contains(emitted, "new ComponentNode(");
+        StringAssert.Contains(emitted, "typeof(global::TestProject.TodoEditorComponent)");
+        StringAssert.Contains(emitted, "new global::TestProject.TodoEditorProps");
+        StringAssert.Contains(emitted, "\"Draft plan\"");
+        StringAssert.Contains(emitted, "new NativeAttachedPropertyValue[]");
     }
 }

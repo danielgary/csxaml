@@ -2,8 +2,8 @@ using Microsoft.UI.Xaml;
 
 namespace Csxaml.Demo;
 
-component Element TodoEditor(string Title, string Notes, bool IsDone, Action<string> OnTitleChanged, Action<string> OnNotesChanged, Action<bool> OnDoneChanged) {
-    return <Border
+component Element TodoEditor(string ItemId, string Title, string Notes, bool IsDone, Action<string, string> OnTitleChanged, Action<string, string> OnNotesChanged, Action<string, bool> OnDoneChanged) {
+    return <Border BorderThickness={1} BorderBrush={TodoColors.EditorHintForeground}
         AutomationProperties.Name="Editor Surface"
         Background={TodoColors.EditorBackground}
         Padding={TodoColors.CardPadding}>
@@ -13,13 +13,13 @@ component Element TodoEditor(string Title, string Notes, bool IsDone, Action<str
                 AutomationProperties.AutomationId="SelectedTodoTitle"
                 Text={Title}
                 PlaceholderText="Title"
-                OnTextChanged={OnTitleChanged}
+                OnTextChanged={value => OnTitleChanged(ItemId, value)}
                 Width={280} />
             <TextBox
                 AutomationProperties.AutomationId="SelectedTodoNotes"
                 Text={Notes}
                 PlaceholderText="Notes"
-                OnTextChanged={OnNotesChanged}
+                OnTextChanged={value => OnNotesChanged(ItemId, value)}
                 AcceptsReturn={true}
                 TextWrapping={TextWrapping.Wrap}
                 MinHeight={120}
@@ -29,7 +29,7 @@ component Element TodoEditor(string Title, string Notes, bool IsDone, Action<str
                 AutomationProperties.AutomationId="SelectedTodoDone"
                 IsChecked={IsDone}
                 Content="Done"
-                OnCheckedChanged={OnDoneChanged} />
+                OnCheckedChanged={value => OnDoneChanged(ItemId, value)} />
         </StackPanel>
     </Border>;
 }

@@ -29,8 +29,11 @@ internal sealed class Parser
         var componentName = context.ReadIdentifier(invalidDeclaration);
         var parameters = ParseParameters(context);
         context.ReadSymbol("{", invalidDeclaration);
-        var stateFields = ParseStateFields(context);
+        var injectFields = new List<InjectFieldDefinition>();
+        var stateFields = new List<StateFieldDefinition>();
+        ParsePrologueMembers(context, injectFields, stateFields);
         var helperCode = new ComponentHelperCodeParser(context.Source).Parse(context);
+        MisplacedComponentPrologueDetector.Validate(context.Source, helperCode);
         context.ReadIdentifier("return", "missing return block");
         var root = childNodeParser.ParseRootNode();
         context.ReadSymbol(";", "missing return block");
@@ -39,6 +42,7 @@ internal sealed class Parser
         return new ComponentDefinition(
             componentName.Text,
             parameters,
+            injectFields,
             stateFields,
             helperCode,
             root,
@@ -99,15 +103,27 @@ internal sealed class Parser
             new TextSpan(typeStart, name.Span.End - typeStart));
     }
 
-    private static IReadOnlyList<StateFieldDefinition> ParseStateFields(ParserContext context)
+    private static void ParsePrologueMembers(
+        ParserContext context,
+        List<InjectFieldDefinition> injectFields,
+        List<StateFieldDefinition> stateFields)
     {
-        var stateFields = new List<StateFieldDefinition>();
-        while (context.PeekIdentifier("State"))
+        while (true)
         {
-            stateFields.Add(ParseStateField(context));
-        }
+            if (context.PeekIdentifier("inject"))
+            {
+                injectFields.Add(ParseInjectField(context));
+                continue;
+            }
 
-        return stateFields;
+            if (context.PeekIdentifier("State"))
+            {
+                stateFields.Add(ParseStateField(context));
+                continue;
+            }
+
+            break;
+        }
     }
 
     private static StateFieldDefinition ParseStateField(ParserContext context)
@@ -130,6 +146,7 @@ internal sealed class Parser
         }
 
         context.ReadSymbol("(", message);
+        var initialValueStart = context.Current.Span.Start;
         var initialValue = context.ReadRawUntilMatching(')', message).Trim();
         context.ReadSymbol(")", message);
         var semicolon = context.ReadSymbol(";", message);
@@ -137,15 +154,65 @@ internal sealed class Parser
             typeName,
             fieldName.Text,
             initialValue,
+            new TextSpan(initialValueStart, Math.Max(initialValue.Length, 0)),
             new TextSpan(start, semicolon.Span.End - start));
+    }
+
+    private static InjectFieldDefinition ParseInjectField(ParserContext context)
+    {
+        const string message = "invalid inject declaration";
+        var start = context.ReadIdentifier("inject", message).Span.Start;
+        var (typeName, fieldName) = ReadDeclarationTypeAndName(context, message, ";");
+        var semicolon = context.ReadSymbol(";", message);
+        return new InjectFieldDefinition(
+            typeName,
+            fieldName.Text,
+            new TextSpan(start, semicolon.Span.End - start));
+    }
+
+    private static (string TypeName, Token Name) ReadDeclarationTypeAndName(
+        ParserContext context,
+        string message,
+        string terminator)
+    {
+        var typeStart = context.Current.Span.Start;
+        var genericDepth = 0;
+        Token? lastTypeToken = null;
+
+        while (!IsDeclarationName(context, genericDepth, terminator))
+        {
+            var token = context.ReadCurrent(message);
+            if (token.Kind == TokenKind.Symbol && token.Text == "<")
+            {
+                genericDepth++;
+            }
+            else if (token.Kind == TokenKind.Symbol && token.Text == ">")
+            {
+                genericDepth--;
+            }
+
+            lastTypeToken = token;
+        }
+
+        var name = context.ReadIdentifier(message);
+        var typeName = context.Source.Text[typeStart..lastTypeToken!.Value.Span.End].Trim();
+        return (typeName, name);
     }
 
     private static bool IsParameterName(ParserContext context, int genericDepth)
     {
+        return IsDeclarationName(context, genericDepth, ",", ")");
+    }
+
+    private static bool IsDeclarationName(
+        ParserContext context,
+        int genericDepth,
+        params string[] terminators)
+    {
         return genericDepth == 0 &&
                context.Current.Kind == TokenKind.Identifier &&
                context.Peek(1).Kind == TokenKind.Symbol &&
-               (context.Peek(1).Text == "," || context.Peek(1).Text == ")");
+               terminators.Contains(context.Peek(1).Text, StringComparer.Ordinal);
     }
 
     private static string ReadTypeName(ParserContext context, string message)

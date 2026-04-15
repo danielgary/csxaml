@@ -24,7 +24,10 @@ public sealed class HelperCodeEmissionTests
         var rootIndex = emitted.IndexOf("var rootNode =", StringComparison.Ordinal);
 
         Assert.IsGreaterThanOrEqualTo(0, helperIndex);
-        Assert.IsGreaterThan(helperIndex, rootIndex);
+        if (helperIndex >= rootIndex)
+        {
+            Assert.Fail("Component-local helper code should appear before the root node declaration.");
+        }
     }
 
     [TestMethod]

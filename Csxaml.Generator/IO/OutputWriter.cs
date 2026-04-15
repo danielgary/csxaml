@@ -7,20 +7,36 @@ internal static class OutputWriter
     public static void WriteAll(string outputDirectory, IReadOnlyList<GeneratedFile> generatedFiles)
     {
         var fullOutputDirectory = Path.GetFullPath(outputDirectory);
+        var managedRoot = Directory.GetParent(fullOutputDirectory)?.FullName ?? fullOutputDirectory;
         Directory.CreateDirectory(fullOutputDirectory);
 
         var comparer = GetPathComparer();
-        var expectedPaths = generatedFiles
-            .Select(file => GetValidatedOutputPath(fullOutputDirectory, file.OutputPath))
-            .ToHashSet(comparer);
+        var expectedPathsByManagedDirectory = generatedFiles
+            .GroupBy(
+                file => GetValidatedPath(managedRoot, file.ManagedDirectory ?? Path.GetDirectoryName(file.OutputPath)!),
+                comparer)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .Select(file => GetValidatedPath(managedRoot, file.OutputPath))
+                    .ToHashSet(comparer),
+                comparer);
 
         foreach (var file in generatedFiles)
         {
-            WriteFile(fullOutputDirectory, file);
+            WriteFile(managedRoot, file);
         }
 
-        DeleteStaleFiles(fullOutputDirectory, expectedPaths, comparer);
-        DeleteEmptyDirectories(fullOutputDirectory);
+        foreach (var pair in expectedPathsByManagedDirectory)
+        {
+            Directory.CreateDirectory(pair.Key);
+            DeleteStaleFiles(pair.Key, pair.Value, comparer);
+        }
+
+        foreach (var managedDirectory in expectedPathsByManagedDirectory.Keys.OrderByDescending(path => path.Length))
+        {
+            DeleteEmptyDirectories(managedDirectory);
+        }
     }
 
     private static void DeleteEmptyDirectories(string outputDirectory)
@@ -36,11 +52,11 @@ internal static class OutputWriter
     }
 
     private static void DeleteStaleFiles(
-        string outputDirectory,
+        string managedDirectory,
         IReadOnlySet<string> expectedPaths,
         StringComparer comparer)
     {
-        foreach (var existingPath in Directory.GetFiles(outputDirectory, "*", SearchOption.AllDirectories))
+        foreach (var existingPath in Directory.GetFiles(managedDirectory, "*", SearchOption.AllDirectories))
         {
             var normalizedPath = Path.GetFullPath(existingPath);
             if (!expectedPaths.Contains(normalizedPath))
@@ -50,15 +66,15 @@ internal static class OutputWriter
         }
     }
 
-    private static string GetValidatedOutputPath(string outputDirectory, string outputPath)
+    private static string GetValidatedPath(string managedRoot, string path)
     {
-        var fullOutputPath = Path.GetFullPath(outputPath);
-        var relativePath = Path.GetRelativePath(outputDirectory, fullOutputPath);
+        var fullOutputPath = Path.GetFullPath(path);
+        var relativePath = Path.GetRelativePath(managedRoot, fullOutputPath);
         if (relativePath.StartsWith("..", StringComparison.Ordinal) ||
             Path.IsPathRooted(relativePath))
         {
             throw new InvalidOperationException(
-                $"Generated output path '{outputPath}' must stay under '{outputDirectory}'.");
+                $"Generated output path '{path}' must stay under '{managedRoot}'.");
         }
 
         return fullOutputPath;
@@ -71,11 +87,11 @@ internal static class OutputWriter
             : StringComparer.Ordinal;
     }
 
-    private static void WriteFile(string outputDirectory, GeneratedFile file)
+    private static void WriteFile(string managedRoot, GeneratedFile file)
     {
         try
         {
-            var outputPath = GetValidatedOutputPath(outputDirectory, file.OutputPath);
+            var outputPath = GetValidatedPath(managedRoot, file.OutputPath);
             var directory = Path.GetDirectoryName(outputPath);
             if (!string.IsNullOrWhiteSpace(directory))
             {

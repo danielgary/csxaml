@@ -17,32 +17,65 @@ internal abstract class ControlAdapter<TControl> : INativeControlAdapter
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
-        ApplyEvents((TControl)element, node, bindingStore);
+        try
+        {
+            ApplyEvents((TControl)element, node, bindingStore);
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "event application",
+                sourceInfo: node.SourceInfo,
+                detail: TagName);
+        }
     }
 
     public void ApplyProperties(object element, NativeElementNode node)
     {
-        var control = (TControl)element;
-        FrameworkElementLayoutPropertyApplicator.Apply(control, node);
-        FrameworkElementStylePropertyApplicator.Apply(control, node);
-        ApplyProperties(control, node);
+        try
+        {
+            var control = (TControl)element;
+            FrameworkElementLayoutPropertyApplicator.Apply(control, node);
+            FrameworkElementStylePropertyApplicator.Apply(control, node);
+            ApplyProperties(control, node);
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "property application",
+                sourceInfo: node.SourceInfo,
+                detail: TagName);
+        }
     }
 
     public void SetChildren(object element, IReadOnlyList<object> children)
     {
-        var uiChildren = new UIElement[children.Count];
-        for (var index = 0; index < children.Count; index++)
+        try
         {
-            if (children[index] is not UIElement uiElement)
+            var uiChildren = new UIElement[children.Count];
+            for (var index = 0; index < children.Count; index++)
             {
-                throw new InvalidOperationException(
-                    $"Child projection for '{TagName}' must be a UIElement.");
+                if (children[index] is not UIElement uiElement)
+                {
+                    throw new InvalidOperationException(
+                        $"Child projection for '{TagName}' must be a UIElement.");
+                }
+
+                uiChildren[index] = uiElement;
             }
 
-            uiChildren[index] = uiElement;
+            SetChildren((TControl)element, uiChildren);
         }
-
-        SetChildren((TControl)element, uiChildren);
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "child assignment",
+                sourceInfo: null,
+                detail: TagName);
+        }
     }
 
     protected virtual void ApplyEvents(
