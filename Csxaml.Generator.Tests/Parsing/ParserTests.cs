@@ -8,7 +8,7 @@ public sealed class ParserTests
     {
         const string sourceText = """
             component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-                return <Border Background={TodoColors.DoneBackground} Padding={TodoColors.CardPadding}>
+                render <Border Background={TodoColors.DoneBackground} Padding={TodoColors.CardPadding}>
                     <StackPanel Spacing={8}>
                     <TextBlock Text={Title} Foreground={TodoColors.CardForeground} />
                     if (IsDone) {
@@ -46,7 +46,7 @@ public sealed class ParserTests
             component Element TodoBoard {
                 State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(CreateItems());
 
-                return <StackPanel Spacing={12}>
+                render <StackPanel Spacing={12}>
                     <TextBlock Text="Todo Board" Foreground={TodoColors.BoardForeground} />
                     foreach (var item in Items.Value) {
                         <TodoCard Key={item.Id} Title={item.Title} IsDone={item.IsDone} OnToggle={OnToggle} />
@@ -71,35 +71,13 @@ public sealed class ParserTests
     }
 
     [TestMethod]
-    public void Parse_FileLevelUsingDirectives_ProducesUsingDefinitions()
-    {
-        const string sourceText = """
-            using Microsoft.UI.Xaml.Controls;
-            using WinUi = Microsoft.UI.Xaml.Controls;
-
-            component Element TodoBoard {
-                return <StackPanel />;
-            }
-            """;
-
-        var file = new Parser().Parse(
-            new SourceDocument("TodoBoard.csxaml", GeneratorTestHarness.Normalize(sourceText)));
-
-        Assert.HasCount(2, file.UsingDirectives);
-        Assert.AreEqual("Microsoft.UI.Xaml.Controls", file.UsingDirectives[0].NamespaceName);
-        Assert.IsNull(file.UsingDirectives[0].Alias);
-        Assert.AreEqual("WinUi", file.UsingDirectives[1].Alias);
-        Assert.AreEqual("Microsoft.UI.Xaml.Controls", file.UsingDirectives[1].NamespaceName);
-    }
-
-    [TestMethod]
     public void Parse_AliasQualifiedTag_PreservesPrefixAndLocalName()
     {
         const string sourceText = """
             using WinUi = Microsoft.UI.Xaml.Controls;
 
             component Element TodoBoard {
-                return <WinUi:InfoBar IsOpen={true}></WinUi:InfoBar>;
+                render <WinUi:InfoBar IsOpen={true}></WinUi:InfoBar>;
             }
             """;
 
@@ -110,5 +88,109 @@ public sealed class ParserTests
         Assert.AreEqual("WinUi:InfoBar", root.TagName);
         Assert.AreEqual("WinUi", root.Tag.Prefix);
         Assert.AreEqual("InfoBar", root.Tag.LocalName);
+    }
+
+    [TestMethod]
+    public void Parse_RenderStatementWithCommentsBeforeMarkup_IsValid()
+    {
+        const string sourceText = """
+            component Element TodoBoard {
+                render /* a */ <StackPanel />;
+            }
+            """;
+
+        var component = GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText).Definition;
+
+        Assert.AreEqual("StackPanel", TestAstAssertions.RequireMarkup(component.Root).TagName);
+    }
+
+    [TestMethod]
+    public void Parse_BareMarkupReturn_ProducesTargetedDiagnostic()
+    {
+        const string sourceText = """
+            component Element TodoBoard {
+                return <StackPanel />;
+            }
+            """;
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText));
+
+        StringAssert.Contains(exception.Message, "render <Root />;");
+    }
+
+    [TestMethod]
+    public void Parse_ParenthesizedMarkupReturn_ProducesTargetedDiagnostic()
+    {
+        const string sourceText = """
+            component Element TodoBoard {
+                return ( <StackPanel /> );
+            }
+            """;
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText));
+
+        StringAssert.Contains(exception.Message, "render <Root />;");
+    }
+
+    [TestMethod]
+    public void Parse_NonMarkupRenderStatementPayload_ProducesTargetedDiagnostic()
+    {
+        const string sourceText = """
+            component Element TodoBoard(string Title) {
+                render Title;
+            }
+            """;
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText));
+
+        StringAssert.Contains(exception.Message, "single markup root");
+    }
+
+    [TestMethod]
+    public void Parse_MissingRenderStatement_ProducesTargetedDiagnostic()
+    {
+        const string sourceText = """
+            component Element TodoBoard {
+                var title = "Todo";
+            }
+            """;
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText));
+
+        StringAssert.Contains(exception.Message, "missing final render statement");
+    }
+
+    [TestMethod]
+    public void Parse_MultipleRenderRoots_ProducesTargetedDiagnostic()
+    {
+        const string sourceText = """
+            component Element TodoBoard {
+                render <TextBlock /><Button />;
+            }
+            """;
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText));
+
+        StringAssert.Contains(exception.Message, "exactly one markup root");
+    }
+
+    [TestMethod]
+    public void Parse_MissingRenderStatementSemicolon_ProducesTargetedDiagnostic()
+    {
+        const string sourceText = """
+            component Element TodoBoard {
+                render <StackPanel />
+            }
+            """;
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText));
+
+        StringAssert.Contains(exception.Message, "missing ';' after render statement");
     }
 }

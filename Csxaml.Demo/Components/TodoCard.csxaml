@@ -1,7 +1,7 @@
 namespace Csxaml.Demo;
 
 component Element TodoCard(string Title, bool IsDone, bool IsSelected, Action OnSelect, Action OnToggle) {
-    return <Border
+    render <Border
         
         Background={IsSelected ? TodoColors.SelectedCardBackground : (IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground)}
         Padding={TodoColors.CardPadding}>

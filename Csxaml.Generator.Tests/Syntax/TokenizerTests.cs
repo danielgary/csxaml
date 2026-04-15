@@ -8,7 +8,7 @@ public sealed class TokenizerTests
     {
         const string sourceText = """
             component Element TodoBoard {
-                return <StackPanel>
+                render <StackPanel>
                     foreach (var item in Items.Value) {
                         <TodoCard Key={item.Id} Title={item.Title} />
                     }

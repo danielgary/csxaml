@@ -24,6 +24,7 @@ internal sealed class Parser
         ChildNodeParser childNodeParser)
     {
         const string invalidDeclaration = "invalid component declaration";
+        const string missingRenderStatement = "missing final render statement in component body";
         var start = context.ReadIdentifier("component", invalidDeclaration).Span.Start;
         context.ReadIdentifier("Element", invalidDeclaration);
         var componentName = context.ReadIdentifier(invalidDeclaration);
@@ -34,9 +35,19 @@ internal sealed class Parser
         ParsePrologueMembers(context, injectFields, stateFields);
         var helperCode = new ComponentHelperCodeParser(context.Source).Parse(context);
         MisplacedComponentPrologueDetector.Validate(context.Source, helperCode);
-        context.ReadIdentifier("return", "missing return block");
+        context.ReadIdentifier("render", missingRenderStatement);
+        if (!context.PeekSymbol("<"))
+        {
+            throw context.CreateException("render statement must contain a single markup root");
+        }
+
         var root = childNodeParser.ParseRootNode();
-        context.ReadSymbol(";", "missing return block");
+        if (context.PeekSymbol("<") || context.PeekIdentifier("if") || context.PeekIdentifier("foreach"))
+        {
+            throw context.CreateException("render statement must contain exactly one markup root");
+        }
+
+        context.ReadSymbol(";", "missing ';' after render statement");
         var closeBrace = context.ReadSymbol("}", invalidDeclaration);
 
         return new ComponentDefinition(

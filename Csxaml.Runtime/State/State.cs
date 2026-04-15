@@ -16,11 +16,8 @@ public sealed class State<T>
         get => _value;
         set
         {
-            if (!EqualityComparer<T>.Default.Equals(_value, value))
-            {
-                _value = value;
-                _invalidate();
-            }
+            _value = value;
+            _invalidate();
         }
     }
 }

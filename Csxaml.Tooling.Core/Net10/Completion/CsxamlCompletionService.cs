@@ -55,8 +55,8 @@ public sealed class CsxamlCompletionService
                             control.ChildKind != ControlChildKind.None)));
 
             var namespaces = usingDirectives
-                .Where(directive => directive.Alias is null)
-                .Select(directive => directive.NamespaceName)
+                .Where(directive => directive.Alias is null && !directive.IsStatic)
+                .Select(directive => directive.QualifiedName)
                 .Append(currentNamespace)
                 .Distinct(StringComparer.Ordinal);
             foreach (var namespaceName in namespaces)
@@ -85,8 +85,8 @@ public sealed class CsxamlCompletionService
         else
         {
             var namespaceName = usingDirectives
-                .FirstOrDefault(directive => string.Equals(directive.Alias, context.Qualifier, StringComparison.Ordinal))?
-                .NamespaceName;
+                .FirstOrDefault(directive => !directive.IsStatic && string.Equals(directive.Alias, context.Qualifier, StringComparison.Ordinal))?
+                .QualifiedName;
             if (namespaceName is null)
             {
                 return Array.Empty<CsxamlCompletionItem>();

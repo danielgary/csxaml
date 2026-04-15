@@ -24,11 +24,7 @@ public sealed partial class CsxamlSemanticTokenService
         EmitMarkupTokens(tokens, scan, currentNamespace, workspace);
         tokens.AddRange(_csharpSemanticTokenService.GetTokens(filePath, text));
 
-        return tokens
-            .OrderBy(token => token.Start)
-            .ThenBy(token => token.Length)
-            .Distinct()
-            .ToList();
+        return NormalizeTokens(tokens);
     }
 
     private static void EmitKeywordTokens(ICollection<CsxamlSemanticToken> tokens, string text)
@@ -132,6 +128,56 @@ public sealed partial class CsxamlSemanticTokenService
         }
     }
 
-    [GeneratedRegex(@"\b(component|Element|State|inject|return|if|foreach|var|in|using|namespace)\b", RegexOptions.CultureInvariant)]
+    private static IReadOnlyList<CsxamlSemanticToken> NormalizeTokens(IEnumerable<CsxamlSemanticToken> tokens)
+    {
+        var exactSpanTokens = tokens
+            .GroupBy(token => (token.Start, token.Length))
+            .Select(ChoosePreferredToken)
+            .OrderBy(token => token.Start)
+            .ThenBy(token => token.Length)
+            .ToList();
+
+        var normalized = new List<CsxamlSemanticToken>(exactSpanTokens.Count);
+        foreach (var token in exactSpanTokens)
+        {
+            if (normalized.Count > 0 &&
+                token.Start < normalized[^1].Start + normalized[^1].Length)
+            {
+                continue;
+            }
+
+            normalized.Add(token);
+        }
+
+        return normalized;
+    }
+
+    private static CsxamlSemanticToken ChoosePreferredToken(IEnumerable<CsxamlSemanticToken> candidates)
+    {
+        return candidates
+            .OrderByDescending(GetTokenPriority)
+            .ThenByDescending(token => token.IsDeclaration)
+            .ThenByDescending(token => token.IsReadOnly)
+            .ThenByDescending(token => token.IsDefaultLibrary)
+            .First();
+    }
+
+    private static int GetTokenPriority(CsxamlSemanticToken token)
+    {
+        return token.Type switch
+        {
+            CsxamlSemanticTokenType.Keyword => 7,
+            CsxamlSemanticTokenType.Method => 6,
+            CsxamlSemanticTokenType.Property => 5,
+            CsxamlSemanticTokenType.Event => 4,
+            CsxamlSemanticTokenType.Parameter => 3,
+            CsxamlSemanticTokenType.Variable => 2,
+            CsxamlSemanticTokenType.Interface => 1,
+            CsxamlSemanticTokenType.Class => 0,
+            _ => 0,
+        };
+    }
+
+    [GeneratedRegex(@"\b(component|Element|State|inject|render|if|foreach|var|in|using|namespace)\b", RegexOptions.CultureInvariant)]
     private static partial Regex KeywordPattern();
 }

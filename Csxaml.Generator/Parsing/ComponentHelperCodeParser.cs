@@ -3,25 +3,25 @@ namespace Csxaml.Generator;
 internal sealed class ComponentHelperCodeParser
 {
     private readonly SourceDocument _source;
-    private readonly RenderReturnLocator _returnLocator;
+    private readonly RenderStatementLocator _renderStatementLocator;
 
     public ComponentHelperCodeParser(SourceDocument source)
     {
         _source = source;
-        _returnLocator = new RenderReturnLocator(source);
+        _renderStatementLocator = new RenderStatementLocator(source);
     }
 
     public ComponentHelperCodeBlock? Parse(ParserContext context)
     {
-        if (context.PeekIdentifier("return"))
+        if (context.PeekIdentifier("render"))
         {
             return null;
         }
 
         var helperStart = context.Current.Span.Start;
-        var returnStart = _returnLocator.Locate(helperStart);
-        var helperSpan = CSharpTextScanner.TrimWhitespaceSpan(_source, helperStart, returnStart);
-        context.SkipToPosition(returnStart);
+        var renderStart = _renderStatementLocator.Locate(helperStart);
+        var helperSpan = CSharpTextScanner.TrimWhitespaceSpan(_source, helperStart, renderStart);
+        context.SkipToPosition(renderStart);
 
         return helperSpan is null
             ? null

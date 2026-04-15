@@ -3,8 +3,8 @@
     "prefix": "csxaml-component",
     "body": [
       "component Element ${1:ComponentName}(${2}) {",
-      "\treturn <StackPanel>",
-      "\t\t$0",
+      "\trender <StackPanel>",
+      "\t$0",
       "\t</StackPanel>;",
       "}"
     ],

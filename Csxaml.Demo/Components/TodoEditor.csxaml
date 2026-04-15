@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml;
 namespace Csxaml.Demo;
 
 component Element TodoEditor(string ItemId, string Title, string Notes, bool IsDone, Action<string, string> OnTitleChanged, Action<string, string> OnNotesChanged, Action<string, bool> OnDoneChanged) {
-    return <Border BorderThickness={1} BorderBrush={TodoColors.EditorHintForeground}
+    render <Border BorderThickness={1} BorderBrush={TodoColors.EditorHintForeground}
         AutomationProperties.Name="Editor Surface"
         Background={TodoColors.EditorBackground}
         Padding={TodoColors.CardPadding}>

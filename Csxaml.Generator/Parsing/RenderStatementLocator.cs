@@ -1,10 +1,13 @@
 namespace Csxaml.Generator;
 
-internal sealed class RenderReturnLocator
+internal sealed class RenderStatementLocator
 {
+    private const string MissingRenderStatement = "missing final render statement in component body";
+    private const string InvalidReturnStatement = "component final markup must use 'render <Root />;'";
+    private const string InvalidRenderPayload = "render statement must contain a single markup root";
     private readonly SourceDocument _source;
 
-    public RenderReturnLocator(SourceDocument source)
+    public RenderStatementLocator(SourceDocument source)
     {
         _source = source;
     }
@@ -34,7 +37,7 @@ internal sealed class RenderReturnLocator
                 case '}':
                     if (braceDepth == 0 && parenDepth == 0 && bracketDepth == 0)
                     {
-                        throw DiagnosticFactory.FromPosition(_source, index, "missing return block");
+                        throw DiagnosticFactory.FromPosition(_source, index, MissingRenderStatement);
                     }
 
                     braceDepth--;
@@ -62,20 +65,25 @@ internal sealed class RenderReturnLocator
                 continue;
             }
 
-            if (!CSharpTextScanner.IdentifierEqualsAt(_source, index, "return", out var identifierEnd))
+            if (CSharpTextScanner.IdentifierEqualsAt(_source, index, "return", out _))
+            {
+                throw DiagnosticFactory.FromPosition(_source, index, InvalidReturnStatement);
+            }
+
+            if (!CSharpTextScanner.IdentifierEqualsAt(_source, index, "render", out var identifierEnd))
             {
                 continue;
             }
 
             var contentStart = CSharpTextScanner.SkipWhitespaceAndComments(_source, identifierEnd);
-            if (contentStart < text.Length && text[contentStart] == '<')
+            if (contentStart >= text.Length || text[contentStart] != '<')
             {
-                return index;
+                throw DiagnosticFactory.FromPosition(_source, index, InvalidRenderPayload);
             }
 
-            index = identifierEnd - 1;
+            return index;
         }
 
-        throw DiagnosticFactory.FromPosition(_source, startPosition, "missing return block");
+        throw DiagnosticFactory.FromPosition(_source, startPosition, MissingRenderStatement);
     }
 }

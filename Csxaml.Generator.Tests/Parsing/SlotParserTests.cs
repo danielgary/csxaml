@@ -10,7 +10,7 @@ public sealed class SlotParserTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Border>
+                render <Border>
                     <Slot />
                 </Border>;
             }
@@ -32,7 +32,7 @@ public sealed class SlotParserTests
             using Widgets = Demo.Controls;
 
             component Element TodoCard {
-                return <Border>
+                render <Border>
                     <Widgets:Slot />
                 </Border>;
             }

@@ -52,6 +52,11 @@ internal sealed class CsxamlCSharpSemanticTokenService
             return null;
         }
 
+        if (IsContextualVar(token))
+        {
+            return null;
+        }
+
         var typeToken = CreateTypeToken(token.Parent, semanticModel, start, length);
         if (typeToken is not null)
         {
@@ -70,6 +75,12 @@ internal sealed class CsxamlCSharpSemanticTokenService
         return referencedSymbol is null
             ? null
             : CreateSymbolToken(start, length, referencedSymbol, isDeclaration: false);
+    }
+
+    private static bool IsContextualVar(SyntaxToken token)
+    {
+        return token.Parent is IdentifierNameSyntax &&
+            string.Equals(token.ValueText, "var", StringComparison.Ordinal);
     }
 
     private static bool TryMapToken(

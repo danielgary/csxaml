@@ -10,7 +10,7 @@ public sealed class SourceMappingTests
             "TodoCard.csxaml",
             """
             component Element TodoCard(string Title, bool IsDone) {
-                return <Border>
+                render <Border>
                     if (IsDone) {
                         <TextBlock Text={Title} />
                     }
@@ -40,7 +40,7 @@ public sealed class SourceMappingTests
             "TodoCard.csxaml",
             """
             component Element TodoCard(string Title) {
-                return <TextBlock Text={Title} />;
+                render <TextBlock Text={Title} />;
             }
             """);
         var document = new CodeEmitter().EmitDocument(component, GeneratorTestHarness.Validate(component));
@@ -78,7 +78,7 @@ public sealed class SourceMappingTests
                 GeneratorTestHarness.Normalize(
                     """
                     component Element TodoBoard {
-                        return <TextBlock Text="Todo" />;
+                        render <TextBlock Text="Todo" />;
                     }
                     """));
 

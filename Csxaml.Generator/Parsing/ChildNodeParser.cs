@@ -11,7 +11,7 @@ internal sealed class ChildNodeParser
 
     public ChildNode ParseRootNode()
     {
-        return ParseChildNode("missing return block");
+        return ParseChildNode("render statement must contain a single markup root");
     }
 
     private IReadOnlyList<ChildNode> ParseBlockChildren(string message)

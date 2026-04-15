@@ -12,7 +12,7 @@ public sealed class InjectValidationTests
             component Element TodoBoard {
                 inject ITodoService todoService;
                 inject IOtherService todoService;
-                return <TextBlock Text="Todo" />;
+                render <TextBlock Text="Todo" />;
             }
             """);
 
@@ -30,7 +30,7 @@ public sealed class InjectValidationTests
             """
             component Element TodoBoard(string title) {
                 inject ITodoService title;
-                return <TextBlock Text={title} />;
+                render <TextBlock Text={title} />;
             }
             """);
 
@@ -49,7 +49,7 @@ public sealed class InjectValidationTests
             component Element TodoBoard {
                 inject ITodoService count;
                 State<int> count = new State<int>(0);
-                return <TextBlock Text={count.Value} />;
+                render <TextBlock Text={count.Value} />;
             }
             """);
 

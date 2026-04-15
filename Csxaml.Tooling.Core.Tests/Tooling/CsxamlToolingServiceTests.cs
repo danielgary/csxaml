@@ -20,7 +20,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <TodoC />;
+                render <TodoC />;
             }
             """);
         var position = tempFile.Text.IndexOf("TodoC", StringComparison.Ordinal) + "TodoC".Length;
@@ -41,7 +41,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <TodoCard Tit />;
+                render <TodoCard Tit />;
             }
             """);
         var position = tempFile.Text.IndexOf("Tit", StringComparison.Ordinal) + "Tit".Length;
@@ -62,7 +62,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <Button OnC />;
+                render <Button OnC />;
             }
             """);
         var position = tempFile.Text.IndexOf("OnC", StringComparison.Ordinal) + "OnC".Length;
@@ -85,7 +85,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <DemoControls:Stat />;
+                render <DemoControls:Stat />;
             }
             """);
         var position = tempFile.Text.IndexOf("DemoControls:Stat", StringComparison.Ordinal) + "DemoControls:Stat".Length;
@@ -108,7 +108,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <WinUi:Info />;
+                render <WinUi:Info />;
             }
             """);
         var position = tempFile.Text.IndexOf("WinUi:Info", StringComparison.Ordinal) + "WinUi:Info".Length;
@@ -129,7 +129,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <TextBlock Grid.R />;
+                render <TextBlock Grid.R />;
             }
             """);
         var position = tempFile.Text.IndexOf("Grid.R", StringComparison.Ordinal) + "Grid.R".Length;
@@ -152,7 +152,7 @@ public sealed class CsxamlToolingServiceTests
             component Element ToolingProbe() {
                 inject ITodoService todoService;
                 var items = todoS;
-                return <TextBlock Text="Hello" />;
+                render <TextBlock Text="Hello" />;
             }
             """);
         var position = tempFile.Text.IndexOf("var items = todoS", StringComparison.Ordinal) + "var items = todoS".Length;
@@ -173,7 +173,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <TodoCard />;
+                render <TodoCard />;
             }
             """);
         var position = tempFile.Text.IndexOf("TodoCard", StringComparison.Ordinal) + 1;
@@ -192,7 +192,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <TextBlock Grid.Row={1} />;
+                render <TextBlock Grid.Row={1} />;
             }
             """;
 
@@ -212,7 +212,7 @@ public sealed class CsxamlToolingServiceTests
     }
 
     [TestMethod]
-    public void Semantic_tokens_classify_inject_keywords_and_helper_code_symbols()
+    public void Semantic_tokens_classify_render_and_inject_keywords_and_helper_code_symbols()
     {
         const string text =
             """
@@ -228,7 +228,7 @@ public sealed class CsxamlToolingServiceTests
                     return Items.Value.Single(item => item.Id == "todo-1");
                 }
 
-                return <TextBlock Text="Hello" />;
+                render <TextBlock Text="Hello" />;
             }
             """;
 
@@ -238,6 +238,7 @@ public sealed class CsxamlToolingServiceTests
 
         var tokens = new CsxamlSemanticTokenService().GetTokens(tempFile.FilePath, text);
         var injectStart = text.IndexOf("inject", StringComparison.Ordinal);
+        var renderStart = text.IndexOf("render", StringComparison.Ordinal);
         var listStart = text.IndexOf("List<TodoItemModel>", StringComparison.Ordinal);
         var returnTypeStart = text.IndexOf("TodoItemModel SelectedItem", StringComparison.Ordinal);
         var methodStart = text.IndexOf("SelectedItem", StringComparison.Ordinal);
@@ -246,6 +247,12 @@ public sealed class CsxamlToolingServiceTests
             tokens.Any(token =>
                 token.Start == injectStart &&
                 token.Length == "inject".Length &&
+                token.Type == CsxamlSemanticTokenType.Keyword),
+            string.Join(", ", tokens.Select(token => $"{token.Type}@{token.Start}:{token.Length}")));
+        Assert.IsTrue(
+            tokens.Any(token =>
+                token.Start == renderStart &&
+                token.Length == "render".Length &&
                 token.Type == CsxamlSemanticTokenType.Keyword),
             string.Join(", ", tokens.Select(token => $"{token.Type}@{token.Start}:{token.Length}")));
         Assert.IsTrue(
@@ -276,7 +283,7 @@ public sealed class CsxamlToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-            return <Border
+            render <Border
             Background={TodoColors.NotDoneBackground}>
             if (true) {
             <TextBlock Text="Hello" />
@@ -290,7 +297,7 @@ public sealed class CsxamlToolingServiceTests
         StringAssert.Contains(
             formatted,
             """
-                return <Border
+                render <Border
                     Background={TodoColors.NotDoneBackground}>
                     if (true) {
                         <TextBlock Text="Hello" />

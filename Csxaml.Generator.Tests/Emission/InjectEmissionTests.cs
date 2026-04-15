@@ -12,7 +12,7 @@ public sealed class InjectEmissionTests
             component Element TodoBoard(string Title) {
                 inject ITodoService todoService;
 
-                return <TextBlock Text={Title} />;
+                render <TextBlock Text={Title} />;
             }
             """);
 
@@ -35,7 +35,7 @@ public sealed class InjectEmissionTests
             """
             component Element TodoBoard {
                 State<int> Count = new State<int>(1);
-                return <TextBlock Text={Count.Value} />;
+                render <TextBlock Text={Count.Value} />;
             }
             """);
 
@@ -65,7 +65,7 @@ public sealed class InjectEmissionTests
                     return counterService.GetInitial();
                 }
 
-                return <TextBlock Text={Count.Value} />;
+                render <TextBlock Text={Count.Value} />;
             }
             """);
 

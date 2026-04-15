@@ -10,7 +10,7 @@ public sealed class NativeValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <StackPanel>
+                render <StackPanel>
                     <TextBlock Text="Todo Board" OnClick={Toggle} />
                 </StackPanel>;
             }
@@ -31,7 +31,7 @@ public sealed class NativeValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <StackPanel>
+                render <StackPanel>
                     <Button Content="Toggle" NotAProp={true} OnClick={Toggle} />
                 </StackPanel>;
             }
@@ -52,7 +52,7 @@ public sealed class NativeValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <StackPanel>
+                render <StackPanel>
                     <Button Content="Toggle" OnClick="Toggle" />
                 </StackPanel>;
             }
@@ -73,7 +73,7 @@ public sealed class NativeValidationTests
             "TodoEditor.csxaml",
             """
             component Element TodoEditor(string Title, bool IsDone, Action<string> OnTitleChanged, Action<bool> OnDoneChanged) {
-                return <StackPanel>
+                render <StackPanel>
                     <TextBox Text={Title} OnTextChanged={OnTitleChanged} />
                     <CheckBox IsChecked={IsDone} OnCheckedChanged={OnDoneChanged} />
                 </StackPanel>;
@@ -90,7 +90,7 @@ public sealed class NativeValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <StackPanel>
+                render <StackPanel>
                     <Button Content="Save" Style={TodoStyles.PrimaryButton} />
                 </StackPanel>;
             }
@@ -106,7 +106,7 @@ public sealed class NativeValidationTests
             "TodoEditor.csxaml",
             """
             component Element TodoEditor {
-                return <StackPanel>
+                render <StackPanel>
                     <TextBox Text="Draft" OnTextChanged="ChangeTitle" />
                 </StackPanel>;
             }

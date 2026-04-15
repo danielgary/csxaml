@@ -178,8 +178,8 @@
     "keywords": {
       "patterns": [
         {
-          "name": "keyword.control.return.csxaml",
-          "match": "\\breturn\\b"
+          "name": "keyword.control.render.csxaml",
+          "match": "\\brender\\b"
         },
         {
           "name": "keyword.control.loop.csxaml",

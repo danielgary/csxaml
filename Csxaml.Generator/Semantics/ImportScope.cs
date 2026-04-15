@@ -20,13 +20,18 @@ internal sealed class ImportScope
         var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var directive in directives)
         {
-            if (directive.Alias is null)
+            if (directive.IsStatic)
             {
-                importedNamespaces.Add(directive.NamespaceName);
                 continue;
             }
 
-            if (!aliases.TryAdd(directive.Alias, directive.NamespaceName))
+            if (directive.Alias is null)
+            {
+                importedNamespaces.Add(directive.QualifiedName);
+                continue;
+            }
+
+            if (!aliases.TryAdd(directive.Alias, directive.QualifiedName))
             {
                 throw DiagnosticFactory.FromSpan(
                     source,

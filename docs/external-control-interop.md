@@ -11,14 +11,14 @@ using Widgets = MyCompany.Widgets;
 namespace MyApp.Components;
 
 component Element WarningBanner(bool IsOpen) {
-    return <InfoBar
+    render <InfoBar
         Severity={InfoBarSeverity.Warning}
         IsOpen={IsOpen}
         Message="Unsaved changes" />;
 }
 
 component Element AvatarButton(Action OnClick) {
-    return <Widgets:StatusButton OnClick={OnClick} />;
+    render <Widgets:StatusButton OnClick={OnClick} />;
 }
 ```
 

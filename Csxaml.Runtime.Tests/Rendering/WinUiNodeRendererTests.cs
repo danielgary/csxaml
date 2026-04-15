@@ -76,6 +76,32 @@ public sealed class WinUiNodeRendererTests
     }
 
     [TestMethod]
+    public void Render_ReplacedElement_ClearsTrackedEventBindings()
+    {
+        var renderer = CreateRenderer(
+            new FakeControlAdapter("Button", supportsChildren: false),
+            new FakeControlAdapter("TextBlock", supportsChildren: false));
+
+        var firstButton = (FakeElement)renderer.RenderProjectedRoot(
+            new NativeElementNode(
+                "Button",
+                null,
+                [new NativePropertyValue("Content", "Toggle")],
+                [new NativeEventValue("OnClick", (Action)(() => { }))],
+                Array.Empty<Node>()));
+
+        renderer.RenderProjectedRoot(
+            new NativeElementNode(
+                "TextBlock",
+                null,
+                [new NativePropertyValue("Text", "Replacement")],
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>()));
+
+        Assert.IsEmpty(firstButton.Events);
+    }
+
+    [TestMethod]
     public void Render_TextBox_ReusesElementAcrossControlledUpdates()
     {
         var renderer = CreateRenderer(new FakeControlAdapter("TextBox", supportsChildren: false));

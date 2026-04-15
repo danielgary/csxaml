@@ -10,11 +10,13 @@ public static partial class CsxamlUsingDirectiveScanner
         foreach (Match match in UsingDirectivePattern().Matches(text))
         {
             var aliasGroup = match.Groups["alias"];
-            var namespaceGroup = match.Groups["namespace"];
+            var qualifiedNameGroup = match.Groups["qualified"];
+            var isStatic = match.Groups["static"].Success;
             directives.Add(
                 new CsxamlUsingDirectiveInfo(
-                    namespaceGroup.Value,
+                    qualifiedNameGroup.Value,
                     aliasGroup.Success ? aliasGroup.Value : null,
+                    isStatic,
                     match.Index,
                     match.Length));
         }
@@ -23,7 +25,7 @@ public static partial class CsxamlUsingDirectiveScanner
     }
 
     [GeneratedRegex(
-        @"^\s*using\s+(?:(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*)?(?<namespace>[A-Za-z_][A-Za-z0-9_.]*)\s*;\s*$",
+        @"^\s*using\s+(?:(?<static>static)\s+)?(?:(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*)?(?<qualified>[A-Za-z_][A-Za-z0-9_.]*)\s*;\s*$",
         RegexOptions.Multiline | RegexOptions.CultureInvariant)]
     private static partial Regex UsingDirectivePattern();
 }

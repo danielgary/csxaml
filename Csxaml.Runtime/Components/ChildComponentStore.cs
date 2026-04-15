@@ -3,12 +3,14 @@ namespace Csxaml.Runtime;
 internal sealed class ChildComponentStore
 {
     private Dictionary<string, ComponentInstance> _current = new();
+    private HashSet<string> _explicitKeys = new(StringComparer.Ordinal);
     private Dictionary<string, int> _positionOccurrences = new();
     private Dictionary<string, ComponentInstance> _previous = new();
 
     public void BeginRenderPass()
     {
         _current = new Dictionary<string, ComponentInstance>();
+        _explicitKeys = new HashSet<string>(StringComparer.Ordinal);
         _positionOccurrences = new Dictionary<string, int>();
     }
 
@@ -22,6 +24,7 @@ internal sealed class ChildComponentStore
     {
         DisposeNewComponents();
         _current = new Dictionary<string, ComponentInstance>();
+        _explicitKeys = new HashSet<string>(StringComparer.Ordinal);
         _positionOccurrences = new Dictionary<string, int>();
     }
 
@@ -30,6 +33,7 @@ internal sealed class ChildComponentStore
         ComponentContext context,
         IComponentActivator activator)
     {
+        ValidateExplicitKey(node);
         var matchKey = ComponentMatchKey.Create(node, _positionOccurrences);
         if (_current.ContainsKey(matchKey.Value))
         {
@@ -56,6 +60,7 @@ internal sealed class ChildComponentStore
 
         _current = new Dictionary<string, ComponentInstance>();
         _previous = new Dictionary<string, ComponentInstance>();
+        _explicitKeys = new HashSet<string>(StringComparer.Ordinal);
         _positionOccurrences = new Dictionary<string, int>();
     }
 
@@ -68,7 +73,24 @@ internal sealed class ChildComponentStore
 
         _current = new Dictionary<string, ComponentInstance>();
         _previous = new Dictionary<string, ComponentInstance>();
+        _explicitKeys = new HashSet<string>(StringComparer.Ordinal);
         _positionOccurrences = new Dictionary<string, int>();
+    }
+
+    private void ValidateExplicitKey(ComponentNode node)
+    {
+        if (node.Key is null)
+        {
+            return;
+        }
+
+        if (_explicitKeys.Add(node.Key))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Sibling component elements cannot share the key '{node.Key}'.");
     }
 
     private void DisposeRemovedComponents()

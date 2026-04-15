@@ -12,7 +12,7 @@ public sealed class ExternalControlEmissionTests
             using Demo = MyApp.Controls;
 
             component Element TodoBoard {
-                return <Demo:StatusButton BadgeText="todo-1" Style={TodoStyles.PrimaryButton} OnClick={() => { }}>
+                render <Demo:StatusButton BadgeText="todo-1" Style={TodoStyles.PrimaryButton} OnClick={() => { }}>
                     <TextBlock Text="Selected item" />
                 </Demo:StatusButton>;
             }

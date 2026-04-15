@@ -15,7 +15,7 @@ public sealed class HelperCodeEmissionTests
                     return "Todo";
                 }
 
-                return <TextBlock Text={BuildTitle()} />;
+                render <TextBlock Text={BuildTitle()} />;
             }
             """);
 
@@ -44,7 +44,7 @@ public sealed class HelperCodeEmissionTests
             }
 
             component Element TodoBoard(string Title) {
-                return <TextBlock Text={TodoFormatter.Format(Title)} />;
+                render <TextBlock Text={TodoFormatter.Format(Title)} />;
             }
 
             file enum TodoTone

@@ -6,6 +6,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
     private readonly ComponentContext _context;
     private readonly ComponentInstance _rootComponent;
     private bool _isDisposed;
+    private int _renderDepth;
 
     public ComponentTreeCoordinator(
         Type rootComponentType,
@@ -48,9 +49,11 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
     public NativeNode Render()
     {
         ThrowIfDisposed();
+        ThrowIfRenderInProgress();
 
         try
         {
+            _renderDepth++;
             var tree = RenderComponent(_rootComponent);
             TreeUpdated?.Invoke(tree);
             return tree;
@@ -61,6 +64,10 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
                 exception,
                 "root render",
                 _rootComponent);
+        }
+        finally
+        {
+            _renderDepth--;
         }
     }
 
@@ -93,6 +100,12 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         if (_isDisposed)
         {
             return;
+        }
+
+        if (_renderDepth > 0)
+        {
+            throw new InvalidOperationException(
+                "Component state writes during render are not allowed. Move the update into an event handler, effect, or other post-render path.");
         }
 
         Render();
@@ -209,6 +222,15 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         if (_isDisposed)
         {
             throw new ObjectDisposedException(nameof(ComponentTreeCoordinator));
+        }
+    }
+
+    private void ThrowIfRenderInProgress()
+    {
+        if (_renderDepth > 0)
+        {
+            throw new InvalidOperationException(
+                "Component renders are non-reentrant.");
         }
     }
 

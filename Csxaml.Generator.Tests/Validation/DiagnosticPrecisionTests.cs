@@ -9,7 +9,7 @@ public sealed class DiagnosticPrecisionTests
         var sourceText = GeneratorTestHarness.Normalize(
             """
             component Element TodoBoard {
-                return <Button Contnet="Save" />;
+                render <Button Contnet="Save" />;
             }
             """);
         var component = GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText);
@@ -29,13 +29,13 @@ public sealed class DiagnosticPrecisionTests
             "TodoCard.csxaml",
             """
             component Element TodoCard(string Title) {
-                return <TextBlock Text={Title} />;
+                render <TextBlock Text={Title} />;
             }
             """);
         var boardText = GeneratorTestHarness.Normalize(
             """
             component Element TodoBoard {
-                return <TodoCard Ttile="One" />;
+                render <TodoCard Ttile="One" />;
             }
             """);
         var board = GeneratorTestHarness.Parse("TodoBoard.csxaml", boardText);
@@ -54,7 +54,7 @@ public sealed class DiagnosticPrecisionTests
         var sourceText = GeneratorTestHarness.Normalize(
             """
             component Element TodoBoard {
-                return <StakPanel />;
+                render <StakPanel />;
             }
             """);
         var component = GeneratorTestHarness.Parse("TodoBoard.csxaml", sourceText);

@@ -10,7 +10,7 @@ public sealed class AttachedPropertyEmissionTests
             "TodoEditor.csxaml",
             """
             component Element TodoEditor(string Title) {
-                return <Border AutomationProperties.Name="Inner Editor">
+                render <Border AutomationProperties.Name="Inner Editor">
                     <TextBlock Text={Title} />
                 </Border>;
             }
@@ -19,7 +19,7 @@ public sealed class AttachedPropertyEmissionTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <Grid RowDefinitions="Auto,*">
+                render <Grid RowDefinitions="Auto,*">
                     <TextBlock Grid.Row={0} AutomationProperties.Name="Board Title" Text="Todo Board" />
                     <TodoEditor Grid.Row={1} Grid.Column={1} AutomationProperties.Name="Task Editor" Title="Draft plan" />
                 </Grid>;

@@ -24,24 +24,26 @@ internal sealed class UsingDirectiveParser
     {
         const string message = "invalid using directive";
         var start = _context.ReadIdentifier("using", message).Span.Start;
+        var isStatic = _context.TryReadIdentifier("static");
         var firstToken = _context.ReadIdentifier(message);
         string? alias = null;
-        string namespaceName;
+        string qualifiedName;
 
-        if (_context.TryReadSymbol("="))
+        if (!isStatic && _context.TryReadSymbol("="))
         {
             alias = firstToken.Text;
-            namespaceName = ReadQualifiedName(message);
+            qualifiedName = ReadQualifiedName(message);
         }
         else
         {
-            namespaceName = ReadQualifiedName(firstToken, message);
+            qualifiedName = ReadQualifiedName(firstToken, message);
         }
 
         var semicolon = _context.ReadSymbol(";", message);
         return new UsingDirectiveDefinition(
             alias,
-            namespaceName,
+            qualifiedName,
+            isStatic,
             new TextSpan(start, semicolon.Span.End - start));
     }
 

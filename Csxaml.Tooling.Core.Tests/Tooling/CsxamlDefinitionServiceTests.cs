@@ -25,7 +25,7 @@ public sealed class CsxamlDefinitionServiceTests
                 }
 
                 var selected = SelectedItem();
-                return <TextBlock Text={selected.Title} />;
+                render <TextBlock Text={selected.Title} />;
             }
             """);
         var usagePosition = tempFile.Text.LastIndexOf("SelectedItem()", StringComparison.Ordinal) + 1;
@@ -52,7 +52,7 @@ public sealed class CsxamlDefinitionServiceTests
                     return new TodoItemModel("todo-1", "Draft plan", "Notes", false);
                 }
 
-                return <TextBlock Text="Hello" />;
+                render <TextBlock Text="Hello" />;
             }
             """);
         var position = tempFile.Text.IndexOf("TodoItemModel SelectedItem", StringComparison.Ordinal) + 1;

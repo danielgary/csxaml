@@ -10,7 +10,7 @@ public sealed class SlotEmissionTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <StackPanel>
+                render <StackPanel>
                     <TextBlock Text="Header" />
                     <Slot />
                 </StackPanel>;
@@ -29,7 +29,7 @@ public sealed class SlotEmissionTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Border>
+                render <Border>
                     <Slot />
                 </Border>;
             }
@@ -38,7 +38,7 @@ public sealed class SlotEmissionTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <TodoCard>
+                render <TodoCard>
                     <TextBlock Text="Hello" />
                 </TodoCard>;
             }

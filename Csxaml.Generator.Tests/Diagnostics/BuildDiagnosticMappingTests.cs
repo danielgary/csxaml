@@ -18,7 +18,7 @@ public sealed class BuildDiagnosticMappingTests
                     return MissingSymbol;
                 }
 
-                return <TextBlock Text={BuildTitle()} />;
+                render <TextBlock Text={BuildTitle()} />;
             }
             """);
 
@@ -37,7 +37,7 @@ public sealed class BuildDiagnosticMappingTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <TextBlock Text={MissingSymbol} />;
+                render <TextBlock Text={MissingSymbol} />;
             }
             """);
 

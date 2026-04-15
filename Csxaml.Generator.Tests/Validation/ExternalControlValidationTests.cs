@@ -12,7 +12,7 @@ public sealed class ExternalControlValidationTests
             using Demo = MyApp.Controls;
 
             component Element TodoBoard {
-                return <Demo:StatusButton BadgeText="todo-1" OnClick={() => { }}>
+                render <Demo:StatusButton BadgeText="todo-1" OnClick={() => { }}>
                     <TextBlock Text="Selected item" />
                 </Demo:StatusButton>;
             }
@@ -46,7 +46,7 @@ public sealed class ExternalControlValidationTests
             using Demo = MyApp.Controls;
 
             component Element TodoBoard {
-                return <Demo:StatusButton Style={TodoStyles.PrimaryButton} />;
+                render <Demo:StatusButton Style={TodoStyles.PrimaryButton} />;
             }
             """);
         var compilation = CreateCompilation(
@@ -77,7 +77,7 @@ public sealed class ExternalControlValidationTests
             using Beta.Controls;
 
             component Element TodoBoard {
-                return <StatusButton />;
+                render <StatusButton />;
             }
             """);
         var compilation = CreateCompilation(
@@ -103,7 +103,7 @@ public sealed class ExternalControlValidationTests
                 TestAstAssertions.RequireMarkup(component.Definition.Root),
                 compilation));
 
-        StringAssert.Contains(error.Message, "ambiguous imported tag 'StatusButton'");
+        StringAssert.Contains(error.Message, "ambiguous tag 'StatusButton'");
     }
 
     [TestMethod]
@@ -115,7 +115,7 @@ public sealed class ExternalControlValidationTests
             using Demo = MyApp.Controls;
 
             component Element TodoBoard {
-                return <Demo:FancyControl />;
+                render <Demo:FancyControl />;
             }
             """);
         var compilation = new CompilationContext(

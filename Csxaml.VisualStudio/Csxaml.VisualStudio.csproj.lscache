@@ -67,7 +67,7 @@ obj/Debug/net8.0-windows8.0/
 
 [metadataReferences]
 ../Csxaml.Tooling.Core/obj/Debug/net8.0/ref/Csxaml.Tooling.Core.dll
-<DOTNET>/packs/Microsoft.NETCore.App.Ref/8.0.25/ref/net8.0/
+<DOTNET>/packs/Microsoft.NETCore.App.Ref/8.0.26/ref/net8.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll
  Microsoft.Win32.Primitives.dll
@@ -222,7 +222,7 @@ obj/Debug/net8.0-windows8.0/
  System.Xml.XmlSerializer.dll
  System.Xml.XPath.dll
  System.Xml.XPath.XDocument.dll
-<DOTNET>/packs/Microsoft.WindowsDesktop.App.Ref/8.0.25/ref/net8.0/
+<DOTNET>/packs/Microsoft.WindowsDesktop.App.Ref/8.0.26/ref/net8.0/
  Accessibility.dll
  Microsoft.VisualBasic.dll
  Microsoft.VisualBasic.Forms.dll
@@ -311,16 +311,16 @@ obj/Debug/net8.0-windows8.0/
  system.threading.tasks.dataflow/9.0.0/lib/net8.0/System.Threading.Tasks.Dataflow.dll
 
 [analyzerReferences]
-<DOTNET>/packs/Microsoft.NETCore.App.Ref/8.0.25/analyzers/dotnet/cs/
+<DOTNET>/packs/Microsoft.NETCore.App.Ref/8.0.26/analyzers/dotnet/cs/
  Microsoft.Interop.ComInterfaceGenerator.dll
  Microsoft.Interop.JavaScript.JSImportGenerator.dll
  Microsoft.Interop.LibraryImportGenerator.dll
  Microsoft.Interop.SourceGeneration.dll
  System.Text.RegularExpressions.Generator.dll
-<DOTNET>/packs/Microsoft.WindowsDesktop.App.Ref/8.0.25/analyzers/dotnet/
+<DOTNET>/packs/Microsoft.WindowsDesktop.App.Ref/8.0.26/analyzers/dotnet/
  cs/System.Windows.Forms.Analyzers.CSharp.dll
  System.Windows.Forms.Analyzers.dll
-<DOTNET>/sdk/10.0.201/Sdks/Microsoft.NET.Sdk/analyzers/
+<DOTNET>/sdk/10.0.202/Sdks/Microsoft.NET.Sdk/analyzers/
  Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll
  Microsoft.CodeAnalysis.NetAnalyzers.dll
 <NUGET>/microsoft.servicehub.analyzers/4.8.55/analyzers/cs/
@@ -345,7 +345,7 @@ obj/Debug/net8.0-windows8.0/
 <NUGET>/system.text.json/9.0.0/analyzers/dotnet/roslyn4.4/cs/System.Text.Json.SourceGeneration.dll
 
 [analyzerConfigFiles]
-<DOTNET>/sdk/10.0.201/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig
+<DOTNET>/sdk/10.0.202/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig
 obj/Debug/net8.0-windows8.0/Csxaml.VisualStudio.GeneratedMSBuildEditorConfig.editorconfig
 
 [additionalFiles]

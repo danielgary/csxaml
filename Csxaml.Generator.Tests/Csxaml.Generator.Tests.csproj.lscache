@@ -68,6 +68,7 @@ Emission/
  HelperCodeEmissionTests.cs
  InjectEmissionTests.cs
  SlotEmissionTests.cs
+ UsingDirectiveEmissionTests.cs
 GeneratedCompilationTestHarness.cs
 GeneratorTestHarness.cs
 GlobalUsings.cs
@@ -79,10 +80,12 @@ obj/Debug/net10.0/
  Csxaml.Generator.Tests.GlobalUsings.g.cs
 Parsing/
  AttachedPropertyParserTests.cs
+ CSharpIslandParserTests.cs
  HelperCodeParserTests.cs
  InjectParserTests.cs
  ParserTests.cs
  SlotParserTests.cs
+ UsingDirectiveParserTests.cs
 Semantics/
  ExternalControlMetadataBuilderTests.cs
  ExternalControlMetadataIntegrationTests.cs
@@ -95,6 +98,7 @@ Validation/
  ExternalControlValidationTests.cs
  InjectValidationTests.cs
  NativeValidationTests.cs
+ SimpleTagResolutionTests.cs
  SlotValidationTests.cs
  ValidatorTests.cs
 

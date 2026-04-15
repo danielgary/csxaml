@@ -55,6 +55,25 @@ public sealed class RuntimeExceptionContextTests
         Assert.IsInstanceOfType<InvalidOperationException>(error.InnerException);
     }
 
+    [TestMethod]
+    public void Render_FailingChildPass_DoesNotPublishNewTreeOrRenderLaterSiblings()
+    {
+        LaterChildComponent.Reset();
+        var host = new ToggleableFailureHostComponent();
+        var coordinator = new ComponentTreeCoordinator(host);
+        var updateCount = 0;
+        coordinator.TreeUpdated += _ => updateCount++;
+
+        coordinator.Render();
+        host.FailOnChild = true;
+
+        var error = Assert.ThrowsExactly<CsxamlRuntimeException>(() => coordinator.Render());
+
+        Assert.AreEqual(1, updateCount);
+        Assert.AreEqual(1, LaterChildComponent.RenderCount);
+        StringAssert.Contains(error.Message, "boom");
+    }
+
     private sealed class HostComponent : ComponentInstance
     {
         public override string CsxamlComponentName => "Host";
@@ -85,6 +104,77 @@ public sealed class RuntimeExceptionContextTests
         public override Node Render()
         {
             throw new InvalidOperationException("boom");
+        }
+    }
+
+    private sealed class ToggleableFailureHostComponent : ComponentInstance
+    {
+        public bool FailOnChild { get; set; }
+
+        public override Node Render()
+        {
+            return new NativeElementNode(
+                "StackPanel",
+                null,
+                Array.Empty<NativePropertyValue>(),
+                Array.Empty<NativeEventValue>(),
+                [
+                    new ComponentNode(typeof(LabelChildComponent), null, "position0", null),
+                    new ComponentNode(typeof(FailOnDemandChildComponent), FailOnChild, "position1", null),
+                    new ComponentNode(typeof(LaterChildComponent), null, "position2", null)
+                ]);
+        }
+    }
+
+    private sealed class LabelChildComponent : ComponentInstance
+    {
+        public override Node Render()
+        {
+            return new NativeElementNode(
+                "TextBlock",
+                null,
+                [new NativePropertyValue("Text", "Label")],
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>());
+        }
+    }
+
+    private sealed class FailOnDemandChildComponent : ComponentInstance<bool>
+    {
+        public override Node Render()
+        {
+            if (Props)
+            {
+                throw new InvalidOperationException("boom");
+            }
+
+            return new NativeElementNode(
+                "TextBlock",
+                null,
+                [new NativePropertyValue("Text", "Safe")],
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>());
+        }
+    }
+
+    private sealed class LaterChildComponent : ComponentInstance
+    {
+        public static int RenderCount { get; private set; }
+
+        public static void Reset()
+        {
+            RenderCount = 0;
+        }
+
+        public override Node Render()
+        {
+            RenderCount++;
+            return new NativeElementNode(
+                "TextBlock",
+                null,
+                [new NativePropertyValue("Text", "Later")],
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>());
         }
     }
 }

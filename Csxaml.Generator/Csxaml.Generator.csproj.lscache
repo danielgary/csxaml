@@ -121,7 +121,7 @@ Parsing/
  NamespaceDirectiveParser.cs
  Parser.cs
  ParserContext.cs
- RenderReturnLocator.cs
+ RenderStatementLocator.cs
  UsingDirectiveParser.cs
 Semantics/
  CompilationContext.cs

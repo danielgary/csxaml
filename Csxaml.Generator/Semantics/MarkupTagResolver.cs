@@ -57,13 +57,8 @@ internal sealed class MarkupTagResolver
         ImportScope imports,
         CompilationContext compilation)
     {
-        if (compilation.NativeControls.TryGetBuiltIn(node.TagName, out var builtIn))
-        {
-            return new ResolvedTag(ResolvedTagKind.Native, builtIn!.TagName, builtIn, null);
-        }
-
         var componentMatches = CollectComponentMatches(node, currentNamespace, imports, compilation);
-        var nativeMatches = CollectImportedNativeMatches(node, imports, compilation);
+        var nativeMatches = CollectNativeMatches(node, imports, compilation);
 
         if (componentMatches.Count == 1 && nativeMatches.Count == 0)
         {
@@ -77,7 +72,7 @@ internal sealed class MarkupTagResolver
 
         if (componentMatches.Count > 1 || (componentMatches.Count > 0 && nativeMatches.Count > 0))
         {
-            throw CreateAmbiguousImportedTag(source, node);
+            throw CreateAmbiguousTag(source, node);
         }
 
         if (nativeMatches.Count == 1)
@@ -88,7 +83,7 @@ internal sealed class MarkupTagResolver
 
         if (nativeMatches.Count > 1)
         {
-            throw CreateAmbiguousImportedTag(source, node);
+            throw CreateAmbiguousTag(source, node);
         }
 
         var unsupportedMatches = CollectUnsupportedImportedNativeMatches(node, imports, compilation);
@@ -102,7 +97,7 @@ internal sealed class MarkupTagResolver
 
         if (unsupportedMatches.Count > 1)
         {
-            throw CreateAmbiguousImportedTag(source, node);
+            throw CreateAmbiguousTag(source, node);
         }
 
         throw DiagnosticFactory.FromSpan(
@@ -112,6 +107,24 @@ internal sealed class MarkupTagResolver
                 $"unsupported tag name '{node.TagName}'",
                 node.TagName,
                 CollectVisibleTagNames(currentNamespace, imports, compilation)));
+    }
+
+    private static IReadOnlyList<ControlMetadataModel> CollectNativeMatches(
+        MarkupNode node,
+        ImportScope imports,
+        CompilationContext compilation)
+    {
+        var matches = new List<ControlMetadataModel>();
+        if (compilation.NativeControls.TryGetBuiltIn(node.TagName, out var builtIn))
+        {
+            matches.Add(builtIn!);
+        }
+
+        matches.AddRange(CollectImportedNativeMatches(node, imports, compilation));
+        return matches
+            .GroupBy(control => control.ClrTypeName, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .ToList();
     }
 
     private static IReadOnlyList<ComponentCatalogEntry> CollectComponentMatches(
@@ -162,12 +175,12 @@ internal sealed class MarkupTagResolver
             .ToList();
     }
 
-    private static Exception CreateAmbiguousImportedTag(SourceDocument source, MarkupNode node)
+    private static Exception CreateAmbiguousTag(SourceDocument source, MarkupNode node)
     {
         return DiagnosticFactory.FromSpan(
             source,
             node.Tag.Span,
-            $"ambiguous imported tag '{node.TagName}'; use a more explicit namespace import or alias");
+            $"ambiguous tag '{node.TagName}'; use a more explicit namespace import or alias");
     }
 
     private static ResolvedTag ResolveImportedMatches(
@@ -191,7 +204,7 @@ internal sealed class MarkupTagResolver
 
         if (componentMatches.Count > 1 || (componentMatches.Count > 0 && nativeMatch is not null))
         {
-            throw CreateAmbiguousImportedTag(source, node);
+            throw CreateAmbiguousTag(source, node);
         }
 
         if (nativeMatch is not null)

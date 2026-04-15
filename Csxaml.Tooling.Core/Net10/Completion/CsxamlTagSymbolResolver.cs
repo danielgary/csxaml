@@ -26,8 +26,8 @@ public sealed class CsxamlTagSymbolResolver
         CsxamlWorkspaceSnapshot workspace)
     {
         var namespaceName = usingDirectives
-            .FirstOrDefault(directive => string.Equals(directive.Alias, alias, StringComparison.Ordinal))?
-            .NamespaceName;
+            .FirstOrDefault(directive => !directive.IsStatic && string.Equals(directive.Alias, alias, StringComparison.Ordinal))?
+            .QualifiedName;
         if (namespaceName is null)
         {
             return new CsxamlResolvedTag(CsxamlResolvedTagKind.None, $"{alias}:{localName}", null, null);
@@ -35,7 +35,7 @@ public sealed class CsxamlTagSymbolResolver
 
         var components = workspace.FindComponents(namespaceName, localName);
         var externalControls = workspace.FindExternalControls(namespaceName, localName);
-        return CreateResolvedTag($"{alias}:{localName}", components, externalControls);
+        return CreateResolvedTag($"{alias}:{localName}", null, components, externalControls);
     }
 
     private static CsxamlResolvedTag ResolveSimple(
@@ -44,35 +44,49 @@ public sealed class CsxamlTagSymbolResolver
         string currentNamespace,
         CsxamlWorkspaceSnapshot workspace)
     {
-        if (ControlMetadataRegistry.TryGetControl(localName, out var builtIn))
-        {
-            return new CsxamlResolvedTag(CsxamlResolvedTagKind.Native, localName, builtIn, null);
-        }
+        ControlMetadataRegistry.TryGetControl(localName, out var builtIn);
 
         var components = new List<CsxamlWorkspaceComponentSymbol>();
         components.AddRange(workspace.FindComponents(currentNamespace, localName));
-        foreach (var directive in usingDirectives.Where(directive => directive.Alias is null))
+        foreach (var directive in usingDirectives.Where(directive => directive.Alias is null && !directive.IsStatic))
         {
-            components.AddRange(workspace.FindComponents(directive.NamespaceName, localName));
+            components.AddRange(workspace.FindComponents(directive.QualifiedName, localName));
         }
 
         var externalControls = new List<ControlMetadataModel>();
-        foreach (var directive in usingDirectives.Where(directive => directive.Alias is null))
+        foreach (var directive in usingDirectives.Where(directive => directive.Alias is null && !directive.IsStatic))
         {
-            externalControls.AddRange(workspace.FindExternalControls(directive.NamespaceName, localName));
+            externalControls.AddRange(workspace.FindExternalControls(directive.QualifiedName, localName));
         }
 
-        return CreateResolvedTag(localName, components, externalControls);
+        return CreateResolvedTag(localName, builtIn, components, externalControls);
     }
 
     private static CsxamlResolvedTag CreateResolvedTag(
         string tagName,
+        ControlMetadataModel? builtIn,
         IReadOnlyList<CsxamlWorkspaceComponentSymbol> components,
         IReadOnlyList<ControlMetadataModel> externalControls)
     {
+        var supportedCount = components.Count + externalControls.Count + (builtIn is null ? 0 : 1);
+        if (supportedCount == 0)
+        {
+            return new CsxamlResolvedTag(CsxamlResolvedTagKind.None, tagName, null, null);
+        }
+
+        if (supportedCount > 1)
+        {
+            return new CsxamlResolvedTag(CsxamlResolvedTagKind.Ambiguous, tagName, null, null);
+        }
+
         if (components.Count == 1 && externalControls.Count == 0)
         {
             return new CsxamlResolvedTag(CsxamlResolvedTagKind.Component, tagName, null, components[0]);
+        }
+
+        if (builtIn is not null)
+        {
+            return new CsxamlResolvedTag(CsxamlResolvedTagKind.Native, tagName, builtIn, null);
         }
 
         if (components.Count == 0 && externalControls.Count == 1)
@@ -80,8 +94,6 @@ public sealed class CsxamlTagSymbolResolver
             return new CsxamlResolvedTag(CsxamlResolvedTagKind.External, tagName, externalControls[0], null);
         }
 
-        return components.Count + externalControls.Count == 0
-            ? new CsxamlResolvedTag(CsxamlResolvedTagKind.None, tagName, null, null)
-            : new CsxamlResolvedTag(CsxamlResolvedTagKind.Ambiguous, tagName, null, null);
+        return new CsxamlResolvedTag(CsxamlResolvedTagKind.None, tagName, null, null);
     }
 }

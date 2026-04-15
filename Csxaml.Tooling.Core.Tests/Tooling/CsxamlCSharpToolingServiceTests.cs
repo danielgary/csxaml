@@ -22,7 +22,7 @@ public sealed class CsxamlCSharpToolingServiceTests
 
                 var current = SelectedI;
 
-                return <TextBlock Text={current} />;
+                render <TextBlock Text={current} />;
             }
             """);
         var position = tempFile.Text.IndexOf("SelectedI", StringComparison.Ordinal) + "SelectedI".Length;
@@ -45,7 +45,7 @@ public sealed class CsxamlCSharpToolingServiceTests
             component Element ToolingProbe() {
                 State<string> SelectedId = new State<string>("todo-1");
 
-                return <TextBlock Text={SelectedId.Val} />;
+                render <TextBlock Text={SelectedId.Val} />;
             }
             """);
         var position = tempFile.Text.IndexOf("SelectedId.Val", StringComparison.Ordinal) + "SelectedId.Val".Length;
@@ -68,7 +68,7 @@ public sealed class CsxamlCSharpToolingServiceTests
             component Element ToolingProbe() {
                 var current = MissingSymbol;
 
-                return <TextBlock Text={current} />;
+                render <TextBlock Text={current} />;
             }
             """);
 
@@ -88,7 +88,7 @@ public sealed class CsxamlCSharpToolingServiceTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <Border
+                render <Border
                     Background={TodoColors.NotDoneBackground}
                     Padding={12}>
                     <TextBlock Text="Hello" Foreground={TodoColors.DoneForeground} />

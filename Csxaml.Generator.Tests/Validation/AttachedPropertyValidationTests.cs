@@ -10,7 +10,7 @@ public sealed class AttachedPropertyValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <Grid>
+                render <Grid>
                     <TextBlock Grid.Row={1} Grid.Column={0} Text="Todo Board" />
                 </Grid>;
             }
@@ -26,7 +26,7 @@ public sealed class AttachedPropertyValidationTests
             "TodoEditor.csxaml",
             """
             component Element TodoEditor(string Title) {
-                return <Border>
+                render <Border>
                     <TextBlock Text={Title} />
                 </Border>;
             }
@@ -35,7 +35,7 @@ public sealed class AttachedPropertyValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <Grid>
+                render <Grid>
                     <TodoEditor Grid.Column={1} AutomationProperties.Name="Task Editor" Title="Draft plan" />
                 </Grid>;
             }
@@ -51,7 +51,7 @@ public sealed class AttachedPropertyValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <Grid>
+                render <Grid>
                     foreach (var item in new[] { 0, 1 }) {
                         <TextBlock Grid.Row={item} Text="Todo Board" />
                     }
@@ -69,7 +69,7 @@ public sealed class AttachedPropertyValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <StackPanel>
+                render <StackPanel>
                     <TextBlock Grid.Row={1} Text="Todo Board" />
                 </StackPanel>;
             }
@@ -90,7 +90,7 @@ public sealed class AttachedPropertyValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <Grid>
+                render <Grid>
                     <TextBlock Grid.Row={0} Grid.Row={1} Text="Todo Board" />
                 </Grid>;
             }
@@ -111,7 +111,7 @@ public sealed class AttachedPropertyValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <Grid>
+                render <Grid>
                     <TextBlock Grid.Row="1" Text="Todo Board" />
                 </Grid>;
             }

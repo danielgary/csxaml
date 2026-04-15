@@ -1,882 +1,675 @@
-# Milestone 13 Plan - Stabilization, Compatibility, DI, Lifecycle, and Test Hardening
+# Post-Render Language Spec Tightening Plan
 
 ## Status
 
 - Drafted: 2026-04-15
-- Roadmap target: Milestone 13 in [ROADMAP.md](./ROADMAP.md)
-- Roadmap status: not started
-- Document purpose: give an implementation-ready plan for making CSXAML dependable enough for real team use, with explicit DI, explicit lifecycle/disposal behavior, C#-first testing APIs, and documented compatibility boundaries
+- Executed: 2026-04-15
+- Replaces: the earlier repo-root plan that centered on `return`-based final markup syntax
+- Inputs:
+  - `LANGUAGE-SPEC.md`
+  - latest review feedback
+  - `ROADMAP.md`
 
-Milestone 12 made failures legible.
+## Execution Outcome
 
-Milestone 13 has a different job: make the system feel boring to depend on.
+This plan has now been executed through spec, generator, tooling, runtime-audit, and regression-test updates.
 
-At the end of this milestone, a developer should be able to answer all of these without guesswork:
+Closed in this pass:
 
-- what is a stable source-level promise and what is still experimental?
-- how do components receive services without blurring props, state, and ambient app dependencies?
-- when does a component mount, unmount, and clean up?
-- what happens if async work completes after a component is gone?
-- how do I test a CSXAML component from ordinary C# without manually spelunking generated types and child indices?
+- the spec now carries a maintained revision log for the final pre-1.0 tightening pass
+- `using static` is implemented and tested as an ordinary C# import path that does not affect tag resolution
+- slot placement is narrowed in both spec and validation so `<Slot />` is rejected inside `foreach`
+- bounded-island scanning promises are narrowed to the lexical burden an implementation must actually satisfy, with raw-string regression coverage
+- controlled-input wording now matches the retained WinUI adapter reality more closely, including equality suppression, selection/focus preservation goals, and explicit IME caveats
+- duplicate-key, disposal, projection-failure, helper-declaration, and `DataContext` wording is tightened to reflect the current codebase and intentional v1 boundaries
 
-Milestone 13 should make those answers explicit in code, tests, and docs.
+No open implementation mismatches from this pass remain in this file.
 
----
+## Purpose
 
-## 1. Outcome
+The `render <Root />;` change is settled. The next pass should not reopen that decision or sprawl into a new language redesign.
 
-At the end of Milestone 13, CSXAML should provide a coherent stability story across five paths:
+This plan is for the remaining contract gaps that still matter after the `render`, lifecycle, WinUI interop, and duplicate-key clarifications:
 
-1. compatibility policy and supported feature matrix
-2. explicit component-level DI through `inject`
-3. explicit lifecycle, unmount, and cleanup behavior
-4. hostless C#-first component testing APIs
-5. broader regression coverage around the above contracts
+- places where the source surface still looks more like C# than it really is
+- places where the runtime contract is clear in intent but still fuzzy in edge behavior
+- places where the spec needs to be more explicit about what v1 does not try to abstract
+- places where the document is starting to drift from language contract into runtime/product-slice manual territory
+- places where parser simplicity or generic runtime wording may understate real WinUI and C# implementation complexity
 
-Concrete user-visible outcomes:
+The goal is a tighter, more honest v1 document, not a bigger one.
 
-- the language has a documented compatibility policy instead of an implied one
-- the repo publishes a supported feature matrix that says what v1 actually promises
-- components can declare required app services with `inject Type name;`
-- services resolve once per component instance from an ambient `IServiceProvider`
-- missing required services fail in source terms, not raw container jargon alone
-- unmounted components stop participating in render invalidation
-- cleanup and async-after-unmount behavior are explicit and testable
-- component tests can render, query, and interact with logical trees from ordinary C#
+## Fixed Decisions For This Pass
 
-Milestone 13 is not done if DI technically works but feels like a service locator, if cleanup still depends on tribal knowledge, or if component testing still requires direct knowledge of generated code or brittle child indices.
+These should be treated as settled while executing this plan:
 
----
+- `render <Root />;` remains the only valid final markup statement
+- `component Element` stays for v1, but the spec should explain it more plainly
+- one component declaration per `.csxaml` file stays for v1
+- `State<T>` remains assignment-driven in this pass
+- this pass should prefer surgical clarification over adding large new source features
 
-## 2. Day-To-Day Experience Bar
+## Important Non-Decision
 
-This is the real product bar for the milestone.
+The biggest open design question from the latest review is whether `State<T>.Value` should keep rerendering on reference-equal assignment.
 
-### 2.1 Service dependencies are visible
+This plan does **not** flip that contract yet.
 
-When a component needs app services, the source should say so up front:
+Instead, this pass should:
 
-```csharp
-component Element TodoBoard {
-    inject ITodoService todoService;
-    inject ILogger<TodoBoard> logger;
+- explain the current cost plainly
+- make the current behavior feel intentional rather than accidental
+- record any future equality-bailout or `Touch()`-style design as follow-up work rather than sneaking it into the spec without runtime design
 
-    State<List<TodoItemModel>> items = new State<List<TodoItemModel>>(new());
+## Primary Outcomes
 
-    return <StackPanel>...</StackPanel>;
-}
+After this pass, the spec should answer these questions cleanly:
+
+- what does a `State<T>` declaration mean at the source level, if it is not literally a C# field initializer?
+- what happens when code tries to write state during `render`?
+- are file-local helper declarations actually part of v1 or still only an aspiration?
+- how much modern C# lexical complexity can bounded-island scanning really promise without effectively reusing Roslyn-grade lexing behavior?
+- what exactly does "suppress feedback loops" mean for controlled input?
+- does the runtime contract say enough about cursor, selection, focus, and IME preservation to imply specialized adapters instead of naive property setters?
+- what exactly is the contract for normalized control event shapes?
+- where may `<Slot />` appear, and where must it not appear?
+- when duplicate sibling keys are statically detectable, do they fail at compile time?
+- when and where do `inject` declarations resolve, and on what host/dispatcher assumptions?
+- does CSXAML support `using static`, and if so, what does it affect?
+- what parts of app shell and navigation remain host-side rather than CSXAML-owned?
+- which supported-slice details belong in the core spec versus prototype coverage or compatibility docs?
+- which currently deferred areas are serious production blockers rather than casual future nice-to-haves?
+
+## Agent Execution Rules
+
+This document is meant to be executable by another agent, not just read as design commentary.
+
+For every workstream below, the implementing agent must do all of the following:
+
+1. update the normative spec text and any affected examples
+2. audit the mapped code areas and either implement the required behavior or record a precise gap
+3. update or add regression tests
+4. run the relevant test projects
+5. record any remaining mismatch as an explicit issue in this file and in `ROADMAP.md` if it materially affects scope, risk, or v1 credibility
+
+No workstream counts as complete when only the prose changed.
+
+If the agent discovers that the desired spec wording and the current implementation diverge, it must do exactly one of these before closing the workstream:
+
+- fix the implementation
+- narrow the spec wording
+- record the gap explicitly as unresolved
+
+Silent drift is not an allowed outcome.
+
+## Codebase Tracking Map
+
+Use this map to keep the work grounded in the actual repo rather than in generic language-design talk.
+
+### 1. Spec and author-facing docs
+
+- `LANGUAGE-SPEC.md`
+- `docs/external-control-interop.md`
+- `docs/debugging-and-diagnostics.md`
+- demo-facing `.csxaml` examples under `Csxaml.Demo`
+
+### 2. Parser and bounded-island scanning
+
+- `Csxaml.Generator/Parsing/Parser.cs`
+- `Csxaml.Generator/Parsing/RenderStatementLocator.cs`
+- `Csxaml.Generator/Parsing/ComponentHelperCodeParser.cs`
+- `Csxaml.Generator/Parsing/CSharpTextScanner.cs`
+- `Csxaml.Generator/Parsing/FileMemberBoundaryScanner.cs`
+- `Csxaml.Generator/Parsing/ChildNodeParser.cs`
+- `Csxaml.Generator/Parsing/UsingDirectiveParser.cs`
+- `Csxaml.Generator/Parsing/NamespaceDirectiveParser.cs`
+
+### 3. Generator validation, AST, and source mapping
+
+- `Csxaml.Generator/Validation/SlotDefinitionValidator.cs`
+- `Csxaml.Generator/Ast/StateFieldDefinition.cs`
+- `Csxaml.Generator/Ast/SlotOutletNode.cs`
+- `Csxaml.Generator/Ast/ComponentHelperCodeBlock.cs`
+- `Csxaml.Generator/Ast/FileHelperCodeBlock.cs`
+- `Csxaml.Generator/SourceMapping/GeneratedDiagnosticMapper.cs`
+- `Csxaml.Generator/SourceMapping/GeneratedSourceMapWriter.cs`
+
+### 4. Runtime state, lifecycle, and reconciliation
+
+- `Csxaml.Runtime/State/State.cs`
+- `Csxaml.Runtime/Reconciliation/ComponentTreeCoordinator.cs`
+- `Csxaml.Runtime/Reconciliation/ComponentMatchKey.cs`
+- `Csxaml.Runtime/Rendering/WinUiNodeRenderer.cs`
+- `Csxaml.Runtime/Rendering/RenderedChildMatcher.cs`
+
+### 5. Interactive-control and projection adapters
+
+- `Csxaml.Runtime/Adapters/TextBoxControlAdapter.cs`
+- `Csxaml.Runtime/Adapters/CheckBoxControlAdapter.cs`
+- `Csxaml.Runtime/Adapters/ControlledTextInputState.cs`
+- `Csxaml.Runtime/Adapters/ControlledBoolInputState.cs`
+- `Csxaml.Runtime/Adapters/TextSelectionRange.cs`
+- `Csxaml.Runtime/Adapters/NativeEventBindingStore.cs`
+- `Csxaml.Runtime/Adapters/RenderedNativeElement.cs`
+- `Csxaml.Runtime/Adapters/UiElementCollectionPatcher.cs`
+- `Csxaml.Runtime/Adapters/ExternalEventBinder.cs`
+- `Csxaml.Runtime/Adapters/ExternalControlAdapter.cs`
+- `Csxaml.Runtime/Adapters/ExternalControlDescriptor.cs`
+- `Csxaml.Runtime/Adapters/ExternalControlRegistry.cs`
+
+### 6. Tooling, projection, and formatting
+
+- `Csxaml.Tooling.Core/Net10/Formatting/CsxamlFormattingService.cs`
+- `Csxaml.Tooling.Core/Net10/SemanticTokens/CsxamlSemanticTokenService.cs`
+- `Csxaml.Tooling.Core/Net10/CSharp/CsxamlCSharpProjectionBuilder.cs`
+- `Csxaml.Tooling.Core/Net10/CSharp/CsxamlRenderProjectionEmitter.cs`
+- `VSCodeExtension/syntaxes/csxaml.tmLanguage.json`
+- `VSCodeExtension/snippets/csxaml.code-snippets`
+
+### 7. Test suites to keep aligned
+
+- parsing:
+  - `Csxaml.Generator.Tests/Parsing/ParserTests.cs`
+  - `Csxaml.Generator.Tests/Parsing/HelperCodeParserTests.cs`
+  - `Csxaml.Generator.Tests/Parsing/SlotParserTests.cs`
+  - `Csxaml.Generator.Tests/Parsing/InjectParserTests.cs`
+  - `Csxaml.Generator.Tests/Parsing/AttachedPropertyParserTests.cs`
+- validation and emission:
+  - `Csxaml.Generator.Tests/Validation/SlotValidationTests.cs`
+  - `Csxaml.Generator.Tests/Emission/SlotEmissionTests.cs`
+  - `Csxaml.Generator.Tests/Emission/HelperCodeEmissionTests.cs`
+- diagnostics and source mapping:
+  - `Csxaml.Generator.Tests/Diagnostics/BuildDiagnosticMappingTests.cs`
+  - `Csxaml.Generator.Tests/Diagnostics/SourceMappingTests.cs`
+- runtime state, lifecycle, and reconciliation:
+  - `Csxaml.Runtime.Tests/State/StateTests.cs`
+  - `Csxaml.Runtime.Tests/Reconciliation/ComponentTreeCoordinatorStateTests.cs`
+  - `Csxaml.Runtime.Tests/Reconciliation/ComponentTreeCoordinatorRenderPhaseTests.cs`
+  - `Csxaml.Runtime.Tests/Reconciliation/ComponentTreeCoordinatorReconciliationTests.cs`
+  - `Csxaml.Runtime.Tests/Reconciliation/ComponentTreeCoordinatorSlotTests.cs`
+  - `Csxaml.Runtime.Tests/Reconciliation/InjectedServiceResolutionTests.cs`
+  - `Csxaml.Runtime.Tests/Reconciliation/ComponentLifecycleTests.cs`
+- runtime adapters and projection:
+  - `Csxaml.Runtime.Tests/Adapters/ControlledTextInputStateTests.cs`
+  - `Csxaml.Runtime.Tests/Adapters/ControlledBoolInputStateTests.cs`
+  - `Csxaml.Runtime.Tests/Adapters/TextSelectionRangeTests.cs`
+  - `Csxaml.Runtime.Tests/Adapters/ExternalControlAdapterTests.cs`
+  - `Csxaml.Runtime.Tests/Adapters/ExternalControlStyleTests.cs`
+  - `Csxaml.Runtime.Tests/Adapters/AttachedPropertyApplicatorTests.cs`
+  - `Csxaml.Runtime.Tests/Rendering/WinUiNodeRendererTests.cs`
+  - `Csxaml.Runtime.Tests/Rendering/WinUiNodeRendererRetentionTests.cs`
+  - `Csxaml.Runtime.Tests/Rendering/WinUiNodeRendererTextBoxProjectionTests.cs`
+
+## Per-Workstream Closure Checklist
+
+Use this checklist for every workstream before marking it complete:
+
+- [ ] spec text updated
+- [ ] examples/docs updated
+- [ ] mapped code areas audited
+- [ ] implementation updated or explicit gap recorded
+- [ ] regression tests added or updated
+- [ ] relevant test commands run
+- [ ] unresolved issues logged below
+- [ ] `ROADMAP.md` updated if scope/risk changed
+
+## Issue Tracking Rules
+
+Every issue found while implementing this plan must end up in one of three states:
+
+- fixed in code and covered by tests
+- narrowed in the spec so the mismatch no longer exists
+- recorded as an unresolved gap with exact file paths and a short reason
+
+Do not leave vague "needs follow-up" prose in commit messages or agent notes without also recording it here and, when material, in `ROADMAP.md`.
+
+## Implementation Issue Log
+
+Fill this in during execution. Do not leave discovered mismatches untracked.
+
+| ID | Workstream | File(s) | Problem | Resolution | Status |
+| --- | --- | --- | --- | --- | --- |
+| FIXED-1 | 2 / 7 | `Csxaml.Generator/Parsing/UsingDirectiveParser.cs`; `Csxaml.Generator/Emission/ComponentEmitter.cs`; `Csxaml.Tooling.Core/Common/Markup/CsxamlUsingDirectiveScanner.cs`; `Csxaml.Tooling.Core/Net10/Completion/*`; tests | `using static` was still a spec question and not fully wired through parser/emitter/tooling behavior | implemented `using static` end to end for ordinary C# lookup, excluded it from tag resolution, and added generator/tooling regression coverage | closed |
+| FIXED-2 | 4 | `Csxaml.Generator/Validation/SlotDefinitionValidator.cs`; `Csxaml.Generator.Tests/Validation/SlotValidationTests.cs`; `LANGUAGE-SPEC.md` | default-slot placement rules were underspecified and `<Slot />` inside `foreach` remained accepted by validation | narrowed the spec and validator so slot outlets are rejected inside `foreach`, with regression coverage | closed |
+| FIXED-3 | 2.25 / 3 | `Csxaml.Generator/Parsing/CSharpTextScanner.cs`; `Csxaml.Generator.Tests/Parsing/CSharpIslandParserTests.cs`; `LANGUAGE-SPEC.md` | bounded-island wording overpromised lightweight scanning without proving modern raw/interpolated string handling | kept the existing lexical scanner, added raw-string regression tests, and tightened the spec so conforming implementations must actually satisfy modern lexical cases | closed |
+| FIXED-4 | 1 / 3 / 5 / 8 / 9 / 10 | `LANGUAGE-SPEC.md`; `plan.md`; `ROADMAP.md` | final pre-1.0 contract gaps remained around helper declarations, revision tracking, controlled-input expectations, duplicate-key phase, failure wording, and deferred WinUI boundaries | updated the spec, added a maintained revision log, narrowed promises to current behavior, and recorded remaining interop boundaries explicitly | closed |
+
+## Workstream 1 - State Source Semantics
+
+This is the most important wording fix left in the document.
+
+### Required spec changes
+
+- state declarations must be described as CSXAML component-prologue declarations, not as literal C# field initializers
+- initialization must be defined in source order during component instance creation
+- later text should refer back to the lifecycle ordering section rather than restating half the contract in multiple places
+- examples should stop accidentally implying that ordinary C# field-initializer rules apply unchanged
+
+### Normative direction
+
+The spec should say plainly that state initializers:
+
+- run once per component instance creation
+- run after inject resolution
+- run in source order
+- may reference earlier `inject` declarations
+- may reference earlier `State<T>` declarations
+- may reference component parameters / incoming props in the same source-level instance-creation context
+
+The generator is responsible for lowering those declarations into whatever C# shape preserves that contract.
+
+### Follow-through
+
+- update the state syntax/semantics section
+- update the lifecycle ordering section so it remains the canonical source for initialization order
+- update examples that currently look like impossible raw C# field initializers
+- audit generator/runtime ordering assumptions in:
+  - `Csxaml.Generator/Ast/StateFieldDefinition.cs`
+  - `Csxaml.Runtime/Reconciliation/ComponentTreeCoordinator.cs`
+  - `Csxaml.Runtime.Tests/Reconciliation/InjectedServiceResolutionTests.cs`
+  - `Csxaml.Runtime.Tests/State/StateTests.cs`
+
+## Workstream 2 - Render-Time State Writes
+
+The current runtime error is not enough on its own.
+
+### Required spec changes
+
+- render-time state writes remain invalid
+- statically detectable render-time `State<T>.Value` assignments should be diagnosed at compile time
+- cases that depend on runtime control flow may still fail only at runtime
+
+### Scope boundary
+
+The compile-time rule should cover only cases that are genuinely local and detectable, such as assignments lexically inside the render payload or expression islands that execute during render.
+
+It should not pretend to prove behavior for deferred lambdas, async callbacks, or arbitrary helper-method bodies when that would require speculative whole-program reasoning.
+
+### Codebase tracking focus
+
+- `Csxaml.Runtime/State/State.cs`
+- `Csxaml.Runtime/Reconciliation/ComponentTreeCoordinator.cs`
+- `Csxaml.Runtime.Tests/Reconciliation/ComponentTreeCoordinatorRenderPhaseTests.cs`
+- `Csxaml.Runtime.Tests/State/StateTests.cs`
+
+## Workstream 2.25 - Bounded-Island Lexing Realism
+
+The current bounded-island story is conceptually right, but the implementation risk is easy to understate.
+
+### Required spec and implementation-planning changes
+
+- treat modern C# lexical forms inside islands as a real conformance burden, not a casual scanner detail
+- add explicit conformance coverage for interpolated strings, raw strings, interpolated raw strings, comments, and nested interpolation holes
+- make sure the spec does not promise "copy-paste safe modern C#" if the implementation is still a lightweight delimiter counter that cannot actually honor those lexical forms
+
+### Recommended direction
+
+This pass should not design a new parser architecture, but it should record the real engineering constraint plainly:
+
+- either bounded-island scanning must become robust enough to match Roslyn-level lexical realities for the supported forms
+- or the spec/compatibility wording must narrow the promise instead of implying that any lightweight scanner can do the job
+
+### Codebase tracking focus
+
+- `Csxaml.Generator/Parsing/CSharpTextScanner.cs`
+- `Csxaml.Generator/Parsing/ComponentHelperCodeParser.cs`
+- `Csxaml.Generator/Parsing/Parser.cs`
+- `Csxaml.Generator.Tests/Parsing/ParserTests.cs`
+- `Csxaml.Generator.Tests/Parsing/HelperCodeParserTests.cs`
+
+## Workstream 2.5 - Render Statement Detection Wording
+
+The `render` direction is correct, but the parsing section can still be made easier to trust.
+
+### Required spec changes
+
+- add one or two concrete valid/invalid examples directly in the parsing section, not only later in diagnostics
+- keep the parser rule formal enough to be testable without pretending it is elegant
+- keep the fuller `render` rationale in one canonical place and shorten the duplicate explanation elsewhere
+
+### Recommended direction
+
+The parsing section should explicitly show at least one valid helper-code example and one invalid malformed final-statement example so the reader does not have to reconstruct the rule only from prose.
+
+### Codebase tracking focus
+
+- `Csxaml.Generator/Parsing/RenderStatementLocator.cs`
+- `Csxaml.Generator/Parsing/Parser.cs`
+- `Csxaml.Tooling.Core/Net10/Formatting/CsxamlFormattingService.cs`
+- `Csxaml.Tooling.Core/Net10/SemanticTokens/CsxamlSemanticTokenService.cs`
+
+## Workstream 3 - Controlled Input Semantics
+
+The spec now has the right general posture. This pass should make it precise enough to survive real text input.
+
+### Required spec changes
+
+- define feedback-loop suppression in terms of the control's documented normalized value contract or metadata/adapter comparison rule
+- avoid vague "same value" wording with no comparison rule behind it
+- acknowledge active text composition / IME scenarios explicitly
+- keep event-payload normalization limited to controls whose normalized shape is actually documented
+- say whether normalized event shapes are represented in metadata, compatibility documentation, or both
+- say whether compile-time validation binds against that normalized shape when it exists
+- say whether a control may expose both raw and normalized forms in v1; this plan prefers "not unless explicitly documented"
+- keep naming of normalized forms explicit and predictable rather than adapter-only folklore
+- state more clearly that interactive-control support cannot be modeled as naive generic property reapplication
+- call out cursor, selection, focus, and IME preservation as adapter responsibilities for controlled built-in inputs
+
+### Recommended direction
+
+The spec should say that controlled-value reapplication may be deferred or suppressed during active IME composition or an equivalent in-progress platform input state when immediate projection would disrupt native input behavior.
+
+### Follow-through
+
+- tighten `TextBox` / `CheckBox` examples and wording
+- expand conformance expectations for controlled-input stability
+- keep runtime wording honest that specialized control adapters are part of the viability story for interactive controls
+
+### Codebase tracking focus
+
+- `Csxaml.Runtime/Adapters/TextBoxControlAdapter.cs`
+- `Csxaml.Runtime/Adapters/CheckBoxControlAdapter.cs`
+- `Csxaml.Runtime/Adapters/ControlledTextInputState.cs`
+- `Csxaml.Runtime/Adapters/ControlledBoolInputState.cs`
+- `Csxaml.Runtime/Adapters/TextSelectionRange.cs`
+- `Csxaml.Runtime/Adapters/NativeEventBindingStore.cs`
+- `Csxaml.Runtime.Tests/Adapters/ControlledTextInputStateTests.cs`
+- `Csxaml.Runtime.Tests/Adapters/ControlledBoolInputStateTests.cs`
+- `Csxaml.Runtime.Tests/Adapters/TextSelectionRangeTests.cs`
+- `Csxaml.Runtime.Tests/Rendering/WinUiNodeRendererTextBoxProjectionTests.cs`
+
+## Workstream 4 - Slot Placement and Reuse Rules
+
+The default-slot transport story is mostly there. The remaining problem is where a slot outlet may appear.
+
+### Required spec changes
+
+- a component definition may contain at most one syntactic default-slot outlet
+- that outlet must appear only where ordinary child markup nodes are valid
+- `<Slot />` may appear inside `if` blocks
+- `<Slot />` must not appear inside `foreach` blocks
+- fallback content inside `<Slot> ... </Slot>` remains deferred and invalid
+
+### Why this matters
+
+Without this, the current text leaves too much room for repeated-slot rendering, identity confusion, and incompatible future semantics.
+
+### Codebase tracking focus
+
+- `Csxaml.Generator/Validation/SlotDefinitionValidator.cs`
+- `Csxaml.Generator/Ast/SlotOutletNode.cs`
+- `Csxaml.Generator.Tests/Validation/SlotValidationTests.cs`
+- `Csxaml.Generator.Tests/Parsing/SlotParserTests.cs`
+- `Csxaml.Runtime.Tests/Reconciliation/ComponentTreeCoordinatorSlotTests.cs`
+
+## Workstream 5 - Duplicate-Key Failure Phase
+
+Duplicate sibling keys are now covered, but the failure phase should be tighter.
+
+### Required spec changes
+
+- when duplicate sibling keys are statically detectable, implementations should report them as compile-time diagnostics
+- when duplicate sibling keys depend on dynamic runtime values, implementations should fail deterministically at runtime
+- the spec should stop sounding like either phase is equally arbitrary for every case
+
+### Follow-through
+
+- tighten the key/identity section wording
+- add conformance coverage for both statically detectable and runtime-detected duplicate-key paths where applicable
+
+### Codebase tracking focus
+
+- `Csxaml.Runtime/Reconciliation/ComponentTreeCoordinator.cs`
+- `Csxaml.Runtime/Reconciliation/ComponentMatchKey.cs`
+- `Csxaml.Runtime/Rendering/RenderedChildMatcher.cs`
+- `Csxaml.Runtime.Tests/Reconciliation/ComponentTreeCoordinatorReconciliationTests.cs`
+- `Csxaml.Runtime.Tests/Rendering/WinUiNodeRendererRetentionTests.cs`
+
+## Workstream 6 - Inject Resolution, Dispatcher, and Host Affinity
+
+The runtime order is better now, but it still needs stronger host-level assumptions.
+
+### Required spec changes
+
+- the instance-creation/render sequence defined in the lifecycle section should be stated as executing on the owning host dispatcher or UI scheduler
+- v1 `inject` resolution is synchronous
+- async-only service resolution is not part of the component contract and must be handled by the host before component instantiation if needed
+- the host dispatcher captured for a component instance should remain the authority for later UI work
+
+### Recommended direction
+
+For cross-host or cross-dispatcher reparenting, the spec should choose one honest answer and state it directly:
+
+- either the dispatcher is captured at instantiation and does not migrate
+- or such reparenting is undefined in v1
+
+This plan prefers the second wording because it promises less and matches current experimental posture better.
+
+### Codebase tracking focus
+
+- `Csxaml.Runtime/Reconciliation/ComponentTreeCoordinator.cs`
+- `Csxaml.Runtime.Tests/Reconciliation/InjectedServiceResolutionTests.cs`
+- `Csxaml.Runtime.Tests/Reconciliation/ComponentLifecycleTests.cs`
+
+## Workstream 7 - File Surface Cleanup
+
+These are smaller changes, but they remove recurring paper cuts.
+
+### 7.1 `using static`
+
+The spec should stop omitting this silently.
+
+Recommended direction:
+
+- allow `using static` only as an ordinary C# name-import mechanism for helper code and expression islands
+- state explicitly that it does not create tag prefixes
+- state explicitly that it does not change attached-property owner resolution rules unless the implementation deliberately grows that support later
+
+### 7.2 `component Element`
+
+Add one short explicit rule:
+
+- `Element` is the only currently defined component kind
+- future kinds may be added later without changing existing `component Element` declarations
+
+### 7.3 App-shell posture
+
+Add a short line near the front of the spec that CSXAML is not, in v1, an app-shell or navigation framework.
+
+That should point readers toward host-side `Page`, `Frame`, `NavigationView`, and related app-structure concerns instead of leaving them implicit.
+
+### 7.4 File-local helper type example
+
+Add one compact example of a file-local helper type or enum so the spec is not only describing the feature abstractly.
+
+### 7.5 File-local helper declaration status
+
+The spec should stop sounding unsure about whether file-local helper declarations are actually part of v1.
+
+Recommended direction:
+
+- if they are intended v1 surface, say so normatively
+- if the implementation still trails that contract in places, record that as a prototype gap rather than leaving the language rule soft
+
+### Codebase tracking focus
+
+- `Csxaml.Generator/Parsing/FileMemberBoundaryScanner.cs`
+- `Csxaml.Generator/Ast/FileHelperCodeBlock.cs`
+- `Csxaml.Generator/Ast/ComponentHelperCodeBlock.cs`
+- `Csxaml.Generator.Tests/Emission/HelperCodeEmissionTests.cs`
+- `Csxaml.Generator.Tests/Parsing/HelperCodeParserTests.cs`
+
+## Workstream 8 - Failure and Disposal Precision
+
+The current render/projection failure wording is much better, but it still needs cleaner framing.
+
+### Required spec changes
+
+- make it clearer that partially applied native projection after failure is a known limitation of the v1 retained-projection model, not just an incidental detail
+- clarify the relation between the last successful logical/rendered model and the partially updated native tree after a failed projection pass
+- tighten disposal semantics enough to answer at least:
+  - whether sibling disposal order is deterministic
+  - whether child-disposal failure aborts parent disposal or whether cleanup continues
+  - whether disposal failures should be wrapped/aggregated in a controlled way
+
+### Scope boundary
+
+This pass does not need to invent a large disposal framework. It does need to keep the runtime contract from sounding complete when key cleanup-failure questions are still unspecified.
+
+### Codebase tracking focus
+
+- `Csxaml.Runtime/Rendering/WinUiNodeRenderer.cs`
+- `Csxaml.Runtime/Adapters/RenderedNativeElement.cs`
+- `Csxaml.Runtime/Adapters/NativeEventBindingStore.cs`
+- `Csxaml.Runtime.Tests/Reconciliation/ComponentLifecycleTests.cs`
+- `Csxaml.Runtime.Tests/Rendering/WinUiNodeRendererTests.cs`
+
+## Workstream 9 - Conformance and Spec-Boundary Tightening
+
+The conformance section should reflect the sharper contract.
+
+### Required additions
+
+- state-initializer ordering that references earlier `inject` declarations
+- compile-time versus runtime handling of render-time state writes
+- bounded-island scanning coverage for modern C# lexical forms
+- slot-under-`foreach` rejection
+- compile-time versus runtime duplicate-key handling
+- controlled-input feedback-loop suppression behavior
+- IME / in-progress text-input preservation for the supported `TextBox` slice
+- event normalization coverage for controls with documented normalized delegate shapes
+
+### Spec-boundary cleanup
+
+This pass should also trim avoidable language/runtime/product blending.
+
+Recommended direction:
+
+- keep core language sections focused on the language contract
+- keep support-slice inventories and current built-in-control lists in prototype coverage or compatibility docs when they are not themselves language rules
+- audit lingering `SHOULD` versus `MUST` wording in central v1 areas, especially where the document currently sounds more aspirational than intended
+
+### Known-gap honesty
+
+If the implementation still trails the spec in any of these areas, the spec and roadmap should describe the gap explicitly instead of letting the reader infer support from examples alone.
+
+### Codebase tracking focus
+
+- `LANGUAGE-SPEC.md`
+- `ROADMAP.md`
+- `docs/external-control-interop.md`
+- `docs/debugging-and-diagnostics.md`
+- `Csxaml.Generator.Tests/Diagnostics/BuildDiagnosticMappingTests.cs`
+- `Csxaml.Generator.Tests/Diagnostics/SourceMappingTests.cs`
+
+## Workstream 10 - Deferred But High-Risk Product Gaps
+
+Some deferred surfaces now need to be tracked more explicitly as production blockers, even if this pass does not design them.
+
+### Required planning changes
+
+- record virtualization/template interop as a high-risk gap rather than a casual future enhancement
+- record `DataContext` projection/interoperability for external control subtrees as a serious ecosystem interop problem
+- record named slots as a meaningful composition limitation, not just a cosmetic omission
+
+### Recommended direction
+
+This pass should not invent:
+
+- a `<Virtualize />` primitive
+- a full `ItemsRepeater`/`DataTemplate` story
+- a subtree `DataContext` bridge syntax
+- named-slot syntax
+
+But the plan and roadmap should make clear that these are likely required before broad production claims about heavy list UIs, third-party control ecosystems, or richer layout primitives become credible.
+
+### Codebase tracking focus
+
+- `LANGUAGE-SPEC.md`
+- `ROADMAP.md`
+- `docs/external-control-interop.md`
+- runtime external-control adapter and registry files under `Csxaml.Runtime/Adapters`
+
+## Changes This Plan Does Not Try To Make
+
+This pass should not quietly widen scope into any of the following:
+
+- removing `component Element`
+- relaxing one-component-per-file
+- inventing hook-style lifecycle syntax
+- generalizing controlled input to every control in the platform
+- adding named slots or slot fallback content
+- changing `State<T>` equality semantics without a deliberate runtime/API design
+- introducing imperative element handles / `ref`
+
+Those are valid future topics. They are not the job of this pass, but some of them now need to be recorded more clearly as high-risk follow-up rather than soft someday work.
+
+## Execution Order
+
+1. tighten `State<T>` source semantics and lifecycle cross-references
+2. tighten render-time state-write diagnostics
+3. tighten bounded-island scanning realism and conformance wording
+4. tighten render-statement detection wording and examples
+5. tighten controlled-input equality, IME, normalization, and adapter wording
+6. tighten slot placement rules
+7. tighten duplicate-key failure phase wording
+8. tighten inject/dispatcher/host wording
+9. clean up `using static`, helper-declaration status, app-shell posture, and `component Element` wording
+10. tighten failure/disposal framing
+11. update conformance expectations, known-gap notes, and high-risk deferred-product notes
+
+## Verification Commands
+
+Run the relevant subset after each workstream and the full sweep at the end.
+
+### Targeted regression commands
+
+```powershell
+dotnet test Csxaml.Generator.Tests\Csxaml.Generator.Tests.csproj -m:1 /p:UseSharedCompilation=false
+dotnet test Csxaml.Runtime.Tests\Csxaml.Runtime.Tests.csproj -m:1 /p:UseSharedCompilation=false
+dotnet test Csxaml.Tooling.Core.Tests\Csxaml.Tooling.Core.Tests.csproj -m:1 /p:UseSharedCompilation=false
+dotnet test Csxaml.ProjectSystem.Tests\Csxaml.ProjectSystem.Tests.csproj -m:1 /p:UseSharedCompilation=false
 ```
 
-The developer should not have to infer service dependencies from:
+### Drift-detection checks
 
-- component parameter lists
-- special markup attributes
-- arbitrary `GetRequiredService()` calls inside helper code
+Use focused `rg` sweeps to confirm the repo is telling one story:
 
-### 2.2 Host integration stays simple
-
-When an app does not use DI, the current root-instance path should still work.
-
-When an app does use DI, the host should accept a normal `IServiceProvider` boundary without forcing the app into a CSXAML-owned container model.
-
-The public story should be:
-
-- simple demos/tests can still mount a root instance directly
-- apps/tests that need DI can provide an `IServiceProvider`
-- no one needs to rewrite their entire app boot path just to try CSXAML
-
-### 2.3 Lifecycle and async behavior are explicit
-
-When a component mounts, unmounts, or cleans up work, the behavior should be:
-
-- explicit
-- small
-- easy to test
-- free of hook-style call-order magic
-
-When async work completes after unmount, the result should not resurrect the component or trigger confusing rerenders.
-
-### 2.4 Component tests feel like ordinary C#
-
-When writing tests, the developer should be able to:
-
-- render a component with optional services
-- query by text or automation metadata
-- trigger common interactions like click, text input, and checked-state changes
-- assert on meaningful UI semantics rather than tree positions
-
-The developer should not need to:
-
-- construct generated props types by hand unless they explicitly want to
-- manually wire a full WinUI window for logical-tree tests
-- invoke handlers through hand-rolled private test helpers scattered across the repo
-
-### 2.5 Stability promises are written down
-
-The repo should clearly document:
-
-- syntax compatibility expectations
-- runtime/generator compatibility expectations
-- supported language/runtime/tooling/testing slices
-- known limitations that are still outside the v1 promise
-
----
-
-## 3. Scope
-
-### In scope
-
-- explicit DI syntax implementation for `inject Type name;`
-- service-aware component activation built on `IServiceProvider`
-- explicit root-host/service-provider plumbing
-- small lifecycle and cleanup model
-- async-after-unmount behavior definition and implementation
-- hostless C#-first component testing harness
-- semantic query helpers and interaction helpers
-- expanded golden/regression coverage for DI, lifecycle, and testing
-- compatibility policy documentation
-- supported feature matrix documentation
-
-### Explicitly out of scope
-
-- hook-style DI APIs as the primary language model
-- markup-based service injection
-- attribute-scanned injection such as `[Inject]` as the primary `.csxaml` model
-- keyed, named, or optional DI syntax
-- subtree service-provider overrides in markup
-- per-component child scopes
-- a custom effect framework
-- a broad new lifecycle DSL in `.csxaml`
-- full debugger/test-recorder tooling
-- performance optimization work beyond what is necessary to keep the new seams clean
-
-### Practical boundary
-
-Milestone 13 should stay centered on:
-
-- stability
-- explicitness
-- narrow DI
-- narrow lifecycle
-- testability
-- documented promises
-
-It should not drift into:
-
-- framework magic
-- container feature parity wars
-- a second language layered on top of C#
-- a large testing DSL
-
----
-
-## 4. Acceptance Scenarios To Freeze Before Coding
-
-These scenarios should be written down first and then converted into tests as the milestone lands.
-
-They are the milestone's contract surface, not optional examples.
-
-### 4.1 DI authoring and resolution
-
-- rendering a component with no `inject` declarations and no services behaves exactly as it does today
-- rendering a component with `inject` declarations and a valid `IServiceProvider` resolves each declared service once per component instance
-- injected services are available in helper code, event handlers, and ordinary expression islands
-- a missing required service fails with a CSXAML-specific message that names the component and injected member
-- injected services do not appear in generated props or markup usage surfaces
-
-### 4.2 DI diagnostics
-
-- malformed `inject` declarations fail with parser or validator diagnostics tied to `.csxaml` source
-- duplicate injected names fail deterministically
-- collisions between props/state/injected-service names fail deterministically
-- invalid placement of `inject` declarations fails deterministically
-
-### 4.3 Activation, retention, and disposal
-
-- a simple root-instance host path still works without DI
-- a service-aware root host path works with `IServiceProvider`
-- child components are activated through the explicit activator rather than raw reflection calls
-- retained keyed children preserve component identity and do not re-resolve injected services
-- removed child components are disposed once
-- disposing the host disposes the root component and any retained children exactly once
-
-### 4.4 Async-after-unmount behavior
-
-- state updates after unmount do not schedule rerender
-- async completions after unmount do not resurrect removed components
-- cleanup guidance for long-running work is documented and test-backed
-
-### 4.5 Testing-harness behavior
-
-- tests can render components with and without services
-- tests can query by automation id, automation name, and visible text where represented in logical properties
-- tests can drive click, text input, and checked-state interactions without bespoke per-test helpers
-- tests can provide service overrides without changing component props
-
-### 4.6 Interop and compatibility protection
-
-- supported external-control interop still works after activation changes
-- docs clearly distinguish supported, specified-but-not-implemented, and intentionally unsupported features
-
----
-
-## 5. Current Baseline
-
-The repo already has useful ingredients to build on:
-
-- generated component props are explicit and strongly typed
-- runtime rendering already flows through a logical tree plus a coordinator
-- hostless logical-tree tests already exist in `Csxaml.Runtime.Tests`
-- semantic automation metadata support already exists through attached properties
-- runtime exception context from Milestone 12 already provides a good place to attach DI/lifecycle failures
-
-The current gaps are equally clear:
-
-- `CsxamlHost` only accepts a `Panel` plus a prebuilt root component instance
-- `ComponentTreeCoordinator` only knows about a root instance, not an activation/service context
-- `ChildComponentStore` creates child components with raw `Activator.CreateInstance`
-- component instances have no explicit mount/unmount or disposal contract
-- child component instances are retained/replaced, but their cleanup semantics are not explicit
-- `State<T>` always invalidates through an action callback and has no concept of component mount state
-- tests already prove hostless logical rendering, but the testing APIs are still repo-internal helper code rather than a deliberate user-facing harness
-- compatibility policy and supported feature matrix are not yet published
-
-Milestone 13 should close those gaps with small, explicit seams rather than a sweeping rewrite.
-
----
-
-## 6. Core Design Decisions
-
-These should be treated as milestone constraints.
-
-### 6.1 Keep props, state, and services distinct
-
-This is the most important semantic boundary in the milestone.
-
-Rules:
-
-- component parameters remain the public prop surface
-- `State<T>` remains local mutable UI state
-- `inject` declares ambient app services
-- injected services never appear as markup attributes
-- DI must not become a second ambient props channel
-
-If this boundary gets blurry, the milestone is failing even if the code works.
-
-### 6.2 Public DI boundary is `IServiceProvider`
-
-CSXAML should work with the ordinary .NET `IServiceProvider` story.
-
-That means:
-
-- public host/test APIs should accept `IServiceProvider`
-- CSXAML should not require a library-specific container type at the boundary
-- `ActivatorUtilities` may be used internally, but it must not become the user-facing contract
-
-This keeps the compatibility story honest: CSXAML works with any DI setup that can provide or adapt to `IServiceProvider`.
-
-### 6.3 `inject` is the only DI language syntax in v1
-
-The language spec now chooses:
-
-```csharp
-inject IFoo foo;
+```powershell
+rg "return <|return \\(" LANGUAGE-SPEC.md docs Csxaml.Demo VSCodeExtension
+rg "render <" LANGUAGE-SPEC.md docs Csxaml.Demo VSCodeExtension
+rg "OnTextChanged|OnCheckedChanged|Slot|DataContext|ItemsRepeater|ControlTemplate" LANGUAGE-SPEC.md docs
 ```
 
-That means Milestone 13 should not spend time hedging among several syntaxes.
-
-Do not add:
-
-- `UseService<T>()` hook-style APIs as the primary model
-- DI through component parameters
-- markup-level service expressions
-- attribute-scanned injection
-
-### 6.4 Component activation must become an explicit seam
-
-Today, child activation is a hidden `Activator.CreateInstance` call in `ChildComponentStore`.
-
-Milestone 13 should replace that with a small explicit activator seam so:
-
-- service-aware activation has one obvious home
-- root and child activation follow the same model
-- manual root-instance activation remains supported
-- future testing and lifecycle logic have one place to attach
-
-### 6.5 Generated components should stay boring
-
-The language feature is `inject`, not constructor archaeology.
-
-Preferred generated shape:
-
-- keep generated components simple and predictable
-- resolve injected services once per instance
-- cache them in private fields or equivalent write-once instance members
-- avoid resolving services during each render
-
-The generator should target a small runtime hook in `ComponentInstance`, not force arbitrary semantic scanning of helper code.
-
-### 6.6 Lifecycle should be smaller than an effect framework
-
-Milestone 13 needs lifecycle semantics, but it does not need hooks, dependency arrays, or effect DSLs.
-
-The smallest acceptable model is:
-
-- a mount notification
-- explicit cleanup/disposal on unmount
-- clear behavior for async completions after unmount
-
-Anything larger needs a very strong justification and likely belongs in a later milestone.
-
-### 6.7 Unmounted invalidation should no-op
-
-When async work completes after unmount, the old component instance should not schedule a rerender.
-
-The preferred behavior is:
-
-- state mutation may still happen on the old instance object
-- render invalidation after unmount becomes a no-op
-- cleanup/cancellation remains explicit user code, typically through disposal patterns
-
-This is boring and unsurprising.
-
-### 6.8 Hostless testing should sit over the logical tree
-
-The testing harness should build on the logical tree/coordinator path first.
-
-That means:
-
-- no full WinUI activation requirement for ordinary component tests
-- semantic queries and interactions operate on logical native nodes
-- live WinUI projection tests remain useful, but they are a narrower layer
-
-### 6.9 Documentation is part of the milestone, not cleanup
-
-Compatibility policy, feature matrix, lifecycle semantics, and testing guidance are part of the implementation.
-
-Do not leave them implicit.
-
----
-
-## 7. Proposed Architecture
-
-### 7.1 Generator-side `inject` model
-
-Add a small explicit injected-service model under the generator.
-
-Recommended responsibilities:
-
-- `InjectFieldDefinition`
-  one injected-service declaration in the AST
-- parser support that recognizes `inject` as a component-prologue member
-- validator support for:
-  - duplicate injected names
-  - invalid placement
-  - obvious malformed declaration shapes
-- emission support that:
-  - generates cached service members
-  - emits a small runtime hook to resolve services once per instance
-  - preserves source spans for diagnostics and runtime context
-
-Recommended file boundaries:
-
-- `Csxaml.Generator/Ast/InjectFieldDefinition.cs`
-- `Csxaml.Generator/Parsing/InjectFieldParser.cs`
-- `Csxaml.Generator/Validation/InjectFieldValidator.cs`
-- `Csxaml.Generator/Emission/InjectedServiceEmitter.cs`
-
-Do not hide this behind giant parser or emitter methods.
-
-### 7.2 Runtime activation seam
-
-Introduce a dedicated component activation seam in the runtime.
-
-Recommended types:
-
-- `IComponentActivator`
-  creates component instances given a component type and runtime context
-- `DefaultComponentActivator`
-  default implementation; may use `ActivatorUtilities` internally when services exist
-- `ComponentContext`
-  minimal per-instance runtime context; v1 MUST include `IServiceProvider Services`
-
-Recommended responsibilities:
-
-- `CsxamlHost`
-  owns root mounting path and optionally receives services
-- `ComponentTreeCoordinator`
-  coordinates logical rendering and mount/unmount transitions
-- `ChildComponentStore`
-  uses `IComponentActivator` instead of raw `Activator.CreateInstance`
-
-Important design constraint:
-
-- keep the existing `CsxamlHost(Panel, ComponentInstance)` path for simple demos/tests
-- add a service-aware path rather than replacing the simple path
-
-### 7.3 Runtime hook for generated injection
-
-The generator should target a small runtime hook in `ComponentInstance`.
-
-Recommended shape:
-
-- `ComponentInstance` gains an internal initialization hook that receives `ComponentContext`
-- generated components override a literal service-resolution hook such as `ResolveInjectedServices(IServiceProvider services)` or equivalent
-- the runtime ensures that hook runs once per component instance before the first render
-
-Why this is preferable to constructor-only generation:
-
-- it preserves a simple parameterless generated shape
-- it avoids making `.csxaml` DI depend on constructor parsing or constructor signature conventions
-- it keeps manual test components and existing root-instance paths easy to preserve
-
-The activator may still use `ActivatorUtilities` for handwritten component constructors when a service provider exists, but the CSXAML language feature should not depend on constructor DI as its primary author-facing rule.
-
-### 7.4 Lifecycle and cleanup model
-
-Choose the smallest explicit lifecycle surface that solves the real problems.
-
-Recommended v1 runtime contract:
-
-- `ComponentInstance` gets a small mount notification hook such as `OnMounted()`
-- component cleanup flows through ordinary `IDisposable` / `IAsyncDisposable`
-- `ComponentTreeCoordinator` and `CsxamlHost` become disposable so they can release both native and component resources
-- child components removed from the tree are disposed once they are no longer retained
-
-Recommended explicit non-goals:
-
-- no `OnUpdated`
-- no dependency-array model
-- no hook call-order semantics
-- no hidden background task framework
-
-### 7.5 Async-after-unmount behavior
-
-Define this explicitly:
-
-- once a component is unmounted, its invalidation callback becomes inert
-- state changes on the dead instance must not schedule rerender
-- cleanup/cancellation remains the component author's job through ordinary C# patterns
-- docs should recommend cancellation-token-source ownership in components that launch long-running work
-
-This should be documented and tested instead of left to emergent behavior.
-
-### 7.6 Testing harness architecture
-
-Add a deliberate testing layer over the logical tree.
-
-Recommended project:
-
-- `Csxaml.Testing`
-
-Recommended primary APIs:
-
-- `CsxamlTestHost.Render<TComponent>(...)`
-- `CsxamlTestHost.Render(ComponentInstance root, ...)`
-- render result object that exposes the latest logical root tree
-- semantic query helpers:
-  - `FindByAutomationId`
-  - `FindByAutomationName`
-  - `FindByText`
-  - possibly `FindAllByTag` for secondary scenarios
-- interaction helpers:
-  - `Click`
-  - `EnterText`
-  - `SetChecked`
-
-Recommended implementation approach:
-
-- build on the logical native node tree and stored event handlers
-- reuse the coordinator rather than reinventing rendering
-- keep WinUI projection tests separate and optional
-
-### 7.7 Compatibility and support docs
-
-Milestone 13 should publish at least:
-
-- `docs/compatibility-policy.md`
-- `docs/supported-feature-matrix.md`
-- `docs/lifecycle-and-async.md`
-- `docs/component-testing.md`
-
-The feature matrix should cover at least:
-
-- core language constructs
-- DI support
-- lifecycle support
-- built-in control/runtime support
-- external-control support boundaries
-- testing support
-- tooling support status at a milestone level
-
-### 7.8 Expected file and type boundaries
-
-Milestone 13 should follow the repository's structural rules while adding new seams.
-
-If an existing file starts to accumulate unrelated activation, lifecycle, DI, and testing logic, split it immediately instead of letting the milestone hide its own complexity.
-
-Expected generator-side additions or extractions:
-
-- `Csxaml.Generator/Ast/InjectFieldDefinition.cs`
-- `Csxaml.Generator/Parsing/InjectFieldParser.cs` or a similarly narrow prologue-parsing file
-- `Csxaml.Generator/Validation/InjectFieldValidator.cs`
-- `Csxaml.Generator/Emission/InjectedServiceEmitter.cs`
-- a small emitter extraction if generated initialization logic would otherwise bloat a larger component emitter file
-
-Expected runtime-side additions or extractions:
-
-- `Csxaml.Runtime/Components/ComponentContext.cs`
-- `Csxaml.Runtime/Components/IComponentActivator.cs`
-- `Csxaml.Runtime/Components/DefaultComponentActivator.cs`
-- a small lifecycle/disposal state type if mount bookkeeping starts to grow
-
-Expected testing-layer additions:
-
-- `Csxaml.Testing/CsxamlTestHost.cs`
-- `Csxaml.Testing/CsxamlRenderResult.cs`
-- narrow query helper files under a `Queries` folder
-- narrow interaction helper files under an `Interactions` folder
-
-Structural guardrails:
-
-- `CsxamlHost` should stay focused on host setup, root ownership, and disposal
-- `ComponentTreeCoordinator` should stay focused on render coordination and lifecycle transitions, not become a test API surface
-- `ChildComponentStore` should stay focused on child retention, activation, and release, not absorb service-provider policy or query logic
-- the testing harness should consume the runtime seams, not punch through them with internal shortcuts
-
----
-
-## 8. Phase Plan
-
-Each phase should end with tests plus a brief review against the language spec, the roadmap exit criteria, and the developer experience bar.
-
-### 8.1 Merge discipline
-
-Do not land Milestone 13 as one large patch.
-
-Prefer narrow vertical slices in this order:
-
-1. acceptance scenarios, doc skeletons, and failing tests
-2. runtime activation/context seam with no language change yet
-3. `inject` parser, validator, emission, and runtime hookup
-4. lifecycle/disposal/unmount safety
-5. public testing harness extraction and migration of representative tests
-6. docs, feature matrix, dogfood scenarios, and milestone closeout review
-
-Each slice should keep the repo buildable, keep tests green outside the intentionally failing tests being introduced, and update adjacent docs when the implementation meaningfully changes.
-
-### Phase 1 - Freeze contracts and acceptance cases
-
-Goal:
-
-- turn Milestone 13 into a concrete set of acceptance scenarios before new seams spread through the codebase
-
-Tasks:
-
-- define acceptance cases for:
-  - required service resolution
-  - missing required service failure
-  - duplicate `inject` names
-  - invalid `inject` placement
-  - root host with and without services
-  - child component DI activation
-  - component disposal on unmount
-  - async completion after unmount
-  - hostless render/query/click/text/checked testing flows
-- outline compatibility policy categories:
-  - implemented and supported
-  - specified but not yet implemented
-  - intentionally unsupported
-- outline supported feature matrix sections
-
-Deliverables:
-
-- acceptance test list
-- doc skeletons for compatibility, lifecycle, testing, and feature matrix
-
-### Phase 2 - Add runtime activation and context seams
-
-Goal:
-
-- create the runtime hooks that DI and lifecycle will rely on, without changing language surface yet
-
-Tasks:
-
-- introduce `ComponentContext`
-- introduce `IComponentActivator` and default implementation
-- thread activator/context through `CsxamlHost`, `ComponentTreeCoordinator`, and `ChildComponentStore`
-- preserve the current root-instance constructor path
-- add service-aware host overloads without breaking existing call sites
-- keep all existing tests passing before `inject` lands
-
-Deliverables:
-
-- explicit component activation seam
-- optional `IServiceProvider` host path
-- no raw child activation left in `ChildComponentStore`
-
-### Phase 3 - Implement `inject` end to end
-
-Goal:
-
-- land explicit component-level DI in the language and runtime
-
-Tasks:
-
-- add `InjectFieldDefinition` AST support
-- update component-body parsing for prologue members
-- add validation for duplicate names and malformed declarations
-- add specific placement diagnostics for `inject`
-- emit cached service members plus a runtime resolution hook
-- attach source spans/member names so missing-service runtime failures point back to `.csxaml`
-- ensure injected services never appear in component props or markup completion/validation paths
-
-Deliverables:
-
-- working `inject Type name;`
-- source diagnostics for common authoring mistakes
-- runtime missing-service failures with CSXAML context
-
-### Phase 4 - Land lifecycle, disposal, and async safety
-
-Goal:
-
-- make mount/unmount and cleanup explicit and boring
-
-Tasks:
-
-- add the chosen mount notification API
-- define unmount/disposal sequence for:
-  - removed child components
-  - root host disposal
-  - retained versus replaced component instances
-- dispose components that implement `IDisposable` or `IAsyncDisposable`
-- make invalidation inert after unmount
-- document and test async-after-unmount behavior
-
-Deliverables:
-
-- small lifecycle model
-- explicit cleanup semantics
-- async safety behavior that is easy to explain
-
-### Phase 5 - Add the C#-first testing harness
-
-Goal:
-
-- turn the repo's internal logical-tree testing style into a real supported testing API
-
-Tasks:
-
-- create `Csxaml.Testing`
-- add render-result object over the logical tree/coordinator
-- add semantic query helpers
-- add common interaction helpers
-- add service override support for tests
-- migrate a representative set of existing runtime tests to the new harness
-
-Deliverables:
-
-- public or package-ready test harness
-- proof that common UI tests do not require WinUI activation
-
-### Phase 6 - Publish stability docs and feature matrix
-
-Goal:
-
-- make the stability story explicit enough for outside users
-
-Tasks:
-
-- write compatibility policy
-- write supported feature matrix
-- write lifecycle/async guidance
-- write component testing guide
-- document DI boundaries and non-goals clearly
-
-Deliverables:
-
-- docs that match actual implementation
-- explicit known-limitations section rather than implied caveats
-
-### Phase 7 - Dogfood and close honestly
-
-Goal:
-
-- prove the milestone in real repo scenarios
-
-Tasks:
-
-- add at least one representative DI-backed component scenario
-- prove missing-service failure messaging in a realistic component
-- prove hostless component tests with services and interactions
-- review root-host disposal and async-after-unmount cases for leaks or surprising rerender behavior
-- compare docs, roadmap, and implementation line by line before marking the milestone complete
-
-Deliverables:
-
-- milestone review notes
-- roadmap update only when the exit criteria are honestly met
-
----
-
-## 9. Testing Strategy
-
-Milestone 13 should be heavily test-driven because stability work is easy to overestimate from happy-path demos.
-
-### 9.1 Generator tests
-
-Add focused tests for:
-
-- parsing valid `inject` declarations
-- rejecting malformed `inject` declarations
-- duplicate injected-name diagnostics
-- invalid-placement diagnostics
-- emission of cached service members and service-resolution hook
-- keeping injected services out of generated props records
-
-### 9.2 Runtime DI tests
-
-Add focused tests for:
-
-- root component activation with services
-- child component activation with services
-- missing required service failures with component/member context
-- service resolution once per component instance
-- keyed child reuse preserving injected-service identity on retained instances
-
-### 9.3 Lifecycle and async tests
-
-Add focused tests for:
-
-- `OnMounted()` firing once per mounted instance
-- disposal on child removal
-- disposal on host/coordinator disposal
-- invalidation after unmount becoming inert
-- async completion after unmount not triggering rerender
-
-### 9.4 Testing harness tests
-
-Add focused tests for:
-
-- render with and without services
-- query by automation name/id
-- query by visible text when represented in logical properties
-- click, text input, and checked-state helpers
-- test-time service override scenarios
-
-### 9.5 End-to-end dogfood tests
-
-Add repo-level proofs for:
-
-- DI-backed components in ordinary runtime tests
-- external-control scenarios still behaving under the new activator seams
-- demo-style semantic queries using the testing harness rather than bespoke helpers
-
----
-
-## 10. Risks and Traps
-
-Milestone 13 has a few easy ways to go wrong.
-
-### 10.1 Service locator creep
-
-If helper code starts normalizing `GetRequiredService()` calls everywhere, the language feature exists but the design loses.
-
-Keep `inject` as the preferred source model.
-
-### 10.2 Constructor-shape coupling
-
-If `.csxaml` DI starts depending on constructor signature rules, the generator/runtime contract becomes harder to reason about and existing manual components become easier to break.
-
-Keep the language model centered on explicit `inject` declarations plus a small runtime initialization hook.
-
-### 10.3 Lifecycle sprawl
-
-If Milestone 13 starts inventing effect APIs, dependency arrays, or update hooks, it will sprawl badly.
-
-Keep the lifecycle API small.
-
-### 10.4 Disposal blind spots
-
-If child components are replaced without disposal or root disposal does not flow down, the milestone will create subtle leaks while claiming to improve reliability.
-
-Test disposal paths explicitly.
-
-### 10.5 Testing API overfitting
-
-If the testing harness becomes a pile of repo-specific helpers, it will not be a real v1 capability.
-
-Prefer generic semantic queries and a tiny set of common interactions.
-
-### 10.6 Documentation lag
-
-If compatibility policy and feature matrix lag behind the code, the milestone is not done.
-
-Docs are part of the implementation surface here.
-
----
-
-## 11. Required Review Loop
-
-At the end of each phase, ask:
-
-1. Are props, state, and services still visibly distinct?
-2. Does the public DI boundary still rest on `IServiceProvider` rather than a container-specific API?
-3. Did we keep generated component code boring and deterministic?
-4. Is lifecycle smaller than a custom effect framework?
-5. Does async-after-unmount behavior now have one explicit, documented answer?
-6. Would a new user know how to write a component test without reading internal runtime tests?
-7. Are compatibility promises explicit enough to be quoted back by another engineer?
-8. Did any file or type become a god object while adding activation, lifecycle, or testing seams?
-9. Did docs and roadmap stay aligned with implementation?
-
-If any answer is "no", fix the structure before continuing.
-
----
-
-## 12. Concrete Implementation Checklist
-
-- [ ] freeze Milestone 13 acceptance scenarios before code changes
-- [ ] draft compatibility policy categories and supported feature matrix shape
-- [ ] add explicit runtime activation seam over child and root component creation
-- [ ] plumb optional `IServiceProvider` through `CsxamlHost`, `ComponentTreeCoordinator`, and child activation
-- [ ] preserve the simple root-instance host path for non-DI scenarios
-- [ ] add AST/parser support for `inject Type name;`
-- [ ] validate duplicate and misplaced `inject` declarations
-- [ ] emit cached injected-service members and a once-per-instance resolution hook
-- [ ] keep injected services out of generated props and markup usage
-- [ ] add missing-service runtime failures with component/member context
-- [ ] define mount notification API
-- [ ] define component disposal behavior on unmount and host shutdown
-- [ ] make post-unmount invalidation inert
-- [ ] document async-after-unmount behavior
-- [ ] add `Csxaml.Testing` hostless render harness
-- [ ] add semantic query helpers
-- [ ] add click/text/checked interaction helpers
-- [ ] support service overrides in tests
-- [ ] expand golden generator coverage for injected-service emission
-- [ ] expand runtime regression coverage for DI, lifecycle, cleanup, and async safety
-- [ ] add interop regressions to prove external-control behavior survives the new seams
-- [ ] publish compatibility policy
-- [ ] publish supported feature matrix
-- [ ] publish lifecycle/async guide
-- [ ] publish component testing guide
-- [ ] update `ROADMAP.md` only when the real exit criteria are met
-
----
-
-## 13. Definition of Done
-
-Milestone 13 is complete only when all of the following are true:
-
-- the repo publishes explicit compatibility and support docs
-- `inject Type name;` works end to end and remains clearly separate from props and markup
-- runtime service resolution uses an `IServiceProvider` boundary and resolves once per component instance
-- missing required services fail with component/member context rather than raw container errors alone
-- mount, unmount, cleanup, and async-after-unmount behavior are explicit and tested
-- hostless C#-first component tests exist as a real harness rather than ad hoc internal helpers
-- representative DI, lifecycle, testing, and interop scenarios are covered by regression tests
-- docs, roadmap, language spec, and implementation all tell the same story
-
-If a developer still has to guess how service injection, cleanup, or component testing are supposed to work, Milestone 13 is not done.
+## Final Agent Sign-Off
+
+Before closing the plan execution, the implementing agent must state explicitly:
+
+- which workstreams were completed
+- which files changed for each completed workstream
+- which tests were run
+- which issue-log entries remain open, if any
+- whether `ROADMAP.md` was updated to reflect any unresolved or re-scoped work
+
+## Definition of Done
+
+This plan is complete only when all of the following are true:
+
+- the spec no longer reads like state declarations are raw C# field initializers
+- the spec distinguishes statically detectable render-time state writes from runtime-only failures
+- the bounded-island promise is either backed by realistic lexical-conformance language or narrowed so it does not overpromise
+- the parsing section includes concrete examples that make the final `render` rule easier to trust
+- the controlled-input section says enough about comparison, cursor/selection behavior, and composition behavior to be implementable
+- the event-normalization contract says enough about shape, validation, and documentation to stop feeling implicit
+- the slot section clearly answers where `<Slot />` may appear
+- the helper-declaration sections no longer wobble between "part of v1" and "just a goal"
+- the duplicate-key section distinguishes compile-time diagnostics from dynamic runtime failures where appropriate
+- the inject/lifecycle sections clearly answer dispatcher and synchronous-resolution assumptions
+- the file-level import story says something explicit about `using static`
+- the front of the spec stops implying that CSXAML owns app-shell/navigation concerns
+- the projection/disposal sections either answer the important cleanup/failure questions or mark them as explicit v1 limitations
+- the core language sections are a bit cleaner about what belongs there versus in product-scope/support-slice notes
+- the plan/spec/roadmap now treat virtualization, `DataContext` interop, and named-slot limitations as explicit production risks instead of buried deferments
+- the conformance section covers the new guarantees instead of only the older grammar/runtime ones
+
+If a careful reader can still ask "but is that really a C# field initializer?", "can `<Slot />` appear in a `foreach`?", "is helper code actually v1?", "when does a duplicate key fail?", "will a lightweight scanner really survive modern C# strings?", or "what happens to cursor state and IME composition?" after this pass, the work is not done.

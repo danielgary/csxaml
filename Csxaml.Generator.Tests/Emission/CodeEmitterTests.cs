@@ -10,7 +10,7 @@ public sealed class CodeEmitterTests
             "TodoCard.csxaml",
             """
             component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-                return <Border Background={IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground} Padding={TodoColors.CardPadding}>
+                render <Border Background={IsDone ? TodoColors.DoneBackground : TodoColors.NotDoneBackground} Padding={TodoColors.CardPadding}>
                     <StackPanel Spacing={8}>
                     <TextBlock Text={Title} Foreground={TodoColors.CardForeground} />
                     if (IsDone) {
@@ -39,7 +39,7 @@ public sealed class CodeEmitterTests
             "TodoCard.csxaml",
             """
             component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-                return <StackPanel>
+                render <StackPanel>
                     <TextBlock Text={Title} />
                     <Button Content="Toggle" OnClick={OnToggle} />
                 </StackPanel>;
@@ -52,7 +52,7 @@ public sealed class CodeEmitterTests
             component Element TodoBoard {
                 State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(CreateItems());
 
-                return <StackPanel>
+                render <StackPanel>
                     foreach (var item in Items.Value) {
                         <TodoCard Key={item.Id} Title={item.Title} IsDone={item.IsDone} OnToggle={OnToggle} />
                     }
@@ -78,7 +78,7 @@ public sealed class CodeEmitterTests
             "TodoEditor.csxaml",
             """
             component Element TodoEditor(string Title, bool IsDone, Action<string> OnTitleChanged, Action<bool> OnDoneChanged) {
-                return <StackPanel>
+                render <StackPanel>
                     <TextBox Text={Title} OnTextChanged={OnTitleChanged} />
                     <CheckBox IsChecked={IsDone} OnCheckedChanged={OnDoneChanged} />
                 </StackPanel>;
@@ -102,7 +102,7 @@ public sealed class CodeEmitterTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <Button Content="Save" Style={TodoStyles.PrimaryButton} />;
+                render <Button Content="Save" Style={TodoStyles.PrimaryButton} />;
             }
             """);
 

@@ -26,7 +26,7 @@ public sealed class CsxamlLanguageServerProtocolTests
             component Element ToolingProbe() {
             State<string> SelectedId = new State<string>("todo-1");
             var current = SelectedI;
-            return <TodoCard AutomationProperties.Name={SelectedId.Val} />;
+            render <TodoCard AutomationProperties.Name={SelectedId.Val} />;
             }
             """);
 
@@ -109,7 +109,7 @@ public sealed class CsxamlLanguageServerProtocolTests
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
-                return <Button Text= />;
+                render <Button Text= />;
             }
             """;
 

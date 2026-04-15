@@ -251,13 +251,19 @@ internal sealed class ComponentEmitter
         _writer.WriteLine("using Csxaml.Runtime;");
         foreach (var usingDirective in usingDirectives)
         {
-            if (usingDirective.Alias is null)
+            if (usingDirective.IsStatic)
             {
-                _writer.WriteLine($"using {usingDirective.NamespaceName};");
+                _writer.WriteLine($"using static {usingDirective.QualifiedName};");
                 continue;
             }
 
-            _writer.WriteLine($"using {usingDirective.Alias} = {usingDirective.NamespaceName};");
+            if (usingDirective.Alias is null)
+            {
+                _writer.WriteLine($"using {usingDirective.QualifiedName};");
+                continue;
+            }
+
+            _writer.WriteLine($"using {usingDirective.Alias} = {usingDirective.QualifiedName};");
         }
         _writer.WriteLine();
     }

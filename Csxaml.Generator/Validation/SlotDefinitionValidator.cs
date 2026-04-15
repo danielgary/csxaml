@@ -7,7 +7,7 @@ internal sealed class SlotDefinitionValidator
         ValidateRoot(source, definition.Root);
 
         var slotOutlets = new List<SlotOutletNode>();
-        Collect(definition.Root, slotOutlets);
+        Collect(source, definition.Root, slotOutlets, insideForEach: false);
 
         if (slotOutlets.Count > 1)
         {
@@ -64,18 +64,30 @@ internal sealed class SlotDefinitionValidator
         }
     }
 
-    private static void Collect(ChildNode node, List<SlotOutletNode> slotOutlets)
+    private static void Collect(
+        SourceDocument source,
+        ChildNode node,
+        List<SlotOutletNode> slotOutlets,
+        bool insideForEach)
     {
         switch (node)
         {
             case SlotOutletNode slotOutlet:
+                if (insideForEach)
+                {
+                    throw DiagnosticFactory.FromSpan(
+                        source,
+                        slotOutlet.Span,
+                        "default slot cannot appear inside foreach");
+                }
+
                 slotOutlets.Add(slotOutlet);
                 return;
 
             case MarkupNode markupNode:
                 foreach (var child in markupNode.Children)
                 {
-                    Collect(child, slotOutlets);
+                    Collect(source, child, slotOutlets, insideForEach);
                 }
 
                 return;
@@ -83,7 +95,7 @@ internal sealed class SlotDefinitionValidator
             case IfBlockNode ifBlock:
                 foreach (var child in ifBlock.Children)
                 {
-                    Collect(child, slotOutlets);
+                    Collect(source, child, slotOutlets, insideForEach);
                 }
 
                 return;
@@ -91,7 +103,7 @@ internal sealed class SlotDefinitionValidator
             case ForEachBlockNode forEachBlock:
                 foreach (var child in forEachBlock.Children)
                 {
-                    Collect(child, slotOutlets);
+                    Collect(source, child, slotOutlets, insideForEach: true);
                 }
 
                 return;

@@ -37,7 +37,7 @@ component Element TodoBoard {
     var selected = SelectedItem();
     var selectedTitle = selected.Title;
 
-    return <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="320,*" Margin={12}>
+    render <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="320,*" Margin={12}>
         <TextBlock
             Grid.Row={0}
             Grid.ColumnSpan={2}

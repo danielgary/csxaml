@@ -1,5 +1,5 @@
 component Element GreetingCard(string Title) {
-    return <Border AutomationProperties.Name="Greeting Card">
+    render <Border AutomationProperties.Name="Greeting Card">
         <TextBlock
             AutomationProperties.Name="Greeting Title"
             Text={Title} />

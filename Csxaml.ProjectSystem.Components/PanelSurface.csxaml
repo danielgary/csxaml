@@ -1,5 +1,5 @@
 component Element PanelSurface(string HeaderText) {
-    return <Border AutomationProperties.Name="Panel Surface">
+    render <Border AutomationProperties.Name="Panel Surface">
         <StackPanel>
             <TextBlock
                 AutomationProperties.Name="Panel Header"

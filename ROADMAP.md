@@ -133,7 +133,7 @@ This is the minimum proof that CSXAML can exist as a build-integrated language r
 component Element Test {
     State<int> Count = new State<int>(0);
 
-    return <StackPanel>
+    render <StackPanel>
         <TextBlock Text={Count.Value.ToString()} />
         <Button Content="Increment" OnClick={() => Count.Value++} />
     </StackPanel>;
@@ -176,7 +176,7 @@ Without typed props, child composition, conditional rendering, and repeated rend
 
 ```csharp
 component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-    return <StackPanel>
+    render <StackPanel>
         <TextBlock Text={Title} />
         if (IsDone) {
             <TextBlock Text="Done" />
@@ -192,7 +192,7 @@ component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
 component Element TodoBoard {
     State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(CreateSeedItems());
 
-    return <StackPanel>
+    render <StackPanel>
         foreach (var item in Items.Value) {
             <TodoCard
                 Key={item.Id.ToString()}
@@ -456,7 +456,7 @@ This is a make-or-break v1 credibility gate. If CSXAML cannot interoperate with 
 ```csharp
 using WinUi = Microsoft.UI.Xaml.Controls;
 
-return <WinUi:InfoBar
+render <WinUi:InfoBar
     Severity={WinUi.InfoBarSeverity.Warning}
     IsOpen={ShowWarning}
     Message="Unsaved changes" />;
@@ -467,7 +467,7 @@ return <WinUi:InfoBar
 ```csharp
 using Controls = MyApp.Controls;
 
-return <Controls:UserAvatar
+render <Controls:UserAvatar
     UserId={CurrentUserId}
     Size={48}
     OnClick={OpenProfile} />;
@@ -621,7 +621,7 @@ component Element TodoBoard {
 
     string HeaderText() => $"{selected.Title} ({Items.Value.Count})";
 
-    return <TodoEditor Title={selected.Title} Header={HeaderText()} />;
+    render <TodoEditor Title={selected.Title} Header={HeaderText()} />;
 }
 ```
 
@@ -636,7 +636,7 @@ component Element TodoBoard {
 ## Checklist
 
 - [x] define how local helper code lives in a `.csxaml` file while preserving one-component-per-file discipline
-- [x] support local variables and local functions before the final markup return
+- [x] support local variables and local functions before the final render statement
 - [x] support file-local helper types and deterministic lowering for any additional same-file helper declarations
 - [x] define child-content model for component slots
 - [x] support default slot
@@ -875,7 +875,7 @@ component Element TodoBoard {
         return Todos.LoadAll(Clock.Now);
     }
 
-    return <StackPanel>
+    render <StackPanel>
         ...
     </StackPanel>;
 }
@@ -1148,7 +1148,7 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-13: Added projected WinUI retention tests that exercise real `TextBox` focus and selection preservation across ordinary parent rerenders, controlled text updates, and sibling keyed-list reorders. This closes a prior proof gap in Milestones 4 and 5, where the runtime behavior existed but the strongest assertions still lived mostly in fake-host coverage.
 - 2026-04-13: Wrote `docs/external-control-interop.md` and aligned the language spec plus roadmap checklists with the actual supported external-control slice: normal `using` imports and aliases, deterministic referenced-assembly metadata discovery, generated runtime registration, current property/event/child-content limits, and explicit non-goals that still remain outside the v1 promise.
 - 2026-04-13: Milestone 8 completed. Built-in and supported external controls now accept `Style` values through shared metadata and runtime coercion, the demo reuses keyed application styles through ordinary CSXAML expressions, and hostless tests assert deferred style intent without requiring live WinUI activation. The styling story remains intentionally thin: WinUI styles/resources and typed C# helpers are the reuse mechanism, not a new CSXAML-specific styling DSL.
-- 2026-04-13: Milestone 9 completed. `.csxaml` files now support one file-scoped `namespace`, file-local helper declarations, and component-local helper code before the final render return. Components can accept explicit default child content through a bare `<Slot />` outlet, while named slots and root-level slot pass-through remain intentionally deferred. The demo now uses named local helper functions plus a reusable slotted `TodoPanel`, and hostless generator/runtime tests cover helper-code scanning, slot validation, emitted child-content transport, keyed identity retention through wrapper composition, and wrapper rerender stability.
+- 2026-04-13: Milestone 9 completed. `.csxaml` files now support one file-scoped `namespace`, file-local helper declarations, and component-local helper code before the final render statement. Components can accept explicit default child content through a bare `<Slot />` outlet, while named slots and root-level slot pass-through remain intentionally deferred. The demo now uses named local helper functions plus a reusable slotted `TodoPanel`, and hostless generator/runtime tests cover helper-code scanning, slot validation, emitted child-content transport, keyed identity retention through wrapper composition, and wrapper rerender stability.
 - 2026-04-13: Milestone 10 completed. CSXAML now uses shared repo-level build assets for opt-in generation, deterministic project-default and file-scoped component namespaces, deterministic internal generated namespaces, explicit generated component manifests for referenced-assembly discovery, write-if-changed plus stale-output pruning under `obj`, and fixture proof for both library-to-library component imports and ordinary test-project consumption through normal `ProjectReference` usage. Clean/rebuild behavior is covered by the shared intermediate-root cleanup path plus output-writer regression coverage for shrinking generated sets.
 - 2026-04-14: Milestone 11 is now in progress. The repo contains a first `Csxaml.Tooling.Core` bootstrap slice with unit coverage, a `Csxaml.VisualStudio` host that builds a real `.vsix`, and a documented/scripted experimental-instance loop that stages the built extension into the Visual Studio `Exp` hive and launches the repo solution there. IntelliSense is not closed yet, and version-18 host activation still needs explicit validation before the bootstrap gap can be treated as closed.
 - 2026-04-14: Milestone 11 planning now explicitly treats Visual Studio as the first client over a shared language-service boundary so future VS Code reuse does not require re-implementing completion, diagnostics, navigation, or formatting semantics in a second stack.
@@ -1165,3 +1165,12 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-15: The language spec now defines DI more explicitly: component-scoped services use dedicated `inject Type Name;` declarations in the component prologue, remain separate from props and markup, resolve once per component instance from the ambient service provider, and intentionally exclude markup injection, attribute scanning, and service-locator-first patterns from the intended v1 model.
 - 2026-04-15: The Todo demo now exercises the DI slice end to end. `App` builds a normal `ServiceCollection`, `TodoBoard` consumes `inject ITodoService todoService;`, and runtime demo tests verify both injected seed data and persisted edits through that service boundary.
 - 2026-04-15: The demo todo service boundary now treats the component as the owner of live UI state again. `ITodoService` exposes `SaveItems(...)` for persistence, while `TodoBoard` keeps one local `UpdateItem(itemId, updater)` helper and persists updated snapshots instead of treating the service as an item-level store.
+- 2026-04-15: Followed the language-spec clarification pass with a focused conformance hardening slice. Runtime `State<T>` invalidation is now assignment-driven even for equal/reference-equal assignments, render-phase state writes now fail with a clear non-reentrant runtime error instead of recursively reentering rendering, and simple tag resolution in both generator and tooling now reports ambiguity when a built-in/native tag collides with a visible component instead of silently preferring the native control.
+- 2026-04-15: Hardened the spec-facing source contract and repo examples around three realities that were previously too fuzzy: the final render statement now uses the dedicated `render <Root />;` syntax across parser/tooling/demos/docs, the WinUI/runtime posture now explicitly documents controlled input, retained native reconciliation, lifecycle cleanup, event rebinding, theme/resource limits, and trim/AOT intent, and the broader attached-property-owner import story remains called out as a known implementation gap instead of being implied as already complete.
+- 2026-04-15: Replaced the old final-markup `return` forms with a dedicated `render` statement. The parser, formatter, semantic tokens, VS Code grammar/snippets, demo components, and regression fixtures now treat `render <Root />;` as the only valid final markup statement, while both `return <Root />;` and `return ( <Root /> );` are rejected with targeted guidance.
+- 2026-04-15: Tightened the contract further around the places where retained-mode UI gets sharp edges. The spec now makes duplicate sibling key rejection explicit, clarifies that preserved instances rerender with updated props/child content and the same resolved injected bindings, states that state initializers run once per instance creation, strengthens the compile pipeline from architecture guidance into contract language, and documents current render/projection failure semantics including aborted passes and lack of transactional native rollback. Runtime reconciliation now also rejects duplicate keyed component siblings deterministically instead of leaving that path implicit.
+- 2026-04-15: Replaced the repo-root `plan.md` with a smaller post-`render` spec-tightening plan focused on the next contract gaps: source-level `State<T>` semantics versus raw C# field-initializer expectations, compile-time versus runtime render-phase state-write diagnostics, controlled-input comparison/IME behavior, slot-placement rules, dispatcher/synchronous-DI wording, and the remaining file-surface cleanup around `using static`, `component Element`, and app-shell posture.
+- 2026-04-15: Tightened that repo-root plan again after the next review pass. `plan.md` now also tracks helper-declaration status as an explicit v1-contract question, compile-time versus runtime duplicate-key failure phrasing, render-parser examples and rationale cleanup, the event-normalization contract surface, failure/disposal precision, and a small audit to keep support-slice/product-posture material from sprawling through the core language sections.
+- 2026-04-15: Tightened `plan.md` again from a compiler-engineering perspective. The active plan now explicitly tracks bounded-island lexing realism for modern C# string forms, the need for specialized interactive-control adapters rather than naive generic property patching, and the fact that virtualization, `DataContext` interop for third-party controls, and named slots are deferred areas that also function as real production-risk gaps rather than harmless future polish.
+- 2026-04-15: The repo-root `plan.md` is now also an execution document rather than only a direction document. It includes codebase touchpoints, per-workstream closure rules, an implementation issue log, concrete regression commands, and a final agent sign-off checklist so future spec-tightening work can be tracked through parser, runtime, tooling, tests, docs, and roadmap updates without leaving silent drift behind.
+- 2026-04-15: Executed the final pre-1.0 language-spec tightening pass. `LANGUAGE-SPEC.md` now carries a maintained revision log, file-local helper declarations are stated as part of the v1 surface rather than an aspiration, `using static` is implemented and tested as ordinary C# lookup only, slot outlets are rejected inside `foreach`, bounded-island lexical promises are backed by raw-string regression coverage, and the controlled-input/`DataContext`/virtualization wording now reflects the current retained WinUI runtime more honestly.

@@ -1,7 +1,8 @@
 const vscode = require("vscode");
 const {
     LanguageClient,
-    RevealOutputChannelOn
+    RevealOutputChannelOn,
+    Trace
 } = require("vscode-languageclient/node");
 const { resolveLanguageServerPath } = require("./src/languageServerPathResolver");
 
@@ -38,6 +39,7 @@ async function deactivate() {
 async function startLanguageServer(context) {
     const configuration = vscode.workspace.getConfiguration("csxaml.languageServer");
     const configuredPath = configuration.get("path", "");
+    const isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development;
     const resolution = resolveLanguageServerPath(
         context.extensionPath,
         configuredPath,
@@ -76,6 +78,7 @@ async function startLanguageServer(context) {
                     { scheme: "untitled", language: "csxaml" }
                 ],
                 outputChannel,
+                traceOutputChannel: outputChannel,
                 revealOutputChannelOn: RevealOutputChannelOn.Never
             });
 
@@ -86,6 +89,11 @@ async function startLanguageServer(context) {
 
         if (typeof client.onReady === "function") {
             await client.onReady();
+        }
+
+        if (isDevelopmentMode && typeof client.setTrace === "function") {
+            await client.setTrace(Trace.Verbose);
+            outputChannel.appendLine("CSXAML language client trace is enabled for extension development.");
         }
     } catch (error) {
         const message = error && error.message ? error.message : String(error);

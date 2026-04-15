@@ -79,4 +79,19 @@ public sealed class ComponentTreeCoordinatorReconciliationTests
         Assert.AreEqual("Beta:0", RuntimeTreeHelpers.CardHeader(RuntimeTreeHelpers.ChildCard(tree, 0)));
         Assert.AreEqual("Alpha:0", RuntimeTreeHelpers.CardHeader(RuntimeTreeHelpers.ChildCard(tree, 1)));
     }
+
+    [TestMethod]
+    public void DuplicateKeyedComponentSiblings_FailDeterministically()
+    {
+        var board = new KeyedBoardComponent(
+        [
+            new CardItemModel("a", "Alpha", false),
+            new CardItemModel("a", "Again", false)
+        ]);
+        var coordinator = new ComponentTreeCoordinator(board);
+
+        var error = Assert.ThrowsExactly<CsxamlRuntimeException>(() => coordinator.Render());
+
+        StringAssert.Contains(error.Message, "cannot share the key 'a'");
+    }
 }

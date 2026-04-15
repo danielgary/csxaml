@@ -14,7 +14,7 @@ public sealed class InjectParserTests
                 State<int> Count = new State<int>(LoadCount());
                 inject ILogger<TodoBoard> logger;
 
-                return <TextBlock Text={Count.Value} />;
+                render <TextBlock Text={Count.Value} />;
             }
             """).Definition;
 
@@ -36,7 +36,7 @@ public sealed class InjectParserTests
                 """
                 component Element TodoBoard {
                     inject ;
-                    return <TextBlock Text="Todo" />;
+                    render <TextBlock Text="Todo" />;
                 }
                 """));
 
@@ -54,7 +54,7 @@ public sealed class InjectParserTests
                     string BuildTitle() => "Todo";
                     inject ITodoService todoService;
 
-                    return <TextBlock Text={BuildTitle()} />;
+                    render <TextBlock Text={BuildTitle()} />;
                 }
                 """));
 

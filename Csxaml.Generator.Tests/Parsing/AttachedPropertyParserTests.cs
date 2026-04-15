@@ -10,7 +10,7 @@ public sealed class AttachedPropertyParserTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <Grid RowDefinitions="Auto,*">
+                render <Grid RowDefinitions="Auto,*">
                     <TextBlock Grid.Row={0} AutomationProperties.Name="Task Editor" Text="Todo Board" />
                 </Grid>;
             }

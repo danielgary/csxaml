@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml;
 namespace Csxaml.Demo;
 
 component Element TodoPanel(string Title, string AutomationName, Thickness Margin) {
-    return <Border
+    render <Border
         AutomationProperties.Name={AutomationName}
         Background={TodoColors.EditorBackground}
         Padding={TodoColors.CardPadding}

@@ -4,7 +4,7 @@ namespace Csxaml.Generator.Tests.Parsing;
 public sealed class HelperCodeParserTests
 {
     [TestMethod]
-    public void Parse_ComponentLocalHelperCode_CapturesRawCodeBeforeRenderReturn()
+    public void Parse_ComponentLocalHelperCode_CapturesRawCodeBeforeRenderStatement()
     {
         var component = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
@@ -17,7 +17,7 @@ public sealed class HelperCodeParserTests
                     return $"Count:{Count.Value}";
                 }
 
-                return <TextBlock Text={BuildTitle()} />;
+                render <TextBlock Text={BuildTitle()} />;
             }
             """).Definition;
 
@@ -29,7 +29,7 @@ public sealed class HelperCodeParserTests
     }
 
     [TestMethod]
-    public void Parse_ComponentLocalHelperCode_IgnoresNestedReturnTokens()
+    public void Parse_ComponentLocalHelperCode_IgnoresNestedRenderTokens()
     {
         var component = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
@@ -37,13 +37,13 @@ public sealed class HelperCodeParserTests
             component Element TodoBoard {
                 string BuildTitle()
                 {
-                    // return <Broken />;
+                    // render <Broken />;
                     return "Todo";
                 }
 
-                var text = "return <StillBroken />";
+                var text = "render <StillBroken />";
 
-                return <TextBlock Text={BuildTitle()} />;
+                render <TextBlock Text={BuildTitle()} />;
             }
             """).Definition;
 
@@ -51,7 +51,7 @@ public sealed class HelperCodeParserTests
 
         Assert.IsNotNull(component.HelperCode);
         StringAssert.Contains(component.HelperCode!.CodeText, "return \"Todo\";");
-        StringAssert.Contains(component.HelperCode.CodeText, "\"return <StillBroken />\"");
+        StringAssert.Contains(component.HelperCode.CodeText, "\"render <StillBroken />\"");
         Assert.AreEqual("TextBlock", root.TagName);
     }
 
@@ -72,7 +72,7 @@ public sealed class HelperCodeParserTests
                     }
 
                     component Element TodoCard(string Title) {
-                        return <TextBlock Text={TodoFormatter.Format(Title)} />;
+                        render <TextBlock Text={TodoFormatter.Format(Title)} />;
                     }
 
                     file enum TodoTone

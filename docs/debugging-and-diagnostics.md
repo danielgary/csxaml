@@ -14,7 +14,7 @@ For source-authored C# regions, the generator emits narrow `#line` directives so
 
 That applies to:
 
-- helper code before the render return
+- helper code before the final render statement
 - state initializers
 - component prop expressions
 - native property and event expressions

@@ -35,8 +35,9 @@ internal sealed class CsxamlCSharpProjectionBuilder
         var usingDirectives = file.UsingDirectives
             .Select(
                 directive => new CsxamlUsingDirectiveInfo(
-                    directive.NamespaceName,
+                    directive.QualifiedName,
                     directive.Alias,
+                    directive.IsStatic,
                     directive.Span.Start,
                     directive.Span.Length))
             .ToList();

@@ -10,7 +10,7 @@ public sealed class SlotValidationTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Border>
+                render <Border>
                     <Slot />
                 </Border>;
             }
@@ -19,7 +19,7 @@ public sealed class SlotValidationTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <TodoCard>
+                render <TodoCard>
                     <TextBlock Text="Hello" />
                 </TodoCard>;
             }
@@ -35,14 +35,14 @@ public sealed class SlotValidationTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Border />;
+                render <Border />;
             }
             """);
         var board = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <TodoCard>
+                render <TodoCard>
                     <TextBlock Text="Hello" />
                 </TodoCard>;
             }
@@ -61,7 +61,7 @@ public sealed class SlotValidationTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Border>
+                render <Border>
                     <Slot />
                     <Slot />
                 </Border>;
@@ -81,7 +81,7 @@ public sealed class SlotValidationTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Border>
+                render <Border>
                     <Slot Name="Header" />
                 </Border>;
             }
@@ -100,7 +100,7 @@ public sealed class SlotValidationTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Border>
+                render <Border>
                     <Slot Orientation="Horizontal" />
                 </Border>;
             }
@@ -119,7 +119,7 @@ public sealed class SlotValidationTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Border>
+                render <Border>
                     <Slot>
                         <TextBlock Text="Hello" />
                     </Slot>
@@ -140,7 +140,7 @@ public sealed class SlotValidationTests
             "TodoCard.csxaml",
             """
             component Element TodoCard {
-                return <Slot />;
+                render <Slot />;
             }
             """);
 
@@ -148,5 +148,26 @@ public sealed class SlotValidationTests
             () => GeneratorTestHarness.Validate(component));
 
         StringAssert.Contains(error.Message, "default slot cannot be the component root");
+    }
+
+    [TestMethod]
+    public void Validate_SlotInsideForeach_ThrowsDiagnostic()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoCard.csxaml",
+            """
+            component Element TodoCard {
+                render <Border>
+                    foreach (var item in Items) {
+                        <Slot />
+                    }
+                </Border>;
+            }
+            """);
+
+        var error = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Validate(component));
+
+        StringAssert.Contains(error.Message, "default slot cannot appear inside foreach");
     }
 }

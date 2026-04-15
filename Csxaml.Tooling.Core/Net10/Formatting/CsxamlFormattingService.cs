@@ -114,7 +114,7 @@ public sealed class CsxamlFormattingService
         }
 
         var prefix = trimmedLine[..tagStart].TrimEnd();
-        return string.Equals(prefix, "return", StringComparison.Ordinal)
+        return string.Equals(prefix, "render", StringComparison.Ordinal)
             ? trimmedLine[tagStart..]
             : null;
     }

@@ -108,6 +108,7 @@ Reconciliation/
  ComponentLifecycleTests.cs
  ComponentTreeCoordinatorAttachedPropertyTests.cs
  ComponentTreeCoordinatorReconciliationTests.cs
+ ComponentTreeCoordinatorRenderPhaseTests.cs
  ComponentTreeCoordinatorSlotTests.cs
  ComponentTreeCoordinatorStateTests.cs
  InjectedServiceResolutionTests.cs

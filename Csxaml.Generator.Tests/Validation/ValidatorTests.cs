@@ -10,7 +10,7 @@ public sealed class ValidatorTests
             "TodoCard.csxaml",
             """
             component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
-                return <StackPanel>
+                render <StackPanel>
                     <TextBlock Text={Title} />
                     <Button Content="Toggle" OnClick={OnToggle} />
                 </StackPanel>;
@@ -21,7 +21,7 @@ public sealed class ValidatorTests
             "TodoBoard.csxaml",
             """
             component Element TodoBoard {
-                return <StackPanel>
+                render <StackPanel>
                     <TodoCard Title="One" IsDone={false} />
                 </StackPanel>;
             }

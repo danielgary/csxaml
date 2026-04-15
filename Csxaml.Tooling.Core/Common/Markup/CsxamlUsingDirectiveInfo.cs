@@ -1,7 +1,8 @@
 namespace Csxaml.Tooling.Core.Markup;
 
 public sealed record CsxamlUsingDirectiveInfo(
-    string NamespaceName,
+    string QualifiedName,
     string? Alias,
+    bool IsStatic,
     int Start,
     int Length);
