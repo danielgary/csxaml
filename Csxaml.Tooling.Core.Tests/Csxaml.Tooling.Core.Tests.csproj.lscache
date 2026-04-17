@@ -78,6 +78,7 @@ Tooling/
   CsxamlLanguageServerDefinitionRegressionTests.cs
   CsxamlLanguageServerProtocolTests.cs
   LanguageServerClient.cs
+  LanguageServerTestPaths.cs
  TemporaryCsxamlFile.cs
 
 [metadataReferences]

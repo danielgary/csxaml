@@ -5,15 +5,7 @@ namespace Csxaml.Tooling.Core.Tests.Tooling.LanguageServer;
 [TestClass]
 public sealed class CsxamlLanguageServerDefinitionRegressionTests
 {
-    private static readonly string RepoRoot = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-    private static readonly string ServerExecutablePath = Path.Combine(
-        RepoRoot,
-        "Csxaml.LanguageServer",
-        "bin",
-        "Debug",
-        "net10.0",
-        "Csxaml.LanguageServer.exe");
+    private static readonly string RepoRoot = LanguageServerTestPaths.RepoRoot;
 
     [TestMethod]
     public async Task Protocol_resolves_framework_state_definitions_in_component_helper_code()
@@ -98,9 +90,11 @@ public sealed class CsxamlLanguageServerDefinitionRegressionTests
 
     private static async Task<LanguageServerClient> StartClientAsync()
     {
-        Assert.IsTrue(File.Exists(ServerExecutablePath), $"Missing server executable at {ServerExecutablePath}");
+        var serverExecutablePath = LanguageServerTestPaths.GetServerExecutablePath();
 
-        var client = await LanguageServerClient.StartAsync(ServerExecutablePath, RepoRoot);
+        Assert.IsTrue(File.Exists(serverExecutablePath), $"Missing server executable at {serverExecutablePath}");
+
+        var client = await LanguageServerClient.StartAsync(serverExecutablePath, RepoRoot);
         await client.SendRequestAsync(
             "initialize",
             new
