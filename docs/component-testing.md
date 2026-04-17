@@ -2,6 +2,8 @@
 
 Milestone 13 adds a supported hostless logical-tree testing surface in `Csxaml.Testing`.
 
+Today that surface is implemented and used throughout this repo, but the package is still being treated as repo-internal while the public API is reviewed. The supported testing model exists now; the public package boundary is still being finalized.
+
 The goal is simple:
 
 - render components from ordinary C#

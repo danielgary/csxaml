@@ -291,6 +291,7 @@ Bootstrap/
  CsxamlBootstrapProbeResult.cs
  DotNetRootResolver.cs
 Common/Markup/
+ CsxamlAttachedPropertyResolver.cs
  CsxamlComponentParameterSignature.cs
  CsxamlComponentSignature.cs
  CsxamlComponentSignatureScanner.cs

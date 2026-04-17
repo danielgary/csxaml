@@ -79,6 +79,10 @@ obj/Debug/net10.0/
 Registry/
  AttachedPropertyMetadataRegistry.cs
  ControlMetadataRegistry.cs
+Resolution/
+ AttachedPropertyReferenceResolver.cs
+ AttachedPropertyResolutionKind.cs
+ AttachedPropertyResolutionResult.cs
 
 [metadataReferences]
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.6/ref/net10.0/

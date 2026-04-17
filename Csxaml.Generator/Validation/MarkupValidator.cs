@@ -12,7 +12,8 @@ internal sealed class MarkupValidator
         MarkupNode node,
         CompilationContext compilation)
     {
-        Validate(source, component, node, compilation, null);
+        var bindingResolver = new AttachedPropertyBindingResolver(component);
+        Validate(source, component, node, compilation, null, bindingResolver);
     }
 
     private void Validate(
@@ -20,12 +21,13 @@ internal sealed class MarkupValidator
         ParsedComponent component,
         MarkupNode node,
         CompilationContext compilation,
-        string? parentTagName)
+        string? parentTagName,
+        AttachedPropertyBindingResolver bindingResolver)
     {
-        ValidateCurrentNode(source, component, node, compilation, parentTagName);
+        ValidateCurrentNode(source, component, node, compilation, parentTagName, bindingResolver);
         foreach (var child in node.Children)
         {
-            ValidateChildNode(source, component, child, compilation, node.TagName);
+            ValidateChildNode(source, component, child, compilation, node.TagName, bindingResolver);
         }
     }
 
@@ -34,26 +36,27 @@ internal sealed class MarkupValidator
         ParsedComponent component,
         ChildNode childNode,
         CompilationContext compilation,
-        string? parentTagName)
+        string? parentTagName,
+        AttachedPropertyBindingResolver bindingResolver)
     {
         switch (childNode)
         {
             case ForEachBlockNode forEachBlock:
                 foreach (var child in forEachBlock.Children)
                 {
-                    ValidateChildNode(source, component, child, compilation, parentTagName);
+                    ValidateChildNode(source, component, child, compilation, parentTagName, bindingResolver);
                 }
                 break;
 
             case IfBlockNode ifBlock:
                 foreach (var child in ifBlock.Children)
                 {
-                    ValidateChildNode(source, component, child, compilation, parentTagName);
+                    ValidateChildNode(source, component, child, compilation, parentTagName, bindingResolver);
                 }
                 break;
 
             case MarkupNode markupNode:
-                Validate(source, component, markupNode, compilation, parentTagName);
+                Validate(source, component, markupNode, compilation, parentTagName, bindingResolver);
                 break;
 
             case SlotOutletNode:
@@ -66,15 +69,16 @@ internal sealed class MarkupValidator
         ParsedComponent component,
         MarkupNode node,
         CompilationContext compilation,
-        string? parentTagName)
+        string? parentTagName,
+        AttachedPropertyBindingResolver bindingResolver)
     {
         var resolvedTag = _tagResolver.Resolve(source, component, node, compilation);
         if (resolvedTag.Kind == ResolvedTagKind.Native)
         {
-            _nativeElementValidator.Validate(source, node, resolvedTag.NativeControl!, parentTagName);
+            _nativeElementValidator.Validate(source, node, resolvedTag.NativeControl!, parentTagName, bindingResolver);
             return;
         }
 
-        _componentTagValidator.Validate(source, node, resolvedTag.Component!, parentTagName);
+        _componentTagValidator.Validate(source, node, resolvedTag.Component!, parentTagName, bindingResolver);
     }
 }

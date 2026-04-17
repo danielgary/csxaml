@@ -101,7 +101,7 @@ internal sealed class WeatherCardComponent : ComponentInstance
     public WeatherCardComponent(IWeatherService weatherService)
     {
         _weatherService = weatherService;
-        _summary = new State<string>("Loading...", () => RequestRender?.Invoke());
+        _summary = new State<string>("Loading...", InvalidateState, ValidateStateWrite);
     }
 
     protected override void OnMounted()

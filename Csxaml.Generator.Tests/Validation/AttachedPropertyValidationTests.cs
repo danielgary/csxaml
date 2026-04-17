@@ -9,6 +9,8 @@ public sealed class AttachedPropertyValidationTests
         var component = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
             """
+            using Microsoft.UI.Xaml.Controls;
+
             component Element TodoBoard {
                 render <Grid>
                     <TextBlock Grid.Row={1} Grid.Column={0} Text="Todo Board" />
@@ -34,6 +36,9 @@ public sealed class AttachedPropertyValidationTests
         var board = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
             """
+            using Microsoft.UI.Xaml.Automation;
+            using Microsoft.UI.Xaml.Controls;
+
             component Element TodoBoard {
                 render <Grid>
                     <TodoEditor Grid.Column={1} AutomationProperties.Name="Task Editor" Title="Draft plan" />
@@ -50,6 +55,8 @@ public sealed class AttachedPropertyValidationTests
         var component = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
             """
+            using Microsoft.UI.Xaml.Controls;
+
             component Element TodoBoard {
                 render <Grid>
                     foreach (var item in new[] { 0, 1 }) {
@@ -80,7 +87,7 @@ public sealed class AttachedPropertyValidationTests
 
         StringAssert.Contains(
             exception.Diagnostic.Message,
-            "attached property 'Grid.Row' on 'TextBlock' requires parent 'Grid'");
+            "unknown attached property 'Grid.Row' on 'TextBlock'");
     }
 
     [TestMethod]
@@ -89,6 +96,8 @@ public sealed class AttachedPropertyValidationTests
         var component = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
             """
+            using Microsoft.UI.Xaml.Controls;
+
             component Element TodoBoard {
                 render <Grid>
                     <TextBlock Grid.Row={0} Grid.Row={1} Text="Todo Board" />
@@ -110,6 +119,8 @@ public sealed class AttachedPropertyValidationTests
         var component = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
             """
+            using Microsoft.UI.Xaml.Controls;
+
             component Element TodoBoard {
                 render <Grid>
                     <TextBlock Grid.Row="1" Text="Todo Board" />
@@ -123,5 +134,63 @@ public sealed class AttachedPropertyValidationTests
         StringAssert.Contains(
             exception.Diagnostic.Message,
             "attached property 'Grid.Row' on 'TextBlock' requires an expression value");
+    }
+
+    [TestMethod]
+    public void Validate_AttachedPropertyOwnerTypeAlias_IsAccepted()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            using AP = Microsoft.UI.Xaml.Automation.AutomationProperties;
+
+            component Element TodoBoard {
+                render <TextBlock AP.Name="Todo Board" />;
+            }
+            """);
+
+        GeneratorTestHarness.Validate(component);
+    }
+
+    [TestMethod]
+    public void Validate_AttachedPropertyOwnerNamespaceAlias_ThrowsDiagnostic()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            using Automation = Microsoft.UI.Xaml.Automation;
+
+            component Element TodoBoard {
+                render <TextBlock Automation.Name="Todo Board" />;
+            }
+            """);
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Validate(component));
+
+        StringAssert.Contains(
+            exception.Diagnostic.Message,
+            "unknown attached property 'Automation.Name' on 'TextBlock'");
+    }
+
+    [TestMethod]
+    public void Validate_AttachedPropertyRequiresVisibleOwnerType()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                render <Grid>
+                    <TextBlock Grid.Row={0} Text="Todo Board" />
+                </Grid>;
+            }
+            """);
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Validate(component));
+
+        StringAssert.Contains(
+            exception.Diagnostic.Message,
+            "unknown attached property 'Grid.Row' on 'TextBlock'");
     }
 }

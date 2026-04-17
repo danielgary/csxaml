@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml.Automation;
+
 namespace Csxaml.ProjectSystem.Components.Admin;
 
 component Element AdminBadge(string Label) {

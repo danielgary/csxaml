@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <NoWarn>$(NoWarn);NU5127;NU5128</NoWarn>
+    <PackageId>Csxaml</PackageId>
+    <Version>$(CsxamlVersion)</Version>
+    <Authors>CSXAML Contributors</Authors>
+    <Description>Author-facing package for CSXAML source generation, MSBuild wiring, and WinUI app integration.</Description>
+    <PackageTags>csxaml;winui;xaml;csharp;source-generator;ui</PackageTags>
+    <PackageReadmeFile>package-readme.md</PackageReadmeFile>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>$(CsxamlRepositoryUrl)</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeGeneratorPayloadInPackage</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CsxamlGeneratorPublishDirectory>$(MSBuildProjectDirectory)\obj\generator-publish\</CsxamlGeneratorPublishDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\Csxaml.Runtime\\Csxaml.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="package-readme.md" Pack="true" PackagePath="" />
+    <None Include="..\\LICENSE.md" Pack="true" PackagePath="" Link="LICENSE.md" />
+    <None Include="..\\build\\Csxaml.props" Pack="true" PackagePath="buildTransitive/Csxaml.props" Link="Csxaml.props" />
+    <None Include="..\\build\\Csxaml.targets" Pack="true" PackagePath="buildTransitive/Csxaml.targets" Link="Csxaml.targets" />
+  </ItemGroup>
+
+  <Target Name="PublishGeneratorForPackage">
+    <RemoveDir Directories="$(CsxamlGeneratorPublishDirectory)" Condition="Exists('$(CsxamlGeneratorPublishDirectory)')" />
+    <MSBuild
+      Projects="..\\Csxaml.Generator\\Csxaml.Generator.csproj"
+      Targets="Publish"
+      RemoveProperties="TargetFramework;TargetFrameworks;TargetPlatform;TargetPlatformMinVersion;RuntimeIdentifier;RuntimeIdentifiers"
+      Properties="Configuration=$(Configuration);PublishDir=$(CsxamlGeneratorPublishDirectory);SelfContained=false;PublishSingleFile=false;UseAppHost=false" />
+  </Target>
+
+  <Target Name="IncludeGeneratorPayloadInPackage" DependsOnTargets="PublishGeneratorForPackage">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(CsxamlGeneratorPublishDirectory)**\\*">
+        <PackagePath>tools/Csxaml.Generator/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+</Project>

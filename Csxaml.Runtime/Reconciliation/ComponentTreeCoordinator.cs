@@ -2,6 +2,8 @@ namespace Csxaml.Runtime;
 
 public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
 {
+    private const string StateWriteDuringRenderMessage =
+        "Component state writes during render are not allowed. Move the update into an event handler, effect, or other post-render path.";
     private readonly IComponentActivator _activator;
     private readonly ComponentContext _context;
     private readonly ComponentInstance _rootComponent;
@@ -37,6 +39,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         _rootComponent = rootComponent;
         _rootComponent.Initialize(_context);
         _rootComponent.RequestRender = RequestRenderTree;
+        _rootComponent.StateWriteValidator = ValidateStateWrite;
     }
 
     private ComponentTreeCoordinator(RootActivation activation)
@@ -102,11 +105,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
             return;
         }
 
-        if (_renderDepth > 0)
-        {
-            throw new InvalidOperationException(
-                "Component state writes during render are not allowed. Move the update into an event handler, effect, or other post-render path.");
-        }
+        ValidateStateWrite();
 
         Render();
     }
@@ -151,6 +150,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         {
             var child = owner.ChildComponents.Resolve(componentNode, _context, _activator);
             child.RequestRender = RequestRenderTree;
+            child.StateWriteValidator = ValidateStateWrite;
             child.SetProps(componentNode.Props);
             child.SetChildContent(componentNode.ChildContent);
             return MergeAttachedProperties(RenderComponent(child), componentNode.AttachedProperties);
@@ -231,6 +231,14 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         {
             throw new InvalidOperationException(
                 "Component renders are non-reentrant.");
+        }
+    }
+
+    private void ValidateStateWrite()
+    {
+        if (_renderDepth > 0)
+        {
+            throw new InvalidOperationException(StateWriteDuringRenderMessage);
         }
     }
 

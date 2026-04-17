@@ -68,7 +68,11 @@ ProjectSystemIntegrationTests.cs
 ProjectSystemTreeHelpers.cs
 
 [metadataReferences]
-../Csxaml.Runtime/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.Runtime.dll
+../
+ Csxaml.ControlMetadata/obj/Debug/net10.0/ref/Csxaml.ControlMetadata.dll
+ Csxaml.ProjectSystem.Components/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.ProjectSystem.Components.dll
+ Csxaml.ProjectSystem.Consumer/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.ProjectSystem.Consumer.dll
+ Csxaml.Runtime/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.Runtime.dll
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.6/ref/net10.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll

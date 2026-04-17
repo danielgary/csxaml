@@ -954,7 +954,23 @@ Intentional non-goals for the first DI slice:
 
 # Milestone 14 - Performance and Large-App Hardening
 
-**Status:** [ ]
+**Status:** [x]
+
+## Status note
+
+Milestone 14 is complete.
+
+The repo now contains a repeatable benchmark harness through `Csxaml.Benchmarks`, scripted entry points under `scripts/perf`, and benchmark/smoke artifacts under `artifacts\benchmarks`.
+
+Measured results now support the v1 performance story directly:
+
+- generator parsing is cheap relative to end-to-end generation
+- built-in and external metadata lookup were already cheap
+- attached-property owner resolution was the first meaningful metadata hot path and is now much cheaper after the Milestone 14 optimization pass
+- hostless keyed rerenders are materially cheaper after the child-component-store reuse optimization, especially in the 1000-item stress scenarios
+- WinUI projection now has a dedicated smoke path that measures retained patch versus replacement and records explicit environment limits for focus-sensitive scenarios
+
+`docs/performance-and-scale.md` is now the human-readable summary of the intended v1 scale story, measured stress cases, landed optimizations, and remaining limits.
 
 ## Purpose
 
@@ -980,12 +996,12 @@ A coherent design still fails if typing, rerendering, or metadata processing bec
 
 ## Checklist
 
-- [ ] create benchmark scenarios
-- [ ] benchmark generator performance
-- [ ] benchmark metadata lookup paths
-- [ ] benchmark runtime reconciliation and patching
-- [ ] optimize known hot spots
-- [ ] document v1 scale expectations
+- [x] create benchmark scenarios
+- [x] benchmark generator performance
+- [x] benchmark metadata lookup paths
+- [x] benchmark runtime reconciliation and patching
+- [x] optimize known hot spots
+- [x] document v1 scale expectations
 
 ---
 
@@ -1018,15 +1034,15 @@ A production-ready v1 needs packaging, samples, templates, docs, and a clear sup
 
 ## Checklist
 
-- [ ] publish finalized package boundaries and package names
-- [ ] publish NuGet packaging plan
-- [ ] add starter template or example app
+- [x] publish finalized package boundaries and package names
+- [x] publish NuGet packaging plan
+- [x] add starter template or example app
 - [x] write syntax guide
-- [ ] write native props/events guide
+- [x] write native props/events guide
 - [x] write external control interop guide
-- [ ] write component testing guide
+- [x] write component testing guide
 - [x] write debugging and diagnostics guide
-- [ ] publish release process and versioning notes
+- [x] publish release process and versioning notes
 - [ ] tag and announce v1 release
 
 ---
@@ -1165,7 +1181,7 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-15: The language spec now defines DI more explicitly: component-scoped services use dedicated `inject Type Name;` declarations in the component prologue, remain separate from props and markup, resolve once per component instance from the ambient service provider, and intentionally exclude markup injection, attribute scanning, and service-locator-first patterns from the intended v1 model.
 - 2026-04-15: The Todo demo now exercises the DI slice end to end. `App` builds a normal `ServiceCollection`, `TodoBoard` consumes `inject ITodoService todoService;`, and runtime demo tests verify both injected seed data and persisted edits through that service boundary.
 - 2026-04-15: The demo todo service boundary now treats the component as the owner of live UI state again. `ITodoService` exposes `SaveItems(...)` for persistence, while `TodoBoard` keeps one local `UpdateItem(itemId, updater)` helper and persists updated snapshots instead of treating the service as an item-level store.
-- 2026-04-15: Followed the language-spec clarification pass with a focused conformance hardening slice. Runtime `State<T>` invalidation is now assignment-driven even for equal/reference-equal assignments, render-phase state writes now fail with a clear non-reentrant runtime error instead of recursively reentering rendering, and simple tag resolution in both generator and tooling now reports ambiguity when a built-in/native tag collides with a visible component instead of silently preferring the native control.
+- 2026-04-15: Followed the language-spec clarification pass with a focused conformance hardening slice. Runtime `State<T>` invalidation now suppresses rerender on `ReferenceEquals` for reference types and `EqualityComparer<T>.Default.Equals(...)` for value types, exposes `Touch()` as the explicit rerender escape hatch for mutation-in-place paths, render-phase state writes now fail with a clear non-reentrant runtime error instead of recursively reentering rendering, and simple tag resolution in both generator and tooling now reports ambiguity when a built-in/native tag collides with a visible component instead of silently preferring the native control.
 - 2026-04-15: Hardened the spec-facing source contract and repo examples around three realities that were previously too fuzzy: the final render statement now uses the dedicated `render <Root />;` syntax across parser/tooling/demos/docs, the WinUI/runtime posture now explicitly documents controlled input, retained native reconciliation, lifecycle cleanup, event rebinding, theme/resource limits, and trim/AOT intent, and the broader attached-property-owner import story remains called out as a known implementation gap instead of being implied as already complete.
 - 2026-04-15: Replaced the old final-markup `return` forms with a dedicated `render` statement. The parser, formatter, semantic tokens, VS Code grammar/snippets, demo components, and regression fixtures now treat `render <Root />;` as the only valid final markup statement, while both `return <Root />;` and `return ( <Root /> );` are rejected with targeted guidance.
 - 2026-04-15: Tightened the contract further around the places where retained-mode UI gets sharp edges. The spec now makes duplicate sibling key rejection explicit, clarifies that preserved instances rerender with updated props/child content and the same resolved injected bindings, states that state initializers run once per instance creation, strengthens the compile pipeline from architecture guidance into contract language, and documents current render/projection failure semantics including aborted passes and lack of transactional native rollback. Runtime reconciliation now also rejects duplicate keyed component siblings deterministically instead of leaving that path implicit.
@@ -1174,3 +1190,9 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-15: Tightened `plan.md` again from a compiler-engineering perspective. The active plan now explicitly tracks bounded-island lexing realism for modern C# string forms, the need for specialized interactive-control adapters rather than naive generic property patching, and the fact that virtualization, `DataContext` interop for third-party controls, and named slots are deferred areas that also function as real production-risk gaps rather than harmless future polish.
 - 2026-04-15: The repo-root `plan.md` is now also an execution document rather than only a direction document. It includes codebase touchpoints, per-workstream closure rules, an implementation issue log, concrete regression commands, and a final agent sign-off checklist so future spec-tightening work can be tracked through parser, runtime, tooling, tests, docs, and roadmap updates without leaving silent drift behind.
 - 2026-04-15: Executed the final pre-1.0 language-spec tightening pass. `LANGUAGE-SPEC.md` now carries a maintained revision log, file-local helper declarations are stated as part of the v1 surface rather than an aspiration, `using static` is implemented and tested as ordinary C# lookup only, slot outlets are rejected inside `foreach`, bounded-island lexical promises are backed by raw-string regression coverage, and the controlled-input/`DataContext`/virtualization wording now reflects the current retained WinUI runtime more honestly.
+- 2026-04-15: Closed the remaining attached-property source-contract drift. Generator validation/emission, tooling projection/semantic tokens, demo components, and project-system fixtures now require attached-property owners to be visible through ordinary imports or explicit type aliases, namespace aliases no longer slip through as owner types, and parser/tooling markup scans now admit dotted tag names consistently with the spec grammar.
+- 2026-04-16: Milestone 14 completed. The repo now carries a dedicated benchmark project plus perf scripts, measured generator/metadata/runtime baselines, a WinUI projection smoke path, a sharper attached-property resolver, and child-component-store reuse that materially reduced large keyed rerender cost. `docs/performance-and-scale.md` now records the measured v1 scale story directly, including the explicit boundary that `foreach` is not a virtualization mechanism.
+- 2026-04-16: Milestone 15 is now materially in progress. The repo has a public-package boundary (`Csxaml`, `Csxaml.Runtime`), local-feed package validation outside the repo layout, GitHub Actions workflows for PR-title enforcement, artifact CI, release-prep, and publish automation, package-install/native-props/release docs, and a small `samples/PackageHello` starter sample for the public package path. The remaining closeout step is exercising the protected publish environments and cutting the first real preview/stable releases.
+- 2026-04-17: Public release identity is now pinned instead of placeholder. The repo license and packaged artifacts now use Apache-2.0, the NuGet package metadata uses SPDX license expressions, and both marketplace publish surfaces are aligned to the confirmed publisher id `danielgarysoftware`.
+- 2026-04-17: The first public prerelease target is now pinned to `v0.1.0-preview.1`. Repo-local default package versions, package-install docs, and the outside-consumer sample now point at that preview line, and release-prep metadata has been generated for the matching NuGet, VS Code prerelease, and VSIX version shapes.
+- 2026-04-17: Release automation now treats tags as the published record rather than the trigger. Pushes to `develop` compute and publish preview releases, pushes to `master` compute and publish stable releases, and the publish workflow creates the corresponding `v*` tag only after the protected publish stages succeed.

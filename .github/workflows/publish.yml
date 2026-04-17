@@ -1,0 +1,368 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.prepare.outputs.should_release }}
+      release_version: ${{ steps.prepare.outputs.release_version }}
+      release_tag: ${{ steps.prepare.outputs.release_tag }}
+      release_is_preview: ${{ steps.prepare.outputs.release_is_preview }}
+      package_version: ${{ steps.prepare.outputs.package_version }}
+      vscode_version: ${{ steps.prepare.outputs.vscode_version }}
+      vsix_version: ${{ steps.prepare.outputs.vsix_version }}
+      vscode_pre_release: ${{ steps.prepare.outputs.vscode_pre_release }}
+      tag_already_exists: ${{ steps.prepare.outputs.tag_already_exists }}
+      commit_range: ${{ steps.prepare.outputs.commit_range }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch tags
+        run: git fetch --tags --force
+
+      - name: Setup git-cliff
+        uses: kenji-miyake/setup-git-cliff@v1
+
+      - name: Resolve release plan and prepare metadata
+        id: prepare
+        shell: pwsh
+        run: |
+          . ./scripts/release/Get-CsxamlAutomatedReleasePlan.ps1
+          $plan = Get-CsxamlAutomatedReleasePlan -BranchName '${{ github.ref_name }}'
+
+          "should_release=$([string]$plan.ShouldRelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "release_version=$($plan.ReleaseVersion)" >> $env:GITHUB_OUTPUT
+          "release_tag=$($plan.ReleaseTag)" >> $env:GITHUB_OUTPUT
+          "release_is_preview=$([string]$plan.IsPreview.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "tag_already_exists=$([string]$plan.TagAlreadyExists.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "commit_range=$($plan.CommitRange)" >> $env:GITHUB_OUTPUT
+
+          if (-not $plan.ShouldRelease) {
+            Write-Host "No releasable changes were detected for branch '${{ github.ref_name }}'."
+            exit 0
+          }
+
+          $arguments = @(
+            '-Version',
+            $plan.ReleaseVersion
+          )
+
+          if ($plan.CommitRange) {
+            $arguments += @('-CommitRange', $plan.CommitRange)
+          }
+
+          ./scripts/release/Invoke-ReleasePrep.ps1 @arguments
+          $metadata = Get-Content artifacts/release-prep/release-metadata.json -Raw | ConvertFrom-Json
+          "release_version=$($metadata.ReleaseVersion)" >> $env:GITHUB_OUTPUT
+          "package_version=$($metadata.PackageVersion)" >> $env:GITHUB_OUTPUT
+          "vscode_version=$($metadata.VsCodeVersion)" >> $env:GITHUB_OUTPUT
+          "vsix_version=$($metadata.VsixVersion)" >> $env:GITHUB_OUTPUT
+          "vscode_pre_release=$([string]$metadata.VsCodeIsPreRelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+
+      - name: Upload release prep artifacts
+        if: steps.prepare.outputs.should_release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-prep-${{ steps.prepare.outputs.release_version }}
+          path: artifacts/release-prep/*
+
+  validate:
+    runs-on: windows-latest
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: VSCodeExtension/package-lock.json
+
+      - name: Run test suite
+        shell: pwsh
+        run: ./scripts/release/Invoke-TestSuite.ps1
+
+  package:
+    runs-on: windows-latest
+    needs:
+      - prepare
+      - validate
+    if: needs.prepare.outputs.should_release == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: VSCodeExtension/package-lock.json
+
+      - name: Pack public NuGet packages
+        shell: pwsh
+        run: ./scripts/release/Pack-PublicPackages.ps1 -Version ${{ needs.prepare.outputs.release_version }}
+
+      - name: Validate packaged install
+        shell: pwsh
+        run: ./scripts/release/Test-PublicPackageInstall.ps1 -PackageVersion ${{ needs.prepare.outputs.package_version }}
+
+      - name: Pack VS Code extension
+        shell: pwsh
+        run: ./scripts/release/Pack-VsCodeExtension.ps1 -Version ${{ needs.prepare.outputs.release_version }}
+
+      - name: Pack Visual Studio extension
+        shell: pwsh
+        run: ./scripts/release/Pack-VisualStudioExtension.ps1 -Version ${{ needs.prepare.outputs.release_version }}
+
+      - name: Upload NuGet artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ needs.prepare.outputs.release_version }}
+          path: artifacts/packages/*
+
+      - name: Upload extension artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-artifacts-${{ needs.prepare.outputs.release_version }}
+          path: artifacts/extensions/**/*
+
+  publish_nuget:
+    runs-on: windows-latest
+    needs:
+      - prepare
+      - package
+    if: needs.prepare.outputs.should_release == 'true'
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download NuGet artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages-${{ needs.prepare.outputs.release_version }}
+          path: artifacts/packages
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Publish NuGet packages
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: ./scripts/release/Publish-NuGetPackages.ps1 -ApiKey $env:NUGET_API_KEY
+
+  publish_vscode:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - package
+    if: needs.prepare.outputs.should_release == 'true'
+    environment: vscode-marketplace
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download VS Code artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-artifacts-${{ needs.prepare.outputs.release_version }}
+          path: artifacts/extensions
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: VSCodeExtension/package-lock.json
+
+      - name: Publish VS Code extension
+        shell: pwsh
+        env:
+          VSCE_PAT: ${{ secrets.VSCODE_MARKETPLACE_PAT }}
+        run: |
+          $arguments = @(
+            '-PackagePath',
+            "artifacts/extensions/vscode/csxaml-vscode-extension-${{ needs.prepare.outputs.release_version }}.vsix",
+            '-PersonalAccessToken',
+            $env:VSCE_PAT
+          )
+          if ('${{ needs.prepare.outputs.vscode_pre_release }}' -eq 'true') {
+            $arguments += '-PreRelease'
+          }
+          ./scripts/release/Publish-VsCodeExtension.ps1 @arguments
+
+  publish_visualstudio:
+    runs-on: windows-latest
+    needs:
+      - prepare
+      - package
+    if: needs.prepare.outputs.should_release == 'true'
+    environment: visualstudio-marketplace
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Visual Studio artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-artifacts-${{ needs.prepare.outputs.release_version }}
+          path: artifacts/extensions
+
+      - name: Publish Visual Studio extension
+        shell: pwsh
+        env:
+          VS_MARKETPLACE_PAT: ${{ secrets.VS_MARKETPLACE_PAT }}
+        run: ./scripts/release/Publish-VisualStudioExtension.ps1 -VsixPath artifacts/extensions/visualstudio/Csxaml.VisualStudio-${{ needs.prepare.outputs.release_version }}.vsix -PersonalAccessToken $env:VS_MARKETPLACE_PAT
+
+  github_release:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - publish_nuget
+      - publish_vscode
+      - publish_visualstudio
+    if: needs.prepare.outputs.should_release == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download release prep artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-prep-${{ needs.prepare.outputs.release_version }}
+          path: artifacts/release-prep
+
+      - name: Download NuGet artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages-${{ needs.prepare.outputs.release_version }}
+          path: artifacts/packages
+
+      - name: Download extension artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-artifacts-${{ needs.prepare.outputs.release_version }}
+          path: artifacts/extensions
+
+      - name: Create release tag
+        if: needs.prepare.outputs.tag_already_exists != 'true'
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${{ needs.prepare.outputs.release_tag }}" "${{ github.sha }}"
+          git push origin "${{ needs.prepare.outputs.release_tag }}"
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = '${{ needs.prepare.outputs.release_tag }}'
+          $assetFiles = [System.Collections.Generic.List[string]]::new()
+
+          foreach ($path in @(
+            'artifacts/packages',
+            'artifacts/extensions/vscode',
+            'artifacts/extensions/visualstudio'
+          )) {
+            if (-not (Test-Path $path)) {
+              continue
+            }
+
+            foreach ($file in (Get-ChildItem $path -File)) {
+              $assetFiles.Add($file.FullName)
+            }
+          }
+
+          if ($assetFiles.Count -eq 0) {
+            throw "No release assets were found for '$tag'."
+          }
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @assetFiles --clobber
+            if ($LASTEXITCODE -ne 0) {
+              throw "gh release upload failed for '$tag'."
+            }
+
+            exit 0
+          }
+
+          $arguments = @(
+            'release',
+            'create',
+            $tag,
+            '--target',
+            '${{ github.sha }}',
+            '--title',
+            $tag,
+            '--notes-file',
+            'artifacts/release-prep/release-notes.md'
+          )
+
+          if ('${{ needs.prepare.outputs.release_is_preview }}' -eq 'true') {
+            $arguments += '--prerelease'
+          }
+
+          $arguments += $assetFiles
+
+          gh @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "gh release create failed for '$tag'."
+          }

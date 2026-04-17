@@ -4,7 +4,7 @@ internal sealed class CardViewComponent : ComponentInstance<CardViewProps>
 {
     public CardViewComponent()
     {
-        LocalCount = new Csxaml.Runtime.State<int>(0, () => RequestRender?.Invoke());
+        LocalCount = new Csxaml.Runtime.State<int>(0, InvalidateState, ValidateStateWrite);
     }
 
     public Csxaml.Runtime.State<int> LocalCount { get; }

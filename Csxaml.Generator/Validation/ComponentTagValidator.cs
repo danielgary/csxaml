@@ -8,7 +8,8 @@ internal sealed class ComponentTagValidator
         SourceDocument source,
         MarkupNode node,
         ComponentCatalogEntry component,
-        string? parentTagName)
+        string? parentTagName,
+        AttachedPropertyBindingResolver bindingResolver)
     {
         if (node.Children.Count > 0 && !component.SupportsDefaultSlot)
         {
@@ -36,7 +37,7 @@ internal sealed class ComponentTagValidator
 
             if (property.IsAttached)
             {
-                _attachedPropertyValidator.Validate(source, node, property, parentTagName);
+                _attachedPropertyValidator.Validate(source, node, property, parentTagName, bindingResolver);
                 continue;
             }
 

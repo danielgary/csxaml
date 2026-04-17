@@ -4,7 +4,7 @@ internal sealed class InjectedGreetingHostComponent : ComponentInstance
 {
     public InjectedGreetingHostComponent()
     {
-        Version = new Csxaml.Runtime.State<int>(0, () => RequestRender?.Invoke());
+        Version = new Csxaml.Runtime.State<int>(0, InvalidateState, ValidateStateWrite);
     }
 
     public Csxaml.Runtime.State<int> Version { get; }

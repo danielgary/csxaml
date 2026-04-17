@@ -7,6 +7,7 @@ public abstract class ComponentInstance
     private bool _isDisposed;
     private bool _isMounted;
     private IServiceProvider? _services;
+    private Action? _stateWriteValidator;
 
     public virtual string CsxamlComponentName => GetType().Name;
 
@@ -15,6 +16,11 @@ public abstract class ComponentInstance
     public Action? RequestRender { get; set; }
 
     internal ChildComponentStore ChildComponents => _childComponents;
+
+    internal Action? StateWriteValidator
+    {
+        set => _stateWriteValidator = value;
+    }
 
     protected IReadOnlyList<Node> ChildContent => _childContent;
 
@@ -80,6 +86,7 @@ public abstract class ComponentInstance
 
         _isMounted = false;
         RequestRender = null;
+        _stateWriteValidator = null;
     }
 
     internal bool TryBeginDispose()
@@ -92,7 +99,18 @@ public abstract class ComponentInstance
         _isDisposed = true;
         _isMounted = false;
         RequestRender = null;
+        _stateWriteValidator = null;
         return true;
+    }
+
+    protected void InvalidateState()
+    {
+        RequestRender?.Invoke();
+    }
+
+    protected void ValidateStateWrite()
+    {
+        _stateWriteValidator?.Invoke();
     }
 
     protected virtual void ResolveInjectedServices(IServiceProvider services)

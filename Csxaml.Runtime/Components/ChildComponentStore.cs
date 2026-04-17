@@ -2,30 +2,30 @@ namespace Csxaml.Runtime;
 
 internal sealed class ChildComponentStore
 {
-    private Dictionary<string, ComponentInstance> _current = new();
-    private HashSet<string> _explicitKeys = new(StringComparer.Ordinal);
-    private Dictionary<string, int> _positionOccurrences = new();
-    private Dictionary<string, ComponentInstance> _previous = new();
+    private Dictionary<string, ComponentInstance>? _current;
+    private HashSet<string>? _explicitKeys;
+    private Dictionary<string, int>? _positionOccurrences;
+    private Dictionary<string, ComponentInstance>? _previous;
 
     public void BeginRenderPass()
     {
-        _current = new Dictionary<string, ComponentInstance>();
-        _explicitKeys = new HashSet<string>(StringComparer.Ordinal);
-        _positionOccurrences = new Dictionary<string, int>();
+        _current?.Clear();
+        _explicitKeys?.Clear();
+        _positionOccurrences?.Clear();
     }
 
     public void CompleteRenderPass()
     {
         DisposeRemovedComponents();
-        _previous = _current;
+        (_previous, _current) = (_current, _previous);
     }
 
     public void AbortRenderPass()
     {
         DisposeNewComponents();
-        _current = new Dictionary<string, ComponentInstance>();
-        _explicitKeys = new HashSet<string>(StringComparer.Ordinal);
-        _positionOccurrences = new Dictionary<string, int>();
+        _current?.Clear();
+        _explicitKeys?.Clear();
+        _positionOccurrences?.Clear();
     }
 
     public ComponentInstance Resolve(
@@ -34,20 +34,23 @@ internal sealed class ChildComponentStore
         IComponentActivator activator)
     {
         ValidateExplicitKey(node);
-        var matchKey = ComponentMatchKey.Create(node, _positionOccurrences);
-        if (_current.ContainsKey(matchKey.Value))
+
+        var current = _current ??= new Dictionary<string, ComponentInstance>();
+        var positionOccurrences = _positionOccurrences ??= new Dictionary<string, int>();
+        var matchKey = ComponentMatchKey.Create(node, positionOccurrences);
+        if (current.ContainsKey(matchKey.Value))
         {
             throw new InvalidOperationException(
                 $"Duplicate child component identity '{matchKey.Value}'.");
         }
 
-        if (!_previous.TryGetValue(matchKey.Value, out var instance))
+        if (_previous is null || !_previous.TryGetValue(matchKey.Value, out var instance))
         {
             instance = activator.CreateComponent(node.ComponentType, context);
         }
 
         instance.Initialize(context);
-        _current[matchKey.Value] = instance;
+        current[matchKey.Value] = instance;
         return instance;
     }
 
@@ -58,10 +61,10 @@ internal sealed class ChildComponentStore
             ComponentDisposer.Dispose(component);
         }
 
-        _current = new Dictionary<string, ComponentInstance>();
-        _previous = new Dictionary<string, ComponentInstance>();
-        _explicitKeys = new HashSet<string>(StringComparer.Ordinal);
-        _positionOccurrences = new Dictionary<string, int>();
+        _current = null;
+        _previous = null;
+        _explicitKeys = null;
+        _positionOccurrences = null;
     }
 
     public async ValueTask DisposeAllAsync()
@@ -71,10 +74,10 @@ internal sealed class ChildComponentStore
             await ComponentDisposer.DisposeAsync(component);
         }
 
-        _current = new Dictionary<string, ComponentInstance>();
-        _previous = new Dictionary<string, ComponentInstance>();
-        _explicitKeys = new HashSet<string>(StringComparer.Ordinal);
-        _positionOccurrences = new Dictionary<string, int>();
+        _current = null;
+        _previous = null;
+        _explicitKeys = null;
+        _positionOccurrences = null;
     }
 
     private void ValidateExplicitKey(ComponentNode node)
@@ -84,6 +87,7 @@ internal sealed class ChildComponentStore
             return;
         }
 
+        _explicitKeys ??= new HashSet<string>(StringComparer.Ordinal);
         if (_explicitKeys.Add(node.Key))
         {
             return;
@@ -95,9 +99,14 @@ internal sealed class ChildComponentStore
 
     private void DisposeRemovedComponents()
     {
+        if (_previous is null)
+        {
+            return;
+        }
+
         foreach (var pair in _previous)
         {
-            if (_current.ContainsKey(pair.Key))
+            if (_current is not null && _current.ContainsKey(pair.Key))
             {
                 continue;
             }
@@ -109,9 +118,14 @@ internal sealed class ChildComponentStore
 
     private void DisposeNewComponents()
     {
+        if (_current is null)
+        {
+            return;
+        }
+
         foreach (var pair in _current)
         {
-            if (_previous.ContainsKey(pair.Key))
+            if (_previous is not null && _previous.ContainsKey(pair.Key))
             {
                 continue;
             }
@@ -125,7 +139,7 @@ internal sealed class ChildComponentStore
         var seen = new HashSet<ComponentInstance>(ReferenceEqualityComparer.Instance);
         var values = new List<ComponentInstance>();
 
-        foreach (var component in _previous.Values.Concat(_current.Values))
+        foreach (var component in EnumerateComponents())
         {
             if (seen.Add(component))
             {
@@ -134,5 +148,24 @@ internal sealed class ChildComponentStore
         }
 
         return values;
+    }
+
+    private IEnumerable<ComponentInstance> EnumerateComponents()
+    {
+        if (_previous is not null)
+        {
+            foreach (var component in _previous.Values)
+            {
+                yield return component;
+            }
+        }
+
+        if (_current is not null)
+        {
+            foreach (var component in _current.Values)
+            {
+                yield return component;
+            }
+        }
     }
 }

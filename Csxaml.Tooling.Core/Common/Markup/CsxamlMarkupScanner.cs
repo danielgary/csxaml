@@ -116,7 +116,7 @@ public static partial class CsxamlMarkupScanner
     }
 
     [GeneratedRegex(
-        @"(^|[\s{;(])<(?<slash>/?)(?<tag>[A-Za-z_][A-Za-z0-9_:]*)(?=[\s/>])",
+        @"(^|[\s{;(])<(?<slash>/?)(?<tag>[A-Za-z_][A-Za-z0-9_:.]*)(?=[\s/>])",
         RegexOptions.Multiline | RegexOptions.CultureInvariant)]
     private static partial Regex TagPattern();
 }

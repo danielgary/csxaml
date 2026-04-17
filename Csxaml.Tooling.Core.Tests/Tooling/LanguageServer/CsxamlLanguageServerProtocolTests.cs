@@ -21,6 +21,8 @@ public sealed class CsxamlLanguageServerProtocolTests
         using var tempFile = TemporaryCsxamlFile.Create(
             Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
             """
+            using Microsoft.UI.Xaml.Automation;
+
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {

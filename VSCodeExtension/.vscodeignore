@@ -1,0 +1,9 @@
+.vscode/**
+node_modules/**
+scripts/**
+dist/**/*.map
+src/**
+extension.js
+package-lock.json
+LanguageServer/**/*.pdb
+LanguageServer/**/*.xml

@@ -6,21 +6,12 @@ internal sealed class AttachedPropertyValidator
         SourceDocument source,
         MarkupNode node,
         PropertyNode property,
-        string? parentTagName)
+        string? parentTagName,
+        AttachedPropertyBindingResolver bindingResolver)
     {
-        if (!AttachedPropertyMetadataRegistry.TryGetProperty(
-            property.OwnerName!,
-            property.PropertyName,
-            out var metadata))
-        {
-            throw DiagnosticFactory.FromSpan(
-                source,
-                property.Span,
-                $"unknown attached property '{property.Name}' on '{node.TagName}'");
-        }
-
-        ValidateValue(source, node, property, metadata!);
-        ValidateParent(source, node, property, metadata!, parentTagName);
+        var metadata = bindingResolver.ResolveOrThrow(source, node.TagName, property);
+        ValidateValue(source, node, property, metadata);
+        ValidateParent(source, node, property, metadata, parentTagName);
     }
 
     private static void ValidateParent(

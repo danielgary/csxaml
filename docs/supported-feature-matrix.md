@@ -14,7 +14,7 @@ Status legend:
 | Conditional markup (`if`) | Supported | Covered by generator/runtime regression tests. |
 | Repeated markup (`foreach`) | Supported | Includes keyed child retention behavior. |
 | Slots | Supported | Covered by parser/validation/runtime tests. |
-| Attached properties | Supported | Includes semantic automation metadata. |
+| Attached properties | Supported | Includes semantic automation metadata plus owner resolution through ordinary imports and type aliases for the current metadata slice. |
 | Built-in control property/event binding | Supported | Covered by generator/runtime tests. |
 | External controls from referenced assemblies | Supported | Covered by validation, emission, runtime, and demo interop tests. |
 | Solution-local external controls | Supported | Covered by external-control validation and runtime regression paths. |

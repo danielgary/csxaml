@@ -18,7 +18,10 @@ internal sealed class ChildNodeEmitter
         _writer = writer;
         _component = component;
         _compilation = compilation;
-        _nativeAttributeEmitter = new NativeAttributeEmitter(component.Source, component.Definition.Name);
+        _nativeAttributeEmitter = new NativeAttributeEmitter(
+            component.Source,
+            component.Definition.Name,
+            new AttachedPropertyBindingResolver(component));
     }
 
     public void EmitRenderBody(ChildNode root)

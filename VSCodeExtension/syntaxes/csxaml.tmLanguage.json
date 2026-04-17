@@ -7,6 +7,9 @@
       "include": "#comments"
     },
     {
+      "include": "#componentDeclarationWithoutParameters"
+    },
+    {
       "include": "#componentDeclaration"
     },
     {
@@ -73,6 +76,20 @@
           "end": "\\*/"
         }
       ]
+    },
+    "componentDeclarationWithoutParameters": {
+      "match": "\\b(component)\\b\\s+(Element)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*\\{)",
+      "captures": {
+        "1": {
+          "name": "keyword.declaration.component.csxaml"
+        },
+        "2": {
+          "name": "storage.type.component-kind.csxaml"
+        },
+        "3": {
+          "name": "entity.name.type.class.csxaml"
+        }
+      }
     },
     "componentDeclaration": {
       "begin": "\\b(component)\\b\\s+(Element)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
@@ -191,7 +208,7 @@
       "patterns": [
         {
           "name": "meta.tag.xml",
-          "match": "(</)([A-Za-z_][A-Za-z0-9_:]*)(>)",
+          "match": "(</)([A-Za-z_][A-Za-z0-9_:.]*)(>)",
           "captures": {
             "1": {
               "name": "punctuation.definition.tag.begin.xml"
@@ -205,7 +222,7 @@
           }
         },
         {
-          "begin": "(<)([A-Za-z_][A-Za-z0-9_:]*)",
+          "begin": "(<)([A-Za-z_][A-Za-z0-9_:.]*)",
           "beginCaptures": {
             "1": {
               "name": "punctuation.definition.tag.begin.xml"

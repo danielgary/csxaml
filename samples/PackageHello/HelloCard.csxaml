@@ -1,0 +1,6 @@
+component Element HelloCard(string Title) {
+    render <StackPanel Spacing={8}>
+        <TextBlock Text={Title} FontSize={24} />
+        <Button Content="Tap" />
+    </StackPanel>;
+}

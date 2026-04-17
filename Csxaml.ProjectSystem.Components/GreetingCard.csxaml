@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml.Automation;
+
 component Element GreetingCard(string Title) {
     render <Border AutomationProperties.Name="Greeting Card">
         <TextBlock

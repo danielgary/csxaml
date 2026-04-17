@@ -40,6 +40,26 @@ public sealed class ComponentLifecycleTests
     }
 
     [TestMethod]
+    public void Render_RemovedChild_PostUnmountTouchNoops()
+    {
+        DisposableProbeChildComponent.Reset();
+        var host = new DisposableProbeHostComponent();
+        var coordinator = new ComponentTreeCoordinator(host);
+
+        coordinator.Render();
+        var removed = DisposableProbeChildComponent.LastCreated!;
+        host.ShowChild = false;
+        coordinator.Render();
+        var updateCount = 0;
+        coordinator.TreeUpdated += _ => updateCount++;
+
+        removed.Count.Touch();
+
+        Assert.AreEqual(1, DisposableProbeChildComponent.DisposeCount, DisposableProbeChildComponent.DisposalTrace);
+        Assert.AreEqual(0, updateCount);
+    }
+
+    [TestMethod]
     public void Dispose_Coordinator_DisposesRetainedChildSubtree()
     {
         DisposableProbeChildComponent.Reset();

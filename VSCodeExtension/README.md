@@ -2,6 +2,8 @@
 
 This folder contains a VS Code extension for `.csxaml` files.
 
+The public marketplace publisher id is `danielgarysoftware`, and the extension is licensed under Apache-2.0.
+
 ## Goals
 
 The extension is based on [LANGUAGE-SPEC.md](../LANGUAGE-SPEC.md), with three priorities:
@@ -60,8 +62,7 @@ This extension now uses the shared `Csxaml.LanguageServer`, but the server still
 That means:
 
 - hover is not implemented yet
-- the local development loop assumes you have built `Csxaml.LanguageServer`
-- packaged VS Code distribution is not hardened yet; this folder is aimed first at local iteration in the repo
+- the local development loop still assumes you can build `Csxaml.LanguageServer`
 
 ## Best Results
 
@@ -72,12 +73,14 @@ The markup side does not depend on an external XAML extension because the gramma
 ## Folder Layout
 
 - `package.json`: VS Code extension manifest
-- `extension.js`: activation and language-client startup
+- `extension.js`: source entrypoint used for local bundling
+- `dist/`: bundled runtime entrypoint used by the packaged extension
 - `language-configuration.json`: comments and pair behavior
 - `syntaxes/csxaml.tmLanguage.json`: hybrid TextMate grammar
 - `syntaxes/csxaml-embedded-csharp.tmLanguage.json`: recursive embedded C# regions for expressions and control-flow headers
 - `src/languageServerPathResolver.js`: resolves local and packaged language-server paths
 - `snippets/csxaml.code-snippets`: common CSXAML snippets
+- `scripts/bundle-extension.mjs`: bundles the extension entrypoint for packaging and local debug use
 
 ## Development
 
@@ -86,7 +89,7 @@ Typical workflow:
 1. Open `VSCodeExtension` as the workspace folder in VS Code.
 2. Run `npm install`.
 3. Press `F5` to launch an Extension Development Host.
-4. The launch profile opens the repo root and runs a prelaunch `dotnet build` for `Csxaml.LanguageServer`.
+4. The launch profile bundles the extension entrypoint and builds `Csxaml.LanguageServer` before starting the extension host.
 5. Open a `.csxaml` file in the extension host and test completion, diagnostics, formatting, and navigation.
 
 The extension resolves the language server in this order:
@@ -102,6 +105,5 @@ Use the `CSXAML: Restart Language Server` command after rebuilding the server wh
 
 Good follow-up work for this extension:
 
-- harden packaging so the VS Code extension carries its own `LanguageServer/` payload
 - add hover and richer code actions once the shared language server grows them
 - add VS Code-side smoke coverage for startup and core LSP flows

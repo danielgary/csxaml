@@ -1,11 +1,21 @@
 <Project>
   <PropertyGroup>
+    <CsxamlToolRoot Condition="'$(CsxamlToolRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\tools\Csxaml.Generator\Csxaml.Generator.dll')">$(MSBuildThisFileDirectory)..\tools\Csxaml.Generator\</CsxamlToolRoot>
+    <CsxamlImportedFromPackage Condition="'$(CsxamlImportedFromPackage)' == '' and '$(CsxamlToolRoot)' != ''">true</CsxamlImportedFromPackage>
+    <EnableCsxaml Condition="'$(EnableCsxaml)' == '' and '$(CsxamlImportedFromPackage)' == 'true'">true</EnableCsxaml>
     <EnableCsxaml Condition="'$(EnableCsxaml)' == ''">false</EnableCsxaml>
     <CsxamlEnableDefaultSourceGlob Condition="'$(CsxamlEnableDefaultSourceGlob)' == ''">true</CsxamlEnableDefaultSourceGlob>
+    <CsxamlGeneratorDll Condition="'$(CsxamlGeneratorDll)' == '' and '$(CsxamlToolRoot)' != ''">$(CsxamlToolRoot)Csxaml.Generator.dll</CsxamlGeneratorDll>
     <CsxamlGeneratorProject Condition="'$(CsxamlGeneratorProject)' == ''">$(MSBuildThisFileDirectory)..\Csxaml.Generator\Csxaml.Generator.csproj</CsxamlGeneratorProject>
+    <CsxamlControlMetadataProject Condition="'$(CsxamlControlMetadataProject)' == ''">$(MSBuildThisFileDirectory)..\Csxaml.ControlMetadata\Csxaml.ControlMetadata.csproj</CsxamlControlMetadataProject>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlEnableDefaultSourceGlob)' == 'true'">
-    <CsxamlSource Include="**\*.csxaml" Exclude="$(DefaultItemExcludes);bin\**;obj\**" />
+    <CsxamlSource Include="$(MSBuildProjectDirectory)\**\*.csxaml" Exclude="$(DefaultItemExcludes);$(MSBuildProjectDirectory)\bin\**;$(MSBuildProjectDirectory)\obj\**" />
+  </ItemGroup>
+
+  <ItemGroup
+    Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlImportedFromPackage)' != 'true' and Exists('$(CsxamlControlMetadataProject)') and '$(MSBuildProjectFullPath)' != '$(CsxamlControlMetadataProject)'">
+    <ProjectReference Include="$(CsxamlControlMetadataProject)" PrivateAssets="all" />
   </ItemGroup>
 </Project>

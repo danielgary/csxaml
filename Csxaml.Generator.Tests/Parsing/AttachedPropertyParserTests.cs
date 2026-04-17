@@ -29,4 +29,22 @@ public sealed class AttachedPropertyParserTests
         Assert.AreEqual("Name", title.Properties[1].PropertyName);
         Assert.IsTrue(title.Properties[1].IsAttached);
     }
+
+    [TestMethod]
+    public void Parse_DottedTag_PreservesFullTagName()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoBoard.csxaml",
+            """
+            component Element TodoBoard {
+                render <Foo.Bar></Foo.Bar>;
+            }
+            """);
+
+        var root = TestAstAssertions.RequireMarkup(component.Definition.Root);
+
+        Assert.AreEqual("Foo.Bar", root.TagName);
+        Assert.IsNull(root.Tag.Prefix);
+        Assert.AreEqual("Foo.Bar", root.Tag.LocalName);
+    }
 }
