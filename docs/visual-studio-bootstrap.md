@@ -108,7 +108,7 @@ If `.csxaml` still opens without CSXAML editor features:
 5. If the log says the language server needs `Microsoft.NETCore.App` `10.0.x`, confirm `dotnet --list-runtimes` includes a `Microsoft.NETCore.App 10.0.x` entry under `C:\Program Files\dotnet`.
 6. If the extension appears in the experimental hive but is disabled, re-enable it in Extensions and restart the instance.
 7. If the Extension Manager warns that the package only supports `net8.0`, redeploy the current VSIX; the generated manifest should now declare `net8.0;net10.0`.
-8. If restore/design-time errors mention only `LocalNuGetCache` and `VisualStudioOfflinePackages`, reload the solution so Visual Studio picks up the repo `NuGet.Config` that now includes `NuGet.org`.
+8. If restore/design-time errors mention only `VisualStudioOfflinePackages`, reload the solution so Visual Studio picks up the repo `NuGet.Config` that includes `NuGet.org`.
 9. If `%TEMP%\csxaml-visualstudio.log` never appears, inspect the deployed extension folder and confirm the packaged `LanguageServer\` payload is present.
 
 `VSIXInstaller` failures that mention `RequiresInstallerException` are expected for this extension type. Use the bootstrap script instead of double-clicking the `.vsix`.
