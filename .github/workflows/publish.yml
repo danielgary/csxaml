@@ -59,16 +59,15 @@ jobs:
             exit 0
           }
 
-          $arguments = @(
-            '-Version',
-            $plan.ReleaseVersion
-          )
-
-          if ($plan.CommitRange) {
-            $arguments += @('-CommitRange', $plan.CommitRange)
+          $parameters = @{
+            Version = $plan.ReleaseVersion
           }
 
-          ./scripts/release/Invoke-ReleasePrep.ps1 @arguments
+          if ($plan.CommitRange) {
+            $parameters.CommitRange = $plan.CommitRange
+          }
+
+          ./scripts/release/Invoke-ReleasePrep.ps1 @parameters
           $metadata = Get-Content artifacts/release-prep/release-metadata.json -Raw | ConvertFrom-Json
           "release_version=$($metadata.ReleaseVersion)" >> $env:GITHUB_OUTPUT
           "package_version=$($metadata.PackageVersion)" >> $env:GITHUB_OUTPUT
@@ -231,16 +230,16 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCODE_MARKETPLACE_PAT }}
         run: |
-          $arguments = @(
-            '-PackagePath',
-            "artifacts/extensions/vscode/csxaml-vscode-extension-${{ needs.prepare.outputs.release_version }}.vsix",
-            '-PersonalAccessToken',
-            $env:VSCE_PAT
-          )
-          if ('${{ needs.prepare.outputs.vscode_pre_release }}' -eq 'true') {
-            $arguments += '-PreRelease'
+          $parameters = @{
+            PackagePath = "artifacts/extensions/vscode/csxaml-vscode-extension-${{ needs.prepare.outputs.release_version }}.vsix"
+            PersonalAccessToken = $env:VSCE_PAT
           }
-          ./scripts/release/Publish-VsCodeExtension.ps1 @arguments
+
+          if ('${{ needs.prepare.outputs.vscode_pre_release }}' -eq 'true') {
+            $parameters.PreRelease = $true
+          }
+
+          ./scripts/release/Publish-VsCodeExtension.ps1 @parameters
 
   publish_visualstudio:
     runs-on: windows-latest

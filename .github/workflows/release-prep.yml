@@ -38,18 +38,18 @@ jobs:
         id: prep
         shell: pwsh
         run: |
-          $arguments = @()
+          $parameters = @{}
           if ('${{ inputs.version }}') {
-            $arguments += @('-Version', '${{ inputs.version }}')
+            $parameters.Version = '${{ inputs.version }}'
           }
           if ('${{ inputs.preview }}' -eq 'true') {
-            $arguments += '-Preview'
+            $parameters.Preview = $true
           }
           if ('${{ inputs.preview_number }}') {
-            $arguments += @('-PreviewNumber', '${{ inputs.preview_number }}')
+            $parameters.PreviewNumber = [int]'${{ inputs.preview_number }}'
           }
 
-          ./scripts/release/Invoke-ReleasePrep.ps1 @arguments
+          ./scripts/release/Invoke-ReleasePrep.ps1 @parameters
 
           $metadata = Get-Content artifacts/release-prep/release-metadata.json -Raw | ConvertFrom-Json
           "release_version=$($metadata.ReleaseVersion)" >> $env:GITHUB_OUTPUT

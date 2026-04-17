@@ -9,6 +9,7 @@ internal static class GeneratedCompilationTestHarness
 {
     private static readonly string RepoRoot = Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    private static readonly string BuildConfiguration = GetBuildConfiguration();
 
     public static IReadOnlyList<RoslynDiagnostic> Compile(string generatedCode)
     {
@@ -45,12 +46,53 @@ internal static class GeneratedCompilationTestHarness
 
     private static string GetAssemblyPath(string projectName, string targetFramework)
     {
-        return Path.Combine(
-            RepoRoot,
-            projectName,
-            "bin",
-            "Debug",
-            targetFramework,
-            $"{projectName}.dll");
+        foreach (var configuration in GetConfigurationCandidates())
+        {
+            var candidatePath = Path.Combine(
+                RepoRoot,
+                projectName,
+                "bin",
+                configuration,
+                targetFramework,
+                $"{projectName}.dll");
+
+            if (File.Exists(candidatePath))
+            {
+                return candidatePath;
+            }
+        }
+
+        throw new FileNotFoundException(
+            $"Could not find '{projectName}.dll' for target framework '{targetFramework}'.",
+            Path.Combine(
+                RepoRoot,
+                projectName,
+                "bin",
+                BuildConfiguration,
+                targetFramework,
+                $"{projectName}.dll"));
+    }
+
+    private static IReadOnlyList<string> GetConfigurationCandidates()
+    {
+        var candidates = new List<string> { BuildConfiguration };
+        if (!candidates.Contains("Release", StringComparer.OrdinalIgnoreCase))
+        {
+            candidates.Add("Release");
+        }
+
+        if (!candidates.Contains("Debug", StringComparer.OrdinalIgnoreCase))
+        {
+            candidates.Add("Debug");
+        }
+
+        return candidates;
+    }
+
+    private static string GetBuildConfiguration()
+    {
+        var frameworkDirectory = Directory.GetParent(AppContext.BaseDirectory);
+        var configurationDirectory = frameworkDirectory?.Parent;
+        return configurationDirectory?.Name ?? "Debug";
     }
 }
