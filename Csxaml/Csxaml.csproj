@@ -39,7 +39,7 @@
     <RemoveDir Directories="$(CsxamlGeneratorPublishDirectory)" Condition="Exists('$(CsxamlGeneratorPublishDirectory)')" />
     <MSBuild
       Projects="..\\Csxaml.Generator\\Csxaml.Generator.csproj"
-      Targets="Publish"
+      Targets="Restore;Publish"
       RemoveProperties="TargetFramework;TargetFrameworks;TargetPlatform;TargetPlatformMinVersion;RuntimeIdentifier;RuntimeIdentifiers"
       Properties="Configuration=$(Configuration);PublishDir=$(CsxamlGeneratorPublishDirectory);SelfContained=false;PublishSingleFile=false;UseAppHost=false" />
   </Target>
