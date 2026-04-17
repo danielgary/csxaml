@@ -63,6 +63,7 @@ obj/Debug/net8.0-windows8.0/
  Csxaml.VisualStudio.Tests.AssemblyInfo.cs
  Csxaml.VisualStudio.Tests.GlobalUsings.g.cs
 Properties/AssemblyInfo.cs
+VisualStudioArtifactPaths.cs
 VsixPackageTests.cs
 
 [metadataReferences]
