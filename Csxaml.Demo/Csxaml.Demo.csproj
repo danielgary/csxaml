@@ -7,7 +7,6 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
-    <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <EnableCsxaml>true</EnableCsxaml>
   </PropertyGroup>
