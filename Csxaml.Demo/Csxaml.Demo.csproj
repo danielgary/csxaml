@@ -9,6 +9,7 @@
     <WindowsPackageType>None</WindowsPackageType>
     <Nullable>enable</Nullable>
     <EnableCsxaml>true</EnableCsxaml>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

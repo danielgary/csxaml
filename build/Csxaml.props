@@ -2,10 +2,8 @@
   <PropertyGroup>
     <EnableCsxaml Condition="'$(EnableCsxaml)' == ''">false</EnableCsxaml>
     <CsxamlEnableDefaultSourceGlob Condition="'$(CsxamlEnableDefaultSourceGlob)' == ''">true</CsxamlEnableDefaultSourceGlob>
-    <CsxamlGeneratorProject Condition="'$(CsxamlGeneratorProject)' == ''">$(MSBuildThisFileDirectory)..\Csxaml.Generator\Csxaml.Generator.csproj</CsxamlGeneratorProject>
+    <CsxamlGeneratorProjectCandidate>$(MSBuildThisFileDirectory)..\Csxaml.Generator\Csxaml.Generator.csproj</CsxamlGeneratorProjectCandidate>
+    <CsxamlGeneratorProject Condition="'$(CsxamlGeneratorProject)' == '' and Exists('$(CsxamlGeneratorProjectCandidate)')">$(CsxamlGeneratorProjectCandidate)</CsxamlGeneratorProject>
+    <CsxamlGeneratorAssembly Condition="'$(CsxamlGeneratorAssembly)' == '' and '$(CsxamlGeneratorProject)' == ''">$(MSBuildThisFileDirectory)..\tools\net10.0\any\Csxaml.Generator.dll</CsxamlGeneratorAssembly>
   </PropertyGroup>
-
-  <ItemGroup Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlEnableDefaultSourceGlob)' == 'true'">
-    <CsxamlSource Include="**\*.csxaml" Exclude="$(DefaultItemExcludes);bin\**;obj\**" />
-  </ItemGroup>
 </Project>

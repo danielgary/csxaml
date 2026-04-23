@@ -12,6 +12,16 @@
       "console": "internalConsole"
     },
     {
+      "name": "Csxaml.Starter (GreetingCard Sample)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-starter",
+      "program": "${workspaceFolder}\\samples\\Csxaml.Starter\\bin\\Debug\\net10.0-windows10.0.19041.0\\Csxaml.Starter.exe",
+      "cwd": "${workspaceFolder}\\samples\\Csxaml.Starter\\bin\\Debug\\net10.0-windows10.0.19041.0",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    {
       "name": "Visual Studio Exp + CSXAML VSIX",
       "type": "node-terminal",
       "request": "launch",
