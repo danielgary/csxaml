@@ -22,7 +22,8 @@ async function activate(context) {
             await restartLanguageServer(context, true);
         });
     configurationRegistration = vscode.workspace.onDidChangeConfiguration(async event => {
-        if (!event.affectsConfiguration("csxaml.languageServer.path")) {
+        if (!event.affectsConfiguration("csxaml.languageServer.path") &&
+            !event.affectsConfiguration("csxaml.languageServer.trace")) {
             return;
         }
 
@@ -40,6 +41,7 @@ async function deactivate() {
 async function startLanguageServer(context) {
     const configuration = vscode.workspace.getConfiguration("csxaml.languageServer");
     const configuredPath = configuration.get("path", "");
+    const traceLevel = configuration.get("trace", "off");
     const isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development;
     const resolution = resolveLanguageServerPath(
         context.extensionPath,
@@ -69,7 +71,7 @@ async function startLanguageServer(context) {
     }
 
     for (const launcher of resolution.launchers) {
-        const started = await tryStartLanguageServer(context, isDevelopmentMode, launcher);
+        const started = await tryStartLanguageServer(context, isDevelopmentMode, traceLevel, launcher);
         if (started) {
             return;
         }
@@ -83,7 +85,7 @@ async function startLanguageServer(context) {
     }
 }
 
-async function tryStartLanguageServer(context, isDevelopmentMode, launcher) {
+async function tryStartLanguageServer(context, isDevelopmentMode, traceLevel, launcher) {
     outputChannel.appendLine(
         `Starting CSXAML language server from '${launcher.resolvedPath}' using '${launcher.command}'.`);
 
@@ -118,10 +120,7 @@ async function tryStartLanguageServer(context, isDevelopmentMode, launcher) {
             await client.onReady();
         }
 
-        if (isDevelopmentMode && typeof client.setTrace === "function") {
-            await client.setTrace(Trace.Verbose);
-            outputChannel.appendLine("CSXAML language client trace is enabled for extension development.");
-        }
+        await applyTraceLevel(traceLevel, isDevelopmentMode);
     } catch (error) {
         const message = error && error.message ? error.message : String(error);
         outputChannel.appendLine(`Failed to start CSXAML language server from '${launcher.resolvedPath}': ${message}`);
@@ -138,6 +137,29 @@ async function tryStartLanguageServer(context, isDevelopmentMode, launcher) {
 
     outputChannel.appendLine("CSXAML language server is ready.");
     return true;
+}
+
+async function applyTraceLevel(traceLevel, isDevelopmentMode) {
+    if (!client || typeof client.setTrace !== "function") {
+        return;
+    }
+
+    switch (traceLevel) {
+        case "messages":
+            await client.setTrace(Trace.Messages);
+            outputChannel.appendLine("CSXAML language client trace level: messages.");
+            return;
+        case "verbose":
+            await client.setTrace(Trace.Verbose);
+            outputChannel.appendLine("CSXAML language client trace level: verbose.");
+            return;
+        default:
+            await client.setTrace(Trace.Off);
+            if (isDevelopmentMode) {
+                outputChannel.appendLine("CSXAML language client trace is off by default in extension development mode.");
+            }
+            return;
+    }
 }
 
 function formatClientState(state) {

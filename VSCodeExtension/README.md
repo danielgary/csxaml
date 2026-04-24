@@ -103,6 +103,8 @@ Typical workflow:
 5. Run `npm run bundle` in `VSCodeExtension` after changing `extension.js` or `src/**/*`.
 6. Open a `.csxaml` file in the extension host and test completion, diagnostics, formatting, navigation, and hover.
 
+By default, repo-local development keeps language-client trace off so hover and completion stay closer to normal editor speed. Turn on `csxaml.languageServer.trace` only when you need protocol-level debugging.
+
 ## Packaged Path
 
 The packaged extension is aimed at Windows-hosted CSXAML authoring outside the repo.

@@ -2,12 +2,10 @@ version=1
 
 # This file caches language service data to improve the performance of C# Dev Kit.
 # It is not intended for manual editing. It can safely be deleted and will be
-# regenerated automatically.
+# regenerated automatically. For more information, see https://aka.ms/lscache
 #
-# To exclude from version control, add *.lscache to your .gitignore file.
-#
-# To disable caching, add the following to your VS Code settings:
-#   "dotnet.projectsystem.enableLanguageServiceCache": false
+# To control where cache files are stored, use the following VS Code setting:
+#   "dotnet.projectsystem.cacheInProjectFolder": true
 
 [project]
 language=C#
@@ -309,6 +307,11 @@ Common/Markup/
  CsxamlUsingDirectiveScanner.cs
  TopLevelTextSegment.cs
 Common/Text/CsxamlTextCoordinateConverter.cs
+Net10/CodeActions/
+ CsxamlClosestNameSuggester.cs
+ CsxamlCodeAction.cs
+ CsxamlCodeActionEdit.cs
+ CsxamlCodeActionService.cs
 Net10/Completion/
  CsxamlCompletionItem.cs
  CsxamlCompletionItemKind.cs
@@ -322,6 +325,7 @@ Net10/CSharp/
  CsxamlCSharpCompletionService.cs
  CsxamlCSharpDefinitionService.cs
  CsxamlCSharpDiagnosticService.cs
+ CsxamlCSharpHoverService.cs
  CsxamlCSharpProjectionBuilder.cs
  CsxamlExpressionSpanLocator.cs
  CsxamlProjectedDocument.cs
@@ -338,13 +342,21 @@ Net10/Diagnostics/
  CsxamlEditorDiagnostic.cs
 Net10/
  Formatting/CsxamlFormattingService.cs
+ Hover/
+  CsxamlHoverFormatter.cs
+  CsxamlHoverInfo.cs
+  CsxamlHoverService.cs
  Projects/
+  CsxamlCachedComponentSymbol.cs
+  CsxamlExternalControlCache.cs
+  CsxamlFileStamp.cs
   CsxamlProjectFileReader.cs
   CsxamlProjectInfo.cs
   CsxamlProjectLocator.cs
   CsxamlProjectOutputResolver.cs
   CsxamlProjectReferenceResolver.cs
   CsxamlProjectSourceResolver.cs
+  CsxamlWorkspaceComponentCache.cs
   CsxamlWorkspaceComponentSymbol.cs
   CsxamlWorkspaceLoader.cs
   CsxamlWorkspaceSnapshot.cs
@@ -362,7 +374,7 @@ obj/Debug/net10.0/
 ../
  Csxaml.ControlMetadata/obj/Debug/net10.0/ref/Csxaml.ControlMetadata.dll
  Csxaml.Generator/obj/Debug/net10.0/ref/Csxaml.Generator.dll
-<DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.6/ref/net10.0/
+<DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.7/ref/net10.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll
  Microsoft.VisualBasic.dll
@@ -535,14 +547,14 @@ obj/Debug/net10.0/
  microsoft.codeanalysis.csharp/5.0.0/lib/net9.0/Microsoft.CodeAnalysis.CSharp.dll
 
 [analyzerReferences]
-<DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.6/analyzers/dotnet/cs/
+<DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.7/analyzers/dotnet/cs/
  Microsoft.Interop.ComInterfaceGenerator.dll
  Microsoft.Interop.JavaScript.JSImportGenerator.dll
  Microsoft.Interop.LibraryImportGenerator.dll
  Microsoft.Interop.SourceGeneration.dll
  System.Text.Json.SourceGeneration.dll
  System.Text.RegularExpressions.Generator.dll
-<DOTNET>/sdk/10.0.202/Sdks/Microsoft.NET.Sdk/analyzers/
+<DOTNET>/sdk/10.0.203/Sdks/Microsoft.NET.Sdk/analyzers/
  Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll
  Microsoft.CodeAnalysis.NetAnalyzers.dll
 <NUGET>/microsoft.codeanalysis.analyzers/3.11.0/analyzers/dotnet/cs/
@@ -550,7 +562,7 @@ obj/Debug/net10.0/
  Microsoft.CodeAnalysis.CSharp.Analyzers.dll
 
 [analyzerConfigFiles]
-<DOTNET>/sdk/10.0.202/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_10_default.globalconfig
+<DOTNET>/sdk/10.0.203/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_10_default.globalconfig
 obj/Debug/net10.0/Csxaml.Tooling.Core.GeneratedMSBuildEditorConfig.editorconfig
 
 ---
@@ -805,10 +817,10 @@ obj/Debug/net8.0/
  Microsoft.Interop.SourceGeneration.dll
  System.Text.Json.SourceGeneration.dll
  System.Text.RegularExpressions.Generator.dll
-<DOTNET>/sdk/10.0.202/Sdks/Microsoft.NET.Sdk/analyzers/
+<DOTNET>/sdk/10.0.203/Sdks/Microsoft.NET.Sdk/analyzers/
  Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll
  Microsoft.CodeAnalysis.NetAnalyzers.dll
 
 [analyzerConfigFiles]
-<DOTNET>/sdk/10.0.202/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig
+<DOTNET>/sdk/10.0.203/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig
 obj/Debug/net8.0/Csxaml.Tooling.Core.GeneratedMSBuildEditorConfig.editorconfig

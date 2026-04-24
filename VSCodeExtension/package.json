@@ -55,6 +55,16 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Optional path to `Csxaml.LanguageServer.exe` or `Csxaml.LanguageServer.dll`. Relative paths resolve from the first workspace folder when available, otherwise from the extension folder."
+        },
+        "csxaml.languageServer.trace": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "markdownDescription": "Trace level for the CSXAML language server output channel. `verbose` is useful for protocol debugging, but it can noticeably slow hover and completion in development builds."
         }
       }
     },

@@ -2,12 +2,10 @@ version=1
 
 # This file caches language service data to improve the performance of C# Dev Kit.
 # It is not intended for manual editing. It can safely be deleted and will be
-# regenerated automatically.
+# regenerated automatically. For more information, see https://aka.ms/lscache
 #
-# To exclude from version control, add *.lscache to your .gitignore file.
-#
-# To disable caching, add the following to your VS Code settings:
-#   "dotnet.projectsystem.enableLanguageServiceCache": false
+# To control where cache files are stored, use the following VS Code setting:
+#   "dotnet.projectsystem.cacheInProjectFolder": true
 
 [project]
 language=C#
@@ -48,7 +46,6 @@ TemporaryDependencyNodeTargetIdentifier=net10.0-windows10.0.19041.0
 /optimize-
 /out:obj\Debug\net10.0-windows10.0.19041.0\Csxaml.Testing.dll
 /refout:obj\Debug\net10.0-windows10.0.19041.0\refint\Csxaml.Testing.dll
-/subsystemversion:6.00
 /target:library
 /warnaserror-
 /utf8output
@@ -69,7 +66,7 @@ Queries/NativeElementQuery.cs
 
 [metadataReferences]
 ../Csxaml.Runtime/obj/Debug/net10.0-windows10.0.19041.0/ref/Csxaml.Runtime.dll
-<DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.6/ref/net10.0/
+<DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.7/ref/net10.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll
  Microsoft.VisualBasic.dll
@@ -237,61 +234,23 @@ Queries/NativeElementQuery.cs
  System.Xml.XPath.dll
  System.Xml.XPath.XDocument.dll
  WindowsBase.dll
-<NUGET>/
- microsoft.extensions.dependencyinjection.abstractions/10.0.0/lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
- microsoft.extensions.dependencyinjection/10.0.0/lib/net10.0/Microsoft.Extensions.DependencyInjection.dll
- microsoft.web.webview2/1.0.3179.45/lib_manual/net8.0-windows10.0.17763.0/Microsoft.Web.WebView2.Core.Projection.dll
- microsoft.windows.sdk.net.ref/10.0.19041.57/lib/net8.0/
-  Microsoft.Windows.SDK.NET.dll
-  WinRT.Runtime.dll
- microsoft.windowsappsdk.ai/1.8.47/lib/net6.0-windows10.0.17763.0/
-  Microsoft.Graphics.Imaging.Projection.dll
-  Microsoft.Windows.AI.ContentSafety.Projection.dll
-  Microsoft.Windows.AI.Foundation.Projection.dll
-  Microsoft.Windows.AI.Imaging.Projection.dll
-  Microsoft.Windows.AI.Projection.dll
-  Microsoft.Windows.AI.Text.Projection.dll
- microsoft.windowsappsdk.foundation/1.8.260203002/lib/net6.0-windows10.0.17763.0/
-  Microsoft.Security.Authentication.OAuth.Projection.dll
-  Microsoft.Windows.ApplicationModel.Background.Projection.dll
-  Microsoft.Windows.ApplicationModel.DynamicDependency.Projection.dll
-  Microsoft.Windows.ApplicationModel.Resources.Projection.dll
-  Microsoft.Windows.ApplicationModel.WindowsAppRuntime.Projection.dll
-  Microsoft.Windows.AppLifecycle.Projection.dll
-  Microsoft.Windows.AppNotifications.Builder.Projection.dll
-  Microsoft.Windows.AppNotifications.Projection.dll
-  Microsoft.Windows.BadgeNotifications.Projection.dll
-  Microsoft.Windows.Foundation.Projection.dll
-  Microsoft.Windows.Management.Deployment.Projection.dll
-  Microsoft.Windows.Media.Capture.Projection.dll
-  Microsoft.Windows.PushNotifications.Projection.dll
-  Microsoft.Windows.Security.AccessControl.Projection.dll
-  Microsoft.Windows.Storage.Pickers.Projection.dll
-  Microsoft.Windows.Storage.Projection.dll
-  Microsoft.Windows.System.Power.Projection.dll
-  Microsoft.Windows.System.Projection.dll
-  Microsoft.WindowsAppRuntime.Bootstrap.Net.dll
- microsoft.windowsappsdk.interactiveexperiences/1.8.260125001/lib/net6.0-windows10.0.18362.0/Microsoft.InteractiveExperiences.Projection.dll
- microsoft.windowsappsdk.ml/1.8.2124/lib/net8.0-windows10.0.17763.0/
-  Microsoft.ML.OnnxRuntime.dll
-  Microsoft.Windows.AI.MachineLearning.Projection.dll
- microsoft.windowsappsdk.widgets/1.8.251231004/lib/net6.0-windows10.0.17763.0/Microsoft.Windows.Widgets.Projection.dll
- microsoft.windowsappsdk.winui/1.8.260204000/lib/net6.0-windows10.0.17763.0/Microsoft.WinUI.dll
- system.numerics.tensors/9.0.0/lib/net9.0/System.Numerics.Tensors.dll
+<NUGET>/microsoft.windows.sdk.net.ref/10.0.19041.57/lib/net8.0/
+ Microsoft.Windows.SDK.NET.dll
+ WinRT.Runtime.dll
 
 [analyzerReferences]
-<DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.6/analyzers/dotnet/cs/
+<DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.7/analyzers/dotnet/cs/
  Microsoft.Interop.ComInterfaceGenerator.dll
  Microsoft.Interop.JavaScript.JSImportGenerator.dll
  Microsoft.Interop.LibraryImportGenerator.dll
  Microsoft.Interop.SourceGeneration.dll
  System.Text.Json.SourceGeneration.dll
  System.Text.RegularExpressions.Generator.dll
-<DOTNET>/sdk/10.0.202/Sdks/Microsoft.NET.Sdk/analyzers/
+<DOTNET>/sdk/10.0.203/Sdks/Microsoft.NET.Sdk/analyzers/
  Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll
  Microsoft.CodeAnalysis.NetAnalyzers.dll
 <NUGET>/microsoft.windows.sdk.net.ref/10.0.19041.57/analyzers/dotnet/cs/WinRT.SourceGenerator.dll
 
 [analyzerConfigFiles]
-<DOTNET>/sdk/10.0.202/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_10_default.globalconfig
+<DOTNET>/sdk/10.0.203/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_10_default.globalconfig
 obj/Debug/net10.0-windows10.0.19041.0/Csxaml.Testing.GeneratedMSBuildEditorConfig.editorconfig
