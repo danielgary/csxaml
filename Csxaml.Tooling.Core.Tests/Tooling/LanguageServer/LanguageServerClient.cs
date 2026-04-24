@@ -20,9 +20,30 @@ internal sealed class LanguageServerClient : IAsyncDisposable
         _output = process.StandardInput.BaseStream;
     }
 
-    public static Task<LanguageServerClient> StartAsync(string executablePath, string workingDirectory)
+    public static Task<LanguageServerClient> StartAsync(string serverPath, string workingDirectory)
     {
-        var startInfo = new ProcessStartInfo(executablePath)
+        var startInfo = CreateStartInfo(serverPath, workingDirectory);
+
+        var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("The language server process did not start.");
+        return Task.FromResult(new LanguageServerClient(process));
+    }
+
+    private static ProcessStartInfo CreateStartInfo(string serverPath, string workingDirectory)
+    {
+        if (serverPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ProcessStartInfo("dotnet", $"\"{serverPath}\"")
+            {
+                CreateNoWindow = true,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                WorkingDirectory = workingDirectory,
+            };
+        }
+
+        return new ProcessStartInfo(serverPath)
         {
             CreateNoWindow = true,
             RedirectStandardInput = true,
@@ -30,10 +51,6 @@ internal sealed class LanguageServerClient : IAsyncDisposable
             UseShellExecute = false,
             WorkingDirectory = workingDirectory,
         };
-
-        var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("The language server process did not start.");
-        return Task.FromResult(new LanguageServerClient(process));
     }
 
     public async ValueTask DisposeAsync()

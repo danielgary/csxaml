@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Csxaml.LanguageServer.Protocol;
 
 namespace Csxaml.LanguageServer.Server;
 
@@ -46,7 +47,7 @@ internal sealed partial class CsxamlLspServer
     {
         var diagnostics = string.IsNullOrEmpty(text)
             ? Array.Empty<object>()
-            : _diagnosticService.GetDiagnostics(new Uri(uri).LocalPath, text)
+            : _diagnosticService.GetDiagnostics(LspDocumentUriConverter.ToFilePath(uri), text)
                 .Select(
                     diagnostic => new
                     {

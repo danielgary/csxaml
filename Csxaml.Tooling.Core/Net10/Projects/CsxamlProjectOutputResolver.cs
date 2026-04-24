@@ -12,6 +12,29 @@ public static class CsxamlProjectOutputResolver
             .ToList();
     }
 
+    public static IReadOnlyList<string> ResolveAssemblyClosurePaths(
+        IEnumerable<CsxamlProjectInfo> projects,
+        bool includePrimaryAssemblies = true)
+    {
+        var paths = new List<string>();
+        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var assemblyPath in ResolveAssemblyPaths(projects))
+        {
+            if (includePrimaryAssemblies)
+            {
+                AddPath(paths, seenPaths, assemblyPath);
+            }
+
+            foreach (var dependencyPath in EnumerateOutputDirectoryAssemblyPaths(assemblyPath))
+            {
+                AddPath(paths, seenPaths, dependencyPath);
+            }
+        }
+
+        return paths;
+    }
+
     private static string? ResolveAssemblyPath(CsxamlProjectInfo project)
     {
         var preferred = Path.Combine(
@@ -32,5 +55,28 @@ public static class CsxamlProjectOutputResolver
                 .OrderByDescending(path => File.GetLastWriteTimeUtc(path))
                 .FirstOrDefault()
             : null;
+    }
+
+    private static IEnumerable<string> EnumerateOutputDirectoryAssemblyPaths(string assemblyPath)
+    {
+        var outputDirectory = Path.GetDirectoryName(assemblyPath);
+        if (outputDirectory is null || !Directory.Exists(outputDirectory))
+        {
+            return Array.Empty<string>();
+        }
+
+        return Directory
+            .EnumerateFiles(outputDirectory, "*.dll", SearchOption.TopDirectoryOnly)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static void AddPath(ICollection<string> paths, ISet<string> seenPaths, string path)
+    {
+        if (!seenPaths.Add(path))
+        {
+            return;
+        }
+
+        paths.Add(path);
     }
 }

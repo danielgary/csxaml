@@ -5,7 +5,9 @@ namespace Csxaml.Generator;
 
 internal sealed class ReferencedComponentCatalogBuilder
 {
-    public IReadOnlyList<ComponentMetadata> Build(IReadOnlyList<string> referencePaths)
+    public IReadOnlyList<ComponentMetadata> Build(
+        IReadOnlyList<string> referencePaths,
+        bool ignoreLoadFailures = false)
     {
         if (referencePaths.Count == 0)
         {
@@ -16,13 +18,13 @@ internal sealed class ReferencedComponentCatalogBuilder
         var components = new List<ComponentMetadata>();
         foreach (var assembly in resolver.LoadedAssemblies)
         {
-            components.AddRange(ReadManifest(assembly).Components);
+            components.AddRange(ReadManifest(assembly, ignoreLoadFailures).Components);
         }
 
         return components;
     }
 
-    private static CompiledComponentManifest ReadManifest(Assembly assembly)
+    private static CompiledComponentManifest ReadManifest(Assembly assembly, bool ignoreLoadFailures)
     {
         var attribute = assembly.GetCustomAttribute<CsxamlComponentManifestProviderAttribute>();
         if (attribute is null)
@@ -36,12 +38,19 @@ internal sealed class ReferencedComponentCatalogBuilder
                 $"Referenced assembly '{assembly.GetName().Name}' declares an invalid CSXAML component manifest provider.");
         }
 
-        if (Activator.CreateInstance(attribute.ProviderType, nonPublic: true) is not IComponentManifestProvider provider)
+        try
         {
-            throw new InvalidOperationException(
-                $"Referenced assembly '{assembly.GetName().Name}' failed to create its CSXAML component manifest provider.");
-        }
+            if (Activator.CreateInstance(attribute.ProviderType, nonPublic: true) is not IComponentManifestProvider provider)
+            {
+                throw new InvalidOperationException(
+                    $"Referenced assembly '{assembly.GetName().Name}' failed to create its CSXAML component manifest provider.");
+            }
 
-        return provider.GetManifest();
+            return provider.GetManifest();
+        }
+        catch (Exception) when (ignoreLoadFailures)
+        {
+            return new CompiledComponentManifest(Array.Empty<ComponentMetadata>());
+        }
     }
 }

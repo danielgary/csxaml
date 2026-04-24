@@ -2,9 +2,11 @@ using System.Text.Json;
 using Csxaml.LanguageServer.Documents;
 using Csxaml.LanguageServer.Protocol;
 using Csxaml.Tooling.Core.Completion;
+using Csxaml.Tooling.Core.CodeActions;
 using Csxaml.Tooling.Core.Definitions;
 using Csxaml.Tooling.Core.Diagnostics;
 using Csxaml.Tooling.Core.Formatting;
+using Csxaml.Tooling.Core.Hover;
 using Csxaml.Tooling.Core.SemanticTokens;
 
 namespace Csxaml.LanguageServer.Server;
@@ -12,9 +14,11 @@ namespace Csxaml.LanguageServer.Server;
 internal sealed partial class CsxamlLspServer
 {
     private readonly CsxamlCompletionService _completionService;
+    private readonly CsxamlCodeActionService _codeActionService;
     private readonly CsxamlDefinitionService _definitionService;
     private readonly CsxamlDiagnosticService _diagnosticService;
     private readonly CsxamlFormattingService _formattingService;
+    private readonly CsxamlHoverService _hoverService;
     private readonly TextDocumentStore _documents;
     private readonly LspMessageReader _reader;
     private readonly CsxamlSemanticTokenService _semanticTokenService;
@@ -26,18 +30,22 @@ internal sealed partial class CsxamlLspServer
         LspMessageWriter writer,
         TextDocumentStore documents,
         CsxamlCompletionService completionService,
+        CsxamlCodeActionService codeActionService,
         CsxamlDefinitionService definitionService,
         CsxamlDiagnosticService diagnosticService,
         CsxamlFormattingService formattingService,
+        CsxamlHoverService hoverService,
         CsxamlSemanticTokenService semanticTokenService)
     {
         _reader = reader;
         _writer = writer;
         _documents = documents;
         _completionService = completionService;
+        _codeActionService = codeActionService;
         _definitionService = definitionService;
         _diagnosticService = diagnosticService;
         _formattingService = formattingService;
+        _hoverService = hoverService;
         _semanticTokenService = semanticTokenService;
     }
 

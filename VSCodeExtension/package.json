@@ -16,14 +16,18 @@
   "main": "./dist/extension.js",
   "scripts": {
     "build": "node ./scripts/bundle-extension.mjs",
+    "bundle": "npm run build",
+    "test": "npm run bundle && node --test",
     "vscode:prepublish": "npm run build",
     "package": "vsce package",
-    "package:pre-release": "vsce package --pre-release"
+    "package:pre-release": "vsce package --pre-release",
+    "package:vsix": "npm run bundle && vsce package --allow-missing-repository"
   },
   "engines": {
     "vscode": "^1.90.0"
   },
   "activationEvents": [
+    "workspaceContains:**/*.csxaml",
     "onLanguage:csxaml",
     "onCommand:csxaml.restartLanguageServer"
   ],
@@ -50,7 +54,7 @@
         "csxaml.languageServer.path": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Optional path to `Csxaml.LanguageServer.exe`. Relative paths resolve from the first workspace folder when available, otherwise from the extension folder."
+          "markdownDescription": "Optional path to `Csxaml.LanguageServer.exe` or `Csxaml.LanguageServer.dll`. Relative paths resolve from the first workspace folder when available, otherwise from the extension folder."
         }
       }
     },
@@ -99,8 +103,7 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
-    "@vscode/vsce": "^3.6.2",
-    "esbuild": "^0.25.9"
+    "@vscode/vsce": "^3.9.1",
+    "esbuild": "^0.28.0"
   }
 }
-

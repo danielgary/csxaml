@@ -150,26 +150,8 @@ public sealed class CsxamlWorkspaceLoader
         CsxamlProjectInfo project,
         IReadOnlyList<CsxamlProjectInfo> referencedProjects)
     {
-        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var primaryAssemblies = CsxamlProjectOutputResolver.ResolveAssemblyPaths(
+        return CsxamlProjectOutputResolver.ResolveAssemblyClosurePaths(
             new[] { project }.Concat(referencedProjects));
-        foreach (var assemblyPath in primaryAssemblies)
-        {
-            paths.Add(assemblyPath);
-
-            var outputDirectory = Path.GetDirectoryName(assemblyPath);
-            if (outputDirectory is null || !Directory.Exists(outputDirectory))
-            {
-                continue;
-            }
-
-            foreach (var dependencyPath in Directory.EnumerateFiles(outputDirectory, "*.dll", SearchOption.TopDirectoryOnly))
-            {
-                paths.Add(dependencyPath);
-            }
-        }
-
-        return paths.ToList();
     }
 
     private bool TryBuildExternalControl(Type type, out ControlMetadataModel metadata)

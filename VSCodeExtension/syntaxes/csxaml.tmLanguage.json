@@ -13,6 +13,9 @@
       "include": "#componentDeclaration"
     },
     {
+      "include": "#parameterlessComponentDeclaration"
+    },
+    {
       "include": "#injectDeclaration"
     },
     {
@@ -23,6 +26,9 @@
     },
     {
       "include": "#markup"
+    },
+    {
+      "include": "#helperCode"
     },
     {
       "include": "#keywords"
@@ -120,6 +126,20 @@
         }
       ]
     },
+    "parameterlessComponentDeclaration": {
+      "match": "\\b(component)\\b\\s+(Element)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\{)",
+      "captures": {
+        "1": {
+          "name": "keyword.declaration.component.csxaml"
+        },
+        "2": {
+          "name": "storage.type.component-kind.csxaml"
+        },
+        "3": {
+          "name": "entity.name.type.class.csxaml"
+        }
+      }
+    },
     "controlFlow": {
       "patterns": [
         {
@@ -169,6 +189,15 @@
               "include": "source.csxaml.embedded.csharp"
             }
           ]
+        }
+      ]
+    },
+    "helperCode": {
+      "begin": "^(?=\\s*\\S)(?!\\s*(?:render\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_]))",
+      "end": "(?=^\\s*(?:render\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_])|\\z)",
+      "patterns": [
+        {
+          "include": "source.cs"
         }
       ]
     },

@@ -19,6 +19,7 @@ public sealed class CsxamlDiagnosticService
         }
 
         var project = CsxamlProjectFileReader.Read(projectFile);
+        var referencedProjects = CsxamlProjectReferenceResolver.ResolveTransitive(project);
         var parsedComponents = new List<ParsedComponent>();
         foreach (var sourceFile in Directory.EnumerateFiles(project.ProjectDirectory, "*.csxaml", SearchOption.AllDirectories))
         {
@@ -45,13 +46,21 @@ public sealed class CsxamlDiagnosticService
 
         try
         {
-            var references = CsxamlProjectOutputResolver.ResolveAssemblyPaths(
-                CsxamlProjectReferenceResolver.ResolveTransitive(project));
+            var references = CsxamlProjectOutputResolver.ResolveAssemblyClosurePaths(referencedProjects)
+                .Concat(CsxamlProjectOutputResolver.ResolveAssemblyClosurePaths(
+                    new[] { project },
+                    includePrimaryAssemblies: false))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
             var projectContext = new ProjectGenerationContext(
                 project.AssemblyName,
                 project.DefaultNamespace,
                 $"{project.DefaultNamespace}.__CsxamlGenerated");
-            _validator.Validate(parsedComponents, projectContext, references);
+            _validator.Validate(
+                parsedComponents,
+                projectContext,
+                references,
+                ignoreReferencedComponentLoadFailures: true);
             return _csharpDiagnosticService.GetDiagnostics(filePath, text);
         }
         catch (DiagnosticException exception)

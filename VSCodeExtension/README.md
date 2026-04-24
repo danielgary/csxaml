@@ -1,8 +1,8 @@
 # CSXAML VS Code Extension
 
-This folder contains a VS Code extension for `.csxaml` files.
+This folder contains the VS Code extension for `.csxaml` files.
 
-The public marketplace publisher id is `danielgarysoftware`, and the extension is licensed under Apache-2.0.
+The public marketplace publisher id is `danielgarysoftware`, the extension is licensed under Apache-2.0, and the runtime entrypoint is the committed bundle at `dist/extension.js`. That means the repo-local extension can activate without a separate `npm install` just to satisfy `vscode-languageclient`.
 
 ## Goals
 
@@ -21,7 +21,14 @@ The current extension contributes:
 - a language configuration for comments and core bracket pairs
 - a hybrid TextMate grammar
 - snippets for common CSXAML constructs
-- a shared language-server client for completion, diagnostics, formatting, definitions, and semantic tokens
+- a shared language-server client for completion, hover, diagnostics, formatting, definitions, semantic tokens, and suggestion-based quick fixes
+
+This extension also has a packaged install path:
+
+- `scripts/Package-VSCodeExtension.ps1` stages the extension under `artifacts/vscode-extension/staging`
+- that packaging flow publishes `Csxaml.LanguageServer` into a bundled `LanguageServer/` folder there
+- the packaged `.vsix` is emitted under `artifacts/vscode/`
+- the packaged extension currently targets Windows-hosted CSXAML authoring and expects the .NET 10 Desktop Runtime
 
 The grammar intentionally splits the file into two broad regions:
 
@@ -32,12 +39,15 @@ The grammar intentionally splits the file into two broad regions:
   - `if (...)` headers
   - `foreach (...)` headers
   - attribute expressions such as `Text={Title}` or `OnClick={() => Save()}`
+- parameterless component declarations such as `component Element TodoBoard { ... }` are recognized directly
+- ordinary helper-code regions now fall back to `source.cs` scopes when the host has C# grammar support available
 
 The language server adds the semantic/editor layer on top of the grammar:
 
 - tag completion for built-in controls, imported external controls, and workspace components
 - attribute completion for native props, events, component props, attached properties, and `Key`
 - projected C# completion inside helper-code regions and expression islands
+- hover for markup tags/attributes plus projected C# helper-code symbols
 - editor diagnostics
 - go-to-definition for component tags
 - document formatting
@@ -57,12 +67,12 @@ The TextMate grammar still matters because it gives immediate structure-aware co
 
 ## Current Limitations
 
-This extension now uses the shared `Csxaml.LanguageServer`, but the server still only exposes the features that exist in the current tooling stack.
+This extension uses the shared `Csxaml.LanguageServer`, but the server still only exposes the features that exist in the current tooling stack.
 
 That means:
 
-- hover is not implemented yet
-- the local development loop still assumes you can build `Csxaml.LanguageServer`
+- code actions are intentionally limited to single-symbol suggestion replacements
+- broader refactoring and import-management fixes are not implemented yet
 
 ## Best Results
 
@@ -73,8 +83,8 @@ The markup side does not depend on an external XAML extension because the gramma
 ## Folder Layout
 
 - `package.json`: VS Code extension manifest
-- `extension.js`: source entrypoint used for local bundling
-- `dist/`: bundled runtime entrypoint used by the packaged extension
+- `extension.js`: source entrypoint used to build the bundle
+- `dist/extension.js`: committed runtime bundle used by VS Code
 - `language-configuration.json`: comments and pair behavior
 - `syntaxes/csxaml.tmLanguage.json`: hybrid TextMate grammar
 - `syntaxes/csxaml-embedded-csharp.tmLanguage.json`: recursive embedded C# regions for expressions and control-flow headers
@@ -86,18 +96,50 @@ The markup side does not depend on an external XAML extension because the gramma
 
 Typical workflow:
 
-1. Open `VSCodeExtension` as the workspace folder in VS Code.
-2. Run `npm install`.
-3. Press `F5` to launch an Extension Development Host.
-4. The launch profile bundles the extension entrypoint and builds `Csxaml.LanguageServer` before starting the extension host.
-5. Open a `.csxaml` file in the extension host and test completion, diagnostics, formatting, and navigation.
+1. Open the repo root in VS Code.
+2. Run `npm install` in `VSCodeExtension` when you need to change bundle dependencies or regenerate the extension bundle.
+3. Press `F5` with the `VS Code Ext Host + CSXAML` launch profile.
+4. That launch profile builds `Csxaml.LanguageServer` before opening the Extension Development Host.
+5. Run `npm run bundle` in `VSCodeExtension` after changing `extension.js` or `src/**/*`.
+6. Open a `.csxaml` file in the extension host and test completion, diagnostics, formatting, navigation, and hover.
+
+## Packaged Path
+
+The packaged extension is aimed at Windows-hosted CSXAML authoring outside the repo.
+
+Package it from the repo root:
+
+```powershell
+powershell .\scripts\Package-VSCodeExtension.ps1
+```
+
+That flow:
+
+1. reads the shared repo release version from `build/Csxaml.props`
+2. stages the extension into `artifacts/vscode-extension/staging`
+3. runs `npm ci`
+4. publishes `Csxaml.LanguageServer` into a bundled `LanguageServer/` folder
+5. creates a `.vsix` under `artifacts/vscode/`
+
+Packaging prerequisites:
+
+- Node.js 20+ with `npm` and `npx` available on `PATH`
+- .NET 10 SDK to publish `Csxaml.LanguageServer`
+
+Runtime prerequisites for the packaged extension:
+
+- Windows
+- .NET 10 Desktop Runtime for the bundled framework-dependent language server
 
 The extension resolves the language server in this order:
 
 1. `csxaml.languageServer.path` if configured
 2. `LanguageServer/Csxaml.LanguageServer.exe` under the extension folder
-3. `../Csxaml.LanguageServer/bin/Debug/net10.0/Csxaml.LanguageServer.exe`
-4. `../Csxaml.LanguageServer/bin/Release/net10.0/Csxaml.LanguageServer.exe`
+3. `LanguageServer/Csxaml.LanguageServer.dll` under the extension folder, launched through `dotnet`
+4. `../Csxaml.LanguageServer/bin/Debug/net10.0/Csxaml.LanguageServer.exe` during extension development
+5. `../Csxaml.LanguageServer/bin/Debug/net10.0/Csxaml.LanguageServer.dll` during extension development, launched through `dotnet`
+6. `../Csxaml.LanguageServer/bin/Release/net10.0/Csxaml.LanguageServer.exe` during extension development
+7. `../Csxaml.LanguageServer/bin/Release/net10.0/Csxaml.LanguageServer.dll` during extension development, launched through `dotnet`
 
 Use the `CSXAML: Restart Language Server` command after rebuilding the server while iterating.
 
@@ -105,5 +147,5 @@ Use the `CSXAML: Restart Language Server` command after rebuilding the server wh
 
 Good follow-up work for this extension:
 
-- add hover and richer code actions once the shared language server grows them
+- broaden code-action coverage beyond suggestion-based replacements
 - add VS Code-side smoke coverage for startup and core LSP flows

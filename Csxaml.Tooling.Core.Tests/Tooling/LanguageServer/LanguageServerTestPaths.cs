@@ -9,17 +9,20 @@ internal static class LanguageServerTestPaths
     {
         foreach (var configuration in GetConfigurationCandidates())
         {
-            var candidatePath = Path.Combine(
-                RepoRoot,
-                "Csxaml.LanguageServer",
-                "bin",
-                configuration,
-                "net10.0",
-                GetExecutableFileName());
-
-            if (File.Exists(candidatePath))
+            foreach (var fileName in GetLaunchFileNames())
             {
-                return candidatePath;
+                var candidatePath = Path.Combine(
+                    RepoRoot,
+                    "Csxaml.LanguageServer",
+                    "bin",
+                    configuration,
+                    "net10.0",
+                    fileName);
+
+                if (File.Exists(candidatePath))
+                {
+                    return candidatePath;
+                }
             }
         }
 
@@ -29,7 +32,7 @@ internal static class LanguageServerTestPaths
             "bin",
             GetBuildConfiguration(),
             "net10.0",
-            GetExecutableFileName());
+            GetLaunchFileNames()[0]);
     }
 
     private static IReadOnlyList<string> GetConfigurationCandidates()
@@ -55,10 +58,10 @@ internal static class LanguageServerTestPaths
         return configurationDirectory?.Name ?? "Debug";
     }
 
-    private static string GetExecutableFileName()
+    private static IReadOnlyList<string> GetLaunchFileNames()
     {
         return OperatingSystem.IsWindows()
-            ? "Csxaml.LanguageServer.exe"
-            : "Csxaml.LanguageServer";
+            ? ["Csxaml.LanguageServer.dll", "Csxaml.LanguageServer.exe"]
+            : ["Csxaml.LanguageServer.dll", "Csxaml.LanguageServer"];
     }
 }

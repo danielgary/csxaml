@@ -262,11 +262,11 @@ internal static class CsxamlTextScanner
 
             if (text[index] == quoteCharacter)
             {
-                return index;
+                return index + 1;
             }
         }
 
-        return text.Length - 1;
+        return text.Length;
     }
 
     private static bool TrySkipInterpolatedLiteral(string text, int startIndex, out int nextIndex)

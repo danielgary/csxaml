@@ -20,8 +20,8 @@ component Element TodoBoard {
     void UpdateItem(string itemId, Func<TodoItemModel, TodoItemModel> update)
     {
         var updatedItems = Items.Value
-            .Select(item => item.Id == itemId ? update(item) : item)
-            .ToList();
+        .Select(item => item.Id == itemId ? update(item) : item)
+        .ToList();
         Items.Value = updatedItems;
         todoService.SaveItems(updatedItems);
     }
@@ -48,56 +48,50 @@ component Element TodoBoard {
             Foreground={TodoColors.BoardForeground}
             FontSize={24}
             Margin={new Thickness(0, 0, 0, 12)} />
-        <DemoControls:StatusButton
-            Grid.Row={1}
-            Grid.Column={0}
-            AutomationProperties.Name="Selection Status Button"
-            BadgeText={SelectedItemId.Value}
-            Style={TodoStyles.SelectionStatusButton}
-            OnClick={() => SelectItem(Items.Value[0].Id)}
-            Margin={new Thickness(0, 0, 12, 12)}>
-            <TextBlock Text={selectedTitle} />
-        </DemoControls:StatusButton>
-        <WinUi:InfoBar
-            Grid.Row={1}
-            Grid.Column={1}
-            AutomationProperties.Name="External WinUI Proof"
-            IsOpen={true}
-            Severity={WinUi.InfoBarSeverity.Informational}
-            Title="Interop"
-            Message="External WinUI controls resolve through file-level using aliases."
-            Style={TodoStyles.InteropInfoBar}
-            Margin={new Thickness(0, 0, 0, 12)} />
-        <TodoPanel
-            Grid.Row={2}
-            Grid.Column={0}
-            Title="Tasks"
-            AutomationName="Todo List Panel"
-            Margin={new Thickness(0, 0, 12, 0)}>
-            <ScrollViewer AutomationProperties.Name="Todo List">
-                <StackPanel Spacing={12}>
-                    foreach (var item in Items.Value) {
-                        <TodoCard
-                            Key={item.Id}
-                            Title={item.Title}
-                            IsDone={item.IsDone}
-                            IsSelected={item.Id == SelectedItemId.Value}
-                            OnSelect={() => SelectItem(item.Id)}
-                            OnToggle={() => ToggleItem(item.Id)} />
-                    }
-                </StackPanel>
-            </ScrollViewer>
-        </TodoPanel>
-        <TodoEditor
-            Grid.Row={2}
-            Grid.Column={1}
-            AutomationProperties.Name="Task Editor"
-            ItemId={selected.Id}
-            Title={selected.Title}
-            Notes={selected.Notes}
-            IsDone={selected.IsDone}
-            OnTitleChanged={(itemId, value) => UpdateItem(itemId, item => item with { Title = value })}
-            OnNotesChanged={(itemId, value) => UpdateItem(itemId, item => item with { Notes = value })}
-            OnDoneChanged={(itemId, value) => UpdateItem(itemId, item => item with { IsDone = value })} />
-    </Grid>;
-}
+            <DemoControls:StatusButton
+                Grid.Row={1}
+                Grid.Column={0}
+                AutomationProperties.Name="Selection Status Button"
+                BadgeText={SelectedItemId.Value}
+                Style={TodoStyles.SelectionStatusButton}
+                OnClick={() => SelectItem(Items.Value[0].Id)}
+                Margin={new Thickness(0, 0, 12, 12)}>
+                <TextBlock Text={selectedTitle} />
+            </DemoControls:StatusButton>
+            <WinUi:InfoBar
+                Grid.Row={1}
+                Grid.Column={1}
+                AutomationProperties.Name="External WinUI Proof"
+                IsOpen={true}
+                Severity={WinUi.InfoBarSeverity.Informational}
+                Title="Interop"
+                Message="External WinUI controls resolve through file-level using aliases."
+                Style={TodoStyles.InteropInfoBar}
+                Margin={new Thickness(0, 0, 0, 12)} />
+                <TodoPanel
+                    Grid.Row={2}
+                    Grid.Column={0}
+                    Title="Tasks"
+                    AutomationName="Todo List Panel"
+                    Margin={new Thickness(0, 0, 12, 0)}>
+                    <ScrollViewer AutomationProperties.Name="Todo List">
+                        <StackPanel Spacing={12}>
+                            foreach (var item in Items.Value) {
+                                <TextBlock Key={item.Id} Text={item.Title} />
+                            }
+                        </StackPanel>
+                    </ScrollViewer>
+                </TodoPanel>
+                <TodoEditor
+                    Grid.Row={2}
+                    Grid.Column={1}
+                    AutomationProperties.Name="Task Editor"
+                    ItemId={selected.Id}
+                    Title={selected.Title}
+                    Notes={selected.Notes}
+                    IsDone={selected.IsDone}
+                    OnTitleChanged={(itemId, value) => UpdateItem(itemId, item => item with { Title = value })}
+                    OnNotesChanged={(itemId, value) => UpdateItem(itemId, item => item with { Notes = value })}
+                    OnDoneChanged={(itemId, value) => UpdateItem(itemId, item => item with { IsDone = value })} />
+                </Grid>;
+            }

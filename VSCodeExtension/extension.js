@@ -2,6 +2,7 @@ const vscode = require("vscode");
 const {
     LanguageClient,
     RevealOutputChannelOn,
+    State,
     Trace
 } = require("vscode-languageclient/node");
 const { resolveLanguageServerPath } = require("./src/languageServerPathResolver");
@@ -43,15 +44,19 @@ async function startLanguageServer(context) {
     const resolution = resolveLanguageServerPath(
         context.extensionPath,
         configuredPath,
-        vscode.workspace.workspaceFolders);
+        vscode.workspace.workspaceFolders,
+        { isDevelopmentMode });
 
-    if (!resolution.executablePath) {
+    if (!resolution.launchers || resolution.launchers.length === 0) {
+        const recoveryText = isDevelopmentMode
+            ? "Build Csxaml.LanguageServer or set 'csxaml.languageServer.path'."
+            : "Reinstall the extension, ensure the .NET 10 Desktop Runtime is installed, or set 'csxaml.languageServer.path'.";
         const message = [
             "The CSXAML language server executable was not found.",
             "Looked in:",
             ...resolution.attemptedPaths.map(candidate => `- ${candidate}`),
             "",
-            "Build Csxaml.LanguageServer or set 'csxaml.languageServer.path'."
+            recoveryText
         ].join("\n");
         outputChannel.appendLine(message);
         const choice = await vscode.window.showErrorMessage(
@@ -63,14 +68,32 @@ async function startLanguageServer(context) {
         return;
     }
 
-    outputChannel.appendLine(`Starting CSXAML language server from '${resolution.executablePath}'.`);
+    for (const launcher of resolution.launchers) {
+        const started = await tryStartLanguageServer(context, isDevelopmentMode, launcher);
+        if (started) {
+            return;
+        }
+    }
+
+    const choice = await vscode.window.showErrorMessage(
+        "CSXAML language server failed to start.",
+        "Open Output");
+    if (choice === "Open Output") {
+        outputChannel.show(true);
+    }
+}
+
+async function tryStartLanguageServer(context, isDevelopmentMode, launcher) {
+    outputChannel.appendLine(
+        `Starting CSXAML language server from '${launcher.resolvedPath}' using '${launcher.command}'.`);
 
     try {
         client = new LanguageClient(
             "csxaml-language-server",
             "CSXAML Language Server",
             {
-                command: resolution.executablePath
+                command: launcher.command,
+                args: launcher.args
             },
             {
                 documentSelector: [
@@ -81,10 +104,14 @@ async function startLanguageServer(context) {
                 traceOutputChannel: outputChannel,
                 revealOutputChannelOn: RevealOutputChannelOn.Never
             });
+        client.onDidChangeState(event => {
+            outputChannel.appendLine(
+                `CSXAML language client state changed: ${formatClientState(event.oldState)} -> ${formatClientState(event.newState)}.`);
+        });
 
-        const started = client.start();
-        if (started && typeof started.dispose === "function") {
-            context.subscriptions.push(started);
+        const disposable = client.start();
+        if (disposable && typeof disposable.dispose === "function") {
+            context.subscriptions.push(disposable);
         }
 
         if (typeof client.onReady === "function") {
@@ -97,18 +124,33 @@ async function startLanguageServer(context) {
         }
     } catch (error) {
         const message = error && error.message ? error.message : String(error);
-        outputChannel.appendLine(`Failed to start CSXAML language server: ${message}`);
-        client = null;
-        const choice = await vscode.window.showErrorMessage(
-            "CSXAML language server failed to start.",
-            "Open Output");
-        if (choice === "Open Output") {
-            outputChannel.show(true);
+        outputChannel.appendLine(`Failed to start CSXAML language server from '${launcher.resolvedPath}': ${message}`);
+        if (client) {
+            try {
+                await client.stop();
+            } catch {
+                // Ignore secondary shutdown failures while moving to the next candidate.
+            }
         }
-        return;
+        client = null;
+        return false;
     }
 
     outputChannel.appendLine("CSXAML language server is ready.");
+    return true;
+}
+
+function formatClientState(state) {
+    switch (state) {
+        case State.Starting:
+            return "Starting";
+        case State.Running:
+            return "Running";
+        case State.Stopped:
+            return "Stopped";
+        default:
+            return String(state);
+    }
 }
 
 async function restartLanguageServer(context, userInitiated) {
