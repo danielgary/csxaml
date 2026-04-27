@@ -2,8 +2,18 @@ using System.Text.Json;
 
 namespace Csxaml.Tooling.Core.Bootstrap;
 
+/// <summary>
+/// Resolves the .NET root that can run a tooling executable.
+/// </summary>
 public static class DotNetRootResolver
 {
+    /// <summary>
+    /// Selects a configured or default .NET root compatible with the executable runtime configuration.
+    /// </summary>
+    /// <param name="executablePath">The tooling executable path whose runtime configuration should be inspected.</param>
+    /// <param name="configuredRoot">The user-configured .NET root candidate.</param>
+    /// <param name="defaultRoot">The editor or process default .NET root candidate.</param>
+    /// <returns>The compatible .NET root, or <see langword="null"/> when no candidate exists.</returns>
     public static string? Resolve(string executablePath, string? configuredRoot, string? defaultRoot)
     {
         var runtimeConfigPath = Path.ChangeExtension(executablePath, ".runtimeconfig.json");

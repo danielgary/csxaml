@@ -2,8 +2,16 @@ using System.Text.RegularExpressions;
 
 namespace Csxaml.Tooling.Core.Markup;
 
+/// <summary>
+/// Scans CSXAML source text for top-level directives and markup references.
+/// </summary>
 public static partial class CsxamlMarkupScanner
 {
+    /// <summary>
+    /// Scans source text for directives, component signatures, and markup element references.
+    /// </summary>
+    /// <param name="text">The CSXAML source text to scan.</param>
+    /// <returns>The scan result for the source text.</returns>
     public static CsxamlMarkupScanResult Scan(string text)
     {
         var elements = new List<CsxamlMarkupElementReference>();

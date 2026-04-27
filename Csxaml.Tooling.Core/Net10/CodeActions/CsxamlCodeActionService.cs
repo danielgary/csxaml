@@ -5,11 +5,24 @@ using Csxaml.Tooling.Core.Projects;
 
 namespace Csxaml.Tooling.Core.CodeActions;
 
+/// <summary>
+/// Provides CSXAML editor code actions for markup names and attributes.
+/// </summary>
 public sealed class CsxamlCodeActionService
 {
     private readonly CsxamlTagSymbolResolver _tagResolver = new();
     private readonly CsxamlWorkspaceLoader _workspaceLoader = new();
 
+    /// <summary>
+    /// Gets code actions for the selected source range.
+    /// </summary>
+    /// <param name="filePath">The CSXAML file path.</param>
+    /// <param name="text">The current CSXAML source text.</param>
+    /// <param name="startLine">The zero-based start line of the selection.</param>
+    /// <param name="startCharacter">The zero-based start character of the selection.</param>
+    /// <param name="endLine">The zero-based end line of the selection.</param>
+    /// <param name="endCharacter">The zero-based end character of the selection.</param>
+    /// <returns>The code actions available for the selection.</returns>
     public IReadOnlyList<CsxamlCodeAction> GetCodeActions(
         string filePath,
         string text,

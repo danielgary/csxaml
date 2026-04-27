@@ -3,6 +3,9 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Csxaml.Runtime;
 
+/// <summary>
+/// Hosts a CSXAML component tree inside a WinUI panel.
+/// </summary>
 public sealed class CsxamlHost : IDisposable, IAsyncDisposable
 {
     private readonly Panel _hostPanel;
@@ -11,11 +14,22 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
     private bool _isDisposed;
     private UIElement? _rootElement;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsxamlHost"/> class with an existing root component.
+    /// </summary>
+    /// <param name="hostPanel">The panel that receives the rendered root element.</param>
+    /// <param name="rootComponent">The root component instance to render.</param>
     public CsxamlHost(Panel hostPanel, ComponentInstance rootComponent)
         : this(hostPanel, rootComponent, services: null, activator: null)
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsxamlHost"/> class with an existing root component and services.
+    /// </summary>
+    /// <param name="hostPanel">The panel that receives the rendered root element.</param>
+    /// <param name="rootComponent">The root component instance to render.</param>
+    /// <param name="services">The services available to the component tree.</param>
     public CsxamlHost(
         Panel hostPanel,
         ComponentInstance rootComponent,
@@ -24,6 +38,12 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsxamlHost"/> class by activating the root component type.
+    /// </summary>
+    /// <param name="hostPanel">The panel that receives the rendered root element.</param>
+    /// <param name="rootComponentType">The component type to instantiate as the root.</param>
+    /// <param name="services">The services available to the component tree.</param>
     public CsxamlHost(
         Panel hostPanel,
         Type rootComponentType,
@@ -32,12 +52,18 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
     {
     }
 
+    /// <summary>
+    /// Renders the current component tree into the host panel.
+    /// </summary>
     public void Render()
     {
         ThrowIfDisposed();
         _treeCoordinator.Render();
     }
 
+    /// <summary>
+    /// Releases rendered elements and disposes the component tree.
+    /// </summary>
     public void Dispose()
     {
         if (_isDisposed)
@@ -52,6 +78,10 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
         _rootElement = null;
     }
 
+    /// <summary>
+    /// Asynchronously releases rendered elements and disposes the component tree.
+    /// </summary>
+    /// <returns>A task-like value that completes when asynchronous disposal has finished.</returns>
     public async ValueTask DisposeAsync()
     {
         if (_isDisposed)

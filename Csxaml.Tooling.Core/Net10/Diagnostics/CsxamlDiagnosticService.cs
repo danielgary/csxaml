@@ -4,12 +4,21 @@ using Csxaml.Tooling.Core.Projects;
 
 namespace Csxaml.Tooling.Core.Diagnostics;
 
+/// <summary>
+/// Provides CSXAML and embedded C# diagnostics for editor hosts.
+/// </summary>
 public sealed class CsxamlDiagnosticService
 {
     private readonly CsxamlCSharpDiagnosticService _csharpDiagnosticService = new();
     private readonly Parser _parser = new();
     private readonly Validator _validator = new();
 
+    /// <summary>
+    /// Gets diagnostics for a CSXAML document.
+    /// </summary>
+    /// <param name="filePath">The CSXAML file path.</param>
+    /// <param name="text">The current CSXAML source text.</param>
+    /// <returns>The diagnostics reported for the document.</returns>
     public IReadOnlyList<CsxamlEditorDiagnostic> GetDiagnostics(string filePath, string text)
     {
         var projectFile = CsxamlProjectLocator.FindOwningProjectFile(filePath);

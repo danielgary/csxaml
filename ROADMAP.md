@@ -1023,6 +1023,8 @@ A production-ready v1 needs packaging, samples, templates, docs, and a clear sup
 - starter template or sample app
 - docs for syntax, native props, interop, and debugging
 - docs and samples for automated component testing
+- XML API documentation on developer-facing assemblies for future docfx output
+- DocFX static documentation site with API reference generated from XML documentation
 - versioned release notes
 
 ## Exit criteria
@@ -1042,6 +1044,11 @@ A production-ready v1 needs packaging, samples, templates, docs, and a clear sup
 - [x] write external control interop guide
 - [x] write component testing guide
 - [x] write debugging and diagnostics guide
+- [x] enable XML API docs on developer-facing assemblies
+- [x] add DocFX documentation site source
+- [x] generate API reference from XML documentation during the docs build
+- [x] add GitHub Pages documentation workflow
+- [ ] enable GitHub Pages deployment in repository settings and record the live docs URL
 - [x] publish release process and versioning notes
 - [ ] tag and announce v1 release
 
@@ -1219,3 +1226,5 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-24: Tightened the live VS Code responsiveness story again after hover and completion regressed back into multi-second territory. `Csxaml.Tooling.Core` now caches parsed component symbols per `.csxaml` file using file-length plus last-write stamps, caches external control metadata per resolved assembly closure, and still overlays the unsaved current document text so open-buffer behavior does not go stale. The VS Code client also no longer forces verbose LSP trace simply because the extension is running in development mode; trace is now opt-in through `csxaml.languageServer.trace`. Focused verification passed with `dotnet test .\Csxaml.Tooling.Core.Tests\Csxaml.Tooling.Core.Tests.csproj --no-restore -m:1 -p:UseAppHost=false` (55 passed) plus `npm test` under `VSCodeExtension`, and a local steady-state probe on `TodoBoard.csxaml` dropped repeated completion from roughly `2474 ms` on the first cold request to about `12 ms` on the second request and repeated hover from about `834 ms` to about `5 ms`.
 - 2026-04-27: Hardened the preview NuGet publish path after NuGet.org rejected `Csxaml.0.1.0-preview.1.snupkg` because the wrapper package carried generator-tool PDBs rather than normal library symbols, then rejected a rerun-built `Csxaml.Runtime.0.1.0-preview.1.snupkg` because its PDB identity no longer matched the already-published immutable DLL. `Csxaml` no longer produces a symbol package or packs generator PDBs, release package validation now checks every symbol PDB against its matching DLL/EXE debug identity, and NuGet publishing skips symbol packages when the corresponding `.nupkg` existed before the publish run.
 - 2026-04-27: Hardened Visual Studio Marketplace metadata after `VsixPublisher.exe` rejected the preview VSIX because the generated extension author name used the publisher id `danielgarysoftware` instead of the Marketplace publisher display name `Daniel Gary Software`. The Visual Studio extension manifest now emits the display name while `publishManifest.json` keeps the publisher id, and regression coverage checks the generated manifest value.
+- 2026-04-27: Added XML API documentation for the developer-facing surfaces that future docfx output should publish: control metadata, runtime component/rendering/state APIs, testing helpers, shared tooling services and DTOs, and Visual Studio extension contribution types. XML documentation generation is now enabled on those assemblies plus the generator/language-server payloads needed by the VSIX build.
+- 2026-04-27: Added a DocFX documentation site under `docs-site/`, pinned DocFX as a local .NET tool, added `scripts/docs/Invoke-DocsBuild.ps1`, and added `.github/workflows/docs.yml` for PR docs builds plus GitHub Pages deployment from `master`. The docs build now regenerates API reference content from XML documentation comments into `obj/docfx/api` at build time and publishes the static site from `_site`; the remaining hosting step is enabling GitHub Pages from Actions in repository settings and recording the live URL.

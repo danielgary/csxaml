@@ -99,6 +99,7 @@ If you are new to the repo, this reading order works well:
 
 ## Key Docs
 
+- [Documentation Site Source](docs-site/index.md)
 - [Language Specification](LANGUAGE-SPEC.md)
 - [Roadmap](ROADMAP.md)
 - [Package Installation](docs/package-installation.md)
@@ -108,6 +109,24 @@ If you are new to the repo, this reading order works well:
 - [Component Testing](docs/component-testing.md)
 - [Agent Working Rules And Project Inventory](AGENTS.md)
 - [VS Code Extension](VSCodeExtension/README.md)
+
+## Documentation Site
+
+The DocFX documentation site lives under `docs-site/` and generates API reference pages from XML documentation comments at build time.
+
+Build it locally from the repo root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\docs\Invoke-DocsBuild.ps1
+```
+
+Preview it locally:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\docs\Invoke-DocsBuild.ps1 -Serve
+```
+
+Generated API YAML is written under `obj\docfx\api`, and the static site is written under `_site`.
 
 ## Install Story
 

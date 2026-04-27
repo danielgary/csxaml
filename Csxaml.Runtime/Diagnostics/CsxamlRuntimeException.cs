@@ -2,6 +2,9 @@ using System.Text;
 
 namespace Csxaml.Runtime;
 
+/// <summary>
+/// Represents a runtime failure enriched with CSXAML component and source frames.
+/// </summary>
 public sealed class CsxamlRuntimeException : InvalidOperationException
 {
     internal CsxamlRuntimeException(
@@ -12,6 +15,9 @@ public sealed class CsxamlRuntimeException : InvalidOperationException
         Frames = frames;
     }
 
+    /// <summary>
+    /// Gets the ordered runtime frames that describe where the failure occurred.
+    /// </summary>
     public IReadOnlyList<CsxamlRuntimeFrame> Frames { get; }
 
     internal CsxamlRuntimeException Prepend(CsxamlRuntimeFrame frame)

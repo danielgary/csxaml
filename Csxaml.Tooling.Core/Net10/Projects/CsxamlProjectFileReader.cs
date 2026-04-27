@@ -2,8 +2,16 @@ using System.Xml.Linq;
 
 namespace Csxaml.Tooling.Core.Projects;
 
+/// <summary>
+/// Reads basic CSXAML tooling metadata from an SDK-style project file.
+/// </summary>
 public static class CsxamlProjectFileReader
 {
+    /// <summary>
+    /// Reads project metadata from a project file.
+    /// </summary>
+    /// <param name="projectFilePath">The project file path to read.</param>
+    /// <returns>The project metadata needed by CSXAML tooling services.</returns>
     public static CsxamlProjectInfo Read(string projectFilePath)
     {
         var document = XDocument.Load(projectFilePath);

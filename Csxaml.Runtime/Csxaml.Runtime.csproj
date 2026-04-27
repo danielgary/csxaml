@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseWinUI>true</UseWinUI>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>$(WarningsAsErrors);1591</WarningsAsErrors>
     <PackageId>Csxaml.Runtime</PackageId>
     <Version>$(CsxamlVersion)</Version>
     <Authors>CSXAML Contributors</Authors>

@@ -1,7 +1,16 @@
 namespace Csxaml.Tooling.Core.Markup;
 
+/// <summary>
+/// Analyzes source text to identify the CSXAML markup context at a cursor position.
+/// </summary>
 public static class CsxamlMarkupContextAnalyzer
 {
+    /// <summary>
+    /// Analyzes the markup context at the specified source position.
+    /// </summary>
+    /// <param name="text">The CSXAML source text to analyze.</param>
+    /// <param name="position">The zero-based cursor offset.</param>
+    /// <returns>The markup context at the position.</returns>
     public static CsxamlMarkupContext Analyze(string text, int position)
     {
         if (position < 0 || position > text.Length)

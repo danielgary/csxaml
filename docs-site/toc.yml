@@ -1,0 +1,103 @@
+items:
+  - name: Home
+    href: index.md
+  - name: Getting Started
+    items:
+      - name: Overview
+        href: articles/getting-started/index.md
+      - name: Prerequisites
+        href: articles/getting-started/prerequisites.md
+      - name: Quick Start
+        href: articles/getting-started/quick-start.md
+  - name: Tutorials
+    items:
+      - name: Overview
+        href: articles/tutorials/index.md
+      - name: Build a Todo App
+        href: articles/tutorials/todo-app.md
+  - name: Language
+    items:
+      - name: Overview
+        href: articles/language/index.md
+      - name: Concepts
+        href: articles/language/concepts.md
+      - name: Syntax
+        href: articles/language/syntax.md
+      - name: Component Model
+        href: articles/language/component-model.md
+      - name: State and Events
+        href: articles/language/state-and-events.md
+      - name: Native Controls
+        href: articles/language/native-controls.md
+      - name: External Controls
+        href: articles/language/external-controls.md
+      - name: Lifecycle
+        href: articles/language/lifecycle.md
+      - name: Supported Features
+        href: articles/language/supported-features.md
+      - name: Language Specification
+        href: articles/language/specification.md
+  - name: Guides
+    items:
+      - name: Overview
+        href: articles/guides/index.md
+      - name: Package Installation
+        href: articles/guides/package-installation.md
+      - name: Native Props and Events
+        href: articles/guides/native-props-and-events.md
+      - name: External Control Interop
+        href: articles/guides/external-control-interop.md
+      - name: Component Testing
+        href: articles/guides/component-testing.md
+      - name: Lifecycle and Async
+        href: articles/guides/lifecycle-and-async.md
+      - name: Debugging and Diagnostics
+        href: articles/guides/debugging-and-diagnostics.md
+      - name: Performance and Scale
+        href: articles/guides/performance-and-scale.md
+      - name: Compatibility Policy
+        href: articles/guides/compatibility-policy.md
+      - name: Release and Versioning
+        href: articles/guides/release-and-versioning.md
+  - name: Editor Extensions
+    items:
+      - name: Overview
+        href: articles/editors/index.md
+      - name: VS Code Extension
+        href: articles/editors/visual-studio-code.md
+      - name: Visual Studio Extension
+        href: articles/editors/visual-studio.md
+      - name: Language Service Features
+        href: articles/editors/language-service-features.md
+  - name: API Reference
+    items:
+      - name: Overview
+        href: articles/api/index.md
+      - name: Packages and Namespaces
+        href: articles/api/packages-and-namespaces.md
+      - name: Runtime API
+        href: articles/api/runtime.md
+      - name: Testing API
+        href: articles/api/testing.md
+      - name: Tooling API
+        href: articles/api/tooling.md
+      - name: Metadata API
+        href: articles/api/metadata.md
+      - name: Generated Reference
+        href: articles/api/generated-reference.md
+  - name: Troubleshooting
+    items:
+      - name: Overview
+        href: articles/troubleshooting/index.md
+      - name: Build and Generation
+        href: articles/troubleshooting/build-and-generation.md
+      - name: Editor Extensions
+        href: articles/troubleshooting/editor-extensions.md
+      - name: Packages and Versions
+        href: articles/troubleshooting/packages-and-versions.md
+      - name: Runtime Behavior
+        href: articles/troubleshooting/runtime-behavior.md
+  - name: Contributing
+    items:
+      - name: Docs
+        href: articles/contributing/docs.md

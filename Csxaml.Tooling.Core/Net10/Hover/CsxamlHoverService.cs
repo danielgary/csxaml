@@ -6,12 +6,22 @@ using Csxaml.Tooling.Core.Projects;
 
 namespace Csxaml.Tooling.Core.Hover;
 
+/// <summary>
+/// Provides hover information for CSXAML markup and embedded C# expressions.
+/// </summary>
 public sealed class CsxamlHoverService
 {
     private readonly CsxamlCSharpHoverService _csharpHoverService = new();
     private readonly CsxamlTagSymbolResolver _tagResolver = new();
     private readonly CsxamlWorkspaceLoader _workspaceLoader = new();
 
+    /// <summary>
+    /// Gets hover information for a source position.
+    /// </summary>
+    /// <param name="filePath">The CSXAML file path.</param>
+    /// <param name="text">The current CSXAML source text.</param>
+    /// <param name="position">The zero-based source offset to inspect.</param>
+    /// <returns>The hover information, or <see langword="null"/> when none is available.</returns>
     public CsxamlHoverInfo? GetHover(string filePath, string text, int position)
     {
         var markup = CsxamlMarkupScanner.Scan(text);

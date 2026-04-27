@@ -1,7 +1,19 @@
 namespace Csxaml.ControlMetadata;
 
+/// <summary>
+/// Resolves attached-property owner references against generated metadata and namespace imports.
+/// </summary>
 public static class AttachedPropertyReferenceResolver
 {
+    /// <summary>
+    /// Resolves an attached-property reference from markup context.
+    /// </summary>
+    /// <param name="ownerReference">The owner reference written before the property name.</param>
+    /// <param name="propertyName">The unqualified attached property name.</param>
+    /// <param name="currentNamespace">The current component namespace, or <see langword="null"/> when none is available.</param>
+    /// <param name="importedNamespaces">The namespaces imported into the current markup scope.</param>
+    /// <param name="aliases">Alias mappings from markup owner names to fully qualified CLR type names.</param>
+    /// <returns>The resolution result describing the matched property or failure reason.</returns>
     public static AttachedPropertyResolutionResult Resolve(
         string ownerReference,
         string propertyName,

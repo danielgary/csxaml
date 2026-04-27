@@ -1,778 +1,1124 @@
-# Milestone 15 Plan - Packaging, Release Automation, Templates, and V1 Ship
+# DocFX GitHub Pages Documentation Site Plan
 
 ## Status
 
-- Drafted: 2026-04-16
-- Execution status: in progress
-- Roadmap target: Milestone 15 in [ROADMAP.md](./ROADMAP.md)
-- Replaces: the executed Milestone 14 performance plan
-- Primary goal: make CSXAML consumable and releasable by outside users through stable packages, stable extensions, clear docs, and a reproducible GitHub Actions release path
+- Drafted: 2026-04-27
+- Execution status: implemented locally; GitHub Pages repository setting still needs to be enabled after merge
+- Roadmap target: documentation site and API reference enablement
+- Replaces: the completed/previous Milestone 15 release-automation execution plan
+- Primary goal: create a DocFX static documentation site for CSXAML, publish it with GitHub Pages, and make it useful to both new app authors and extension/tooling developers.
 
 ---
 
 ## 1. Outcome
 
-At the end of Milestone 15, another engineer should be able to say all of the following with evidence:
+At the end of this work, another engineer should be able to say all of the following with evidence:
 
-- a normal WinUI solution can consume CSXAML through published packages rather than only through this repo's local build wiring
-- the NuGet package story is explicit, versioned, and documented
-- the VS Code extension and the Visual Studio extension are built by GitHub Actions from the same repo version as the packages
-- release notes are generated from Conventional Commit history through `git-cliff`
-- semantic versioning is enforced by release policy rather than by guesswork
-- release credentials and publishing steps are controlled through GitHub Actions environments rather than ad hoc local pushes
-- the shipped behavior still matches [LANGUAGE-SPEC.md](./LANGUAGE-SPEC.md)
+- the repo contains a DocFX configuration that builds a static documentation website
+- GitHub Pages publishes the generated site from GitHub Actions
+- the site has a clear path from "what is CSXAML?" to "I built a Todo app"
+- the site explains the CSXAML language in a human-readable overview and preserves the formal language specification
+- the site has user-facing pages for the VS Code extension and the Visual Studio extension
+- the site has an API overview plus generated API reference pages from XML documentation comments
+- docs are built and validated in CI before deployment
+- existing repo docs are organized into a coherent public documentation structure
 
-This milestone is not successful if the repo merely produces artifacts on one machine. It is successful only if the packaging surface is understandable, the release process is repeatable, and outside users can install the result without needing this repo checked out next to their app.
-
----
-
-## 2. Current Repo State Snapshot
-
-This plan is grounded in the repo as it exists now.
-
-### 2.1 What already exists
-
-- a working repo-local build flow through `build/Csxaml.props` and `build/Csxaml.targets`
-- a generator executable project: `Csxaml.Generator`
-- a runtime library: `Csxaml.Runtime`
-- a testing helper library: `Csxaml.Testing`
-- a Visual Studio extension project with real VSIX packaging: `Csxaml.VisualStudio`
-- a VS Code extension scaffold under `VSCodeExtension/`
-- milestone 15 roadmap targets in [ROADMAP.md](./ROADMAP.md)
-- documentation already started in `docs/`, including:
-  - `debugging-and-diagnostics.md`
-  - `external-control-interop.md`
-  - `component-testing.md`
-  - `supported-feature-matrix.md`
-
-### 2.2 What does not exist yet
-
-- no `.github/` workflow directory
-- no public-package metadata and pack flow for the core CSXAML product surface
-- no public changelog or `git-cliff` configuration
-- no Conventional Commit enforcement path
-- no defined release workflow for NuGet, VS Code Marketplace, or Visual Studio Marketplace
-- no finalized public package boundaries in source
-
-### 2.3 Repo-specific packaging trap to solve
-
-The current build targets invoke the generator through a repo-local project path:
-
-- `build/Csxaml.props` defaults `CsxamlGeneratorProject` to `..\Csxaml.Generator\Csxaml.Generator.csproj`
-- `build/Csxaml.targets` shells `dotnet run --project ...`
-
-That is acceptable inside this repo. It is not an outside-user package story.
-
-Milestone 15 must replace that repo-local assumption with a packaged build asset flow.
+This work is not done if DocFX technically builds but readers still have to guess which package to install, which editor extension to use, what language features are supported, or which APIs are public.
 
 ---
 
-## 3. Non-Negotiable Constraints
+## 2. Official Tooling Facts
 
-Milestone 15 is a productization milestone, not permission to change the language contract casually.
+This plan depends on current DocFX and GitHub Pages behavior.
 
-### 3.1 Language and runtime constraints
+### 2.1 DocFX
 
-- [LANGUAGE-SPEC.md](./LANGUAGE-SPEC.md) remains the source of truth
-- packaging work must not quietly change parser, generator, runtime, or tooling semantics
-- current `State<T>` equality semantics and `Touch()` behavior must remain intact
-- release automation must run the existing correctness suites before publish steps
-- generated code must remain deterministic and boring
+DocFX can build a static site from Markdown and generated .NET API documentation.
 
-### 3.2 Automation constraints
+Relevant official facts:
 
-- GitHub Actions is the system of record for build, package, test, and publish automation
-- local scripts may exist for developer convenience, but they must mirror the GitHub Actions flow rather than inventing a second release process
-- publish workflows must be environment-gated and reviewable
+- DocFX is installed as a .NET tool with `dotnet tool update -g docfx`.
+- `docfx init` creates an initial docset.
+- `docfx docfx.json --serve` builds and serves the site locally.
+- DocFX writes publishable static HTML to `_site`.
+- DocFX converts XML documentation comments into rendered API documentation.
+- DocFX API generation has two stages:
+  - `docfx metadata` generates API YAML.
+  - `docfx build` transforms Markdown and API YAML into HTML.
+- The root `docfx` command can run both metadata and build.
+- `docfx metadata` and `docfx build` support `--warningsAsErrors`.
 
-### 3.3 Packaging constraints
+Primary references:
 
-- do not publish every internal project just because it can build
-- do not leak repo-only wiring into public package APIs
-- do not force downstream users to reference `Csxaml.Generator` or `Csxaml.ControlMetadata.Generator` directly
-- do not ship a package structure that only works when the repo folder layout is present
+- https://dotnet.github.io/docfx/
+- https://dotnet.github.io/docfx/docs/dotnet-api-docs.html
+- https://dotnet.github.io/docfx/reference/docfx-cli-reference/docfx-metadata.html
+- https://dotnet.github.io/docfx/reference/docfx-cli-reference/docfx-build.html
+- https://dotnet.github.io/docfx/docs/config.html
 
-### 3.4 Readability constraints
+### 2.2 GitHub Pages
 
-- keep packaging logic in small, obvious projects and targets
-- prefer a dedicated packaging project over overloading unrelated runtime or generator projects with large amounts of release logic
-- keep workflow files focused: CI, release prep, and publish concerns should not be collapsed into one giant YAML file
+GitHub Pages should publish from a custom GitHub Actions workflow, not from committed generated files.
 
----
+Relevant official facts:
 
-## 4. Release Model Decisions
+- Repository settings must set Pages source to GitHub Actions.
+- A custom Pages workflow should:
+  - check out the repo
+  - build the static site
+  - upload the static site with `actions/upload-pages-artifact`
+  - deploy with `actions/deploy-pages`
+- The deploy job needs at least:
+  - `contents: read`
+  - `pages: write`
+  - `id-token: write`
+- The deployment environment should be named `github-pages`.
+- Pull request builds should build the site but skip deployment.
 
-This section defines the target release model for the implementation work.
+Primary references:
 
-### 4.1 Semantic versioning policy
-
-CSXAML uses semantic versioning for all public deliverables.
-
-- release versions are computed by automation from branch history and then recorded by workflow-created tags:
-  - `v1.0.0`
-  - `v1.0.1`
-  - `v1.1.0`
-  - `v1.1.0-preview.1`
-- the repo ships one coordinated version line across:
-  - public NuGet packages
-  - the VS Code extension
-  - the Visual Studio extension
-- preview releases are required before the first stable `1.0.0`
-- pushes to `develop` create preview releases automatically
-- pushes to `master` create stable releases automatically
-- manual tag creation should not be required
-
-### 4.2 Conventional Commit policy
-
-The repo uses Conventional Commits as the semantic input to versioning and changelog generation.
-
-Expected types:
-
-- `feat`
-- `fix`
-- `perf`
-- `refactor`
-- `docs`
-- `test`
-- `build`
-- `ci`
-- `chore`
-- `revert`
-
-Expected scope examples:
-
-- `generator`
-- `runtime`
-- `tooling`
-- `vscode`
-- `visualstudio`
-- `build`
-- `docs`
-- `spec`
-- `repo`
-
-Breaking changes must use:
-
-- `!` in the header, and
-- a `BREAKING CHANGE:` footer with the human explanation
-
-### 4.3 Changelog policy
-
-`git-cliff` is the changelog and release-note engine.
-
-- `CHANGELOG.md` should be generated from commit history
-- GitHub Release notes should come from the same `git-cliff` config, not from hand-written summaries
-- `git-cliff --bumped-version` is the default version recommendation mechanism
-- docs-only or CI-only changes should not trigger public version bumps by themselves unless they intentionally change the release surface
-
-### 4.4 Merge policy
-
-To keep release history predictable:
-
-- `develop` and `master` should prefer squash merges
-- PR titles must follow Conventional Commits
-- release notes should read merged changes from the resulting linear history, not from arbitrary local commit noise
-
-### 4.5 GitHub Actions policy
-
-GitHub Actions owns:
-
-- CI validation
-- package creation
-- extension packaging
-- changelog generation
-- release-note generation
-- NuGet publishing
-- VS Code extension publishing
-- Visual Studio extension publishing
-- GitHub Release creation
-
-No manual local publish step should remain required once the milestone is closed.
+- https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages
+- https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
 
 ---
 
-## 5. Public Package Boundary Target
+## 3. Current Repo State Snapshot
 
-The plan should optimize for a small public surface.
+This plan is grounded in the current repo layout.
 
-### 5.1 Required public packages
+### 3.1 Existing source docs
 
-| Package | Purpose | Notes |
-| --- | --- | --- |
-| `Csxaml` | primary author-facing entry package | Carries `buildTransitive` assets, packaged generator payload, and the minimal install story for app authors. |
-| `Csxaml.Runtime` | runtime library | Contains the runtime types that generated code depends on. |
+The repo already has useful documentation that should be promoted into the site:
 
-### 5.2 Conditional public packages
+- [README.md](./README.md)
+- [LANGUAGE-SPEC.md](./LANGUAGE-SPEC.md)
+- [docs/compatibility-policy.md](./docs/compatibility-policy.md)
+- [docs/component-testing.md](./docs/component-testing.md)
+- [docs/debugging-and-diagnostics.md](./docs/debugging-and-diagnostics.md)
+- [docs/external-control-interop.md](./docs/external-control-interop.md)
+- [docs/lifecycle-and-async.md](./docs/lifecycle-and-async.md)
+- [docs/native-props-and-events.md](./docs/native-props-and-events.md)
+- [docs/package-installation.md](./docs/package-installation.md)
+- [docs/performance-and-scale.md](./docs/performance-and-scale.md)
+- [docs/release-and-versioning.md](./docs/release-and-versioning.md)
+- [docs/supported-feature-matrix.md](./docs/supported-feature-matrix.md)
+- [docs/visual-studio-bootstrap.md](./docs/visual-studio-bootstrap.md)
+- [VSCodeExtension/README.md](./VSCodeExtension/README.md)
 
-| Package | Purpose | Ship rule |
-| --- | --- | --- |
-| `Csxaml.Testing` | test helpers for consumer apps | Ship only after reviewing the public API surface and docs. |
-| `Csxaml.Templates` or equivalent template package | `dotnet new` install surface | Ship if the template experience is stable enough during this milestone; otherwise use a first-class sample app and keep the package as a follow-up. |
+### 3.2 Existing workflows
 
-### 5.3 Internal-only projects by default
-
-These should stay internal unless a concrete external-consumer reason appears during the milestone:
-
-- `Csxaml.ControlMetadata`
-- `Csxaml.ControlMetadata.Generator`
-- `Csxaml.Generator`
-- `Csxaml.Tooling.Core`
-- `Csxaml.LanguageServer`
-- `Csxaml.VisualStudio`
-- demo and fixture projects
-
-### 5.4 Packaging implementation preference
-
-Prefer a dedicated package project for the author-facing package, expected name:
-
-- `Csxaml\Csxaml.csproj`
-
-This project should:
-
-- own package metadata for the main package
-- include `buildTransitive` assets
-- include the packaged generator payload
-- depend on `Csxaml.Runtime`
-- avoid mixing runtime code with packaging-only concerns
-
----
-
-## 6. Workstreams
-
-Complete these in order unless a discovered blocker requires an explicit roadmap note.
-
-### Workstream 1 - Release Governance and Version Contract
-
-#### Goal
-
-Establish the release rules before publishing anything.
-
-#### Tasks
-
-- add Conventional Commit policy to repo docs
-- add PR-title enforcement in GitHub Actions
-- add `git-cliff` configuration
-- add a source-controlled `CHANGELOG.md`
-- define version-bump rules for:
-  - `feat`
-  - `fix`
-  - `perf`
-  - breaking changes
-- define preview tag naming and stable tag naming
-
-#### Expected files
-
-- `.github/workflows/pr-title.yml`
-- `cliff.toml`
-- `CHANGELOG.md`
-- `README.md`
-- release/versioning doc under `docs/`
-
-#### Guardrails
-
-- do not adopt a second versioning engine that conflicts with `git-cliff`
-- do not depend on local git hooks as the only enforcement path
-- do not hide breaking changes in vague commit messages
-
-#### Done when
-
-- `git-cliff` can compute a bumped version from the repo history
-- PR titles are validated in CI
-- the repo has a written version policy and changelog policy
-
-### Workstream 2 - Finalize Package Boundaries and Asset Layout
-
-#### Goal
-
-Turn the current repo-local build story into a publishable package architecture.
-
-#### Tasks
-
-- create the primary packaging project for `Csxaml`
-- move public package metadata out of ad hoc local assumptions
-- decide exactly what the `Csxaml` package contains:
-  - `buildTransitive/Csxaml.props`
-  - `buildTransitive/Csxaml.targets`
-  - packaged generator binaries
-  - any required metadata payload
-- define how packaged targets invoke the generator:
-  - preferred approach: `dotnet exec` against packaged generator binaries
-- remove repo-path assumptions from the public package flow
-- keep repo-local development overrides available where useful, but make them opt-in rather than the public default
-
-#### Expected files
-
-- new package project, expected path: `Csxaml/Csxaml.csproj`
-- packaging assets under that project or a nearby packaging folder
-- updated `build/Csxaml.props`
-- updated `build/Csxaml.targets`
-- any supporting packaging script or target files
-
-#### Guardrails
-
-- do not make downstream users reference the generator project directly
-- do not let the public package depend on this repo's folder structure
-- do not collapse runtime and packaging logic into the same project unless there is a strong, documented reason
-
-#### Done when
-
-- the package boundary is explicit in source
-- local `dotnet pack` produces an installable author-facing package
-- the author-facing package no longer assumes `..\Csxaml.Generator\`
-
-### Workstream 3 - Package Metadata and Local Install Validation
-
-#### Goal
-
-Make the produced packages credible before CI publishes anything.
-
-#### Tasks
-
-- add package metadata for all public packages:
-  - package id
-  - description
-  - authors/owners
-  - repository URL
-  - package tags
-  - readme
-  - license metadata
-- decide whether symbol packages are produced
-- add package validation commands
-- create a local-feed validation loop
-- prove package consumption in a clean sample or fixture solution
-
-#### Repo-specific checks
-
-- package and marketplace metadata should stay aligned with the confirmed public release identities:
-  - NuGet packages: `Csxaml`, `Csxaml.Runtime`
-  - marketplace publisher id: `danielgarysoftware`
-  - public license: `Apache-2.0`
-- package metadata should not be copied inconsistently across many unrelated projects
-
-#### Expected files
-
-- package project files
-- shared packaging props if needed
-- package README assets
-- validation script under `scripts/`
-
-#### Done when
-
-- public packages pack cleanly in `Release`
-- a local feed install works in a clean solution
-- package metadata is complete enough for publication
-
-### Workstream 4 - Artifact-Only GitHub Actions CI
-
-#### Goal
-
-Create a fully automated build-and-package path before enabling any publish step.
-
-#### Tasks
-
-- add CI workflow on PRs and pushes to `develop` and `master`
-- run restore, build, and tests
-- pack NuGet artifacts
-- package the VS Code extension
-- build the VSIX
-- upload all artifacts
-
-#### Expected workflows
+The repo already has GitHub Actions under `.github/workflows/`:
 
 - `.github/workflows/ci.yml`
-
-#### Expected artifacts
-
-- `.nupkg`
-- `.snupkg` if enabled
-- VS Code `.vsix`
-- Visual Studio `.vsix`
-- generated changelog preview or release-note preview if useful
-
-#### Guardrails
-
-- do not publish from PR workflows
-- keep the workflow readable; split composite concerns if the file becomes too large
-- use `windows-latest` where WinUI and VSIX validation require it
-
-#### Done when
-
-- every release deliverable can be built in GitHub Actions without local intervention
-- the repo has downloadable build artifacts for packages and extensions
-
-### Workstream 5 - Release Prep Automation with `git-cliff`
-
-#### Goal
-
-Make version calculation and release-note generation reproducible.
-
-#### Tasks
-
-- add a release-prep workflow or script that:
-  - computes the next version with `git-cliff`
-  - generates release notes
-  - updates `CHANGELOG.md`
-  - stages any versioned source files that must match the release artifact version
-- decide whether release prep:
-  - remains a manual review helper, or
-  - is bypassed for routine branch-driven publishes in favor of the publish workflow's computed release plan
-- standardize one source of truth for release version variables consumed by:
-  - `dotnet pack`
-  - VS Code extension packaging
-  - VSIX packaging
-
-#### Preferred approach
-
-Use a release-prep workflow as an optional review tool, while the real publish path computes the release plan directly from `develop` or `master` and creates the release tag automatically after publish succeeds.
-
-#### Expected files
-
-- `.github/workflows/release-prep.yml`
-- release/versioning doc under `docs/`
-- any helper script under `scripts/release/`
-
-#### Done when
-
-- the next version is computed by tooling, not by hand
-- release notes are generated by `git-cliff`
-- a reviewer can inspect the proposed version and notes before publish
-
-### Workstream 6 - Publish Workflows and Credentials
-
-#### Goal
-
-Turn artifact builds into real releases with protected publish steps.
-
-#### Tasks
-
-- configure NuGet trusted publishing as the preferred publish path
-- configure GitHub Actions environments for:
-  - `nuget`
-  - `vscode-marketplace`
-  - `visualstudio-marketplace`
-- add branch-driven publish workflows for `develop` preview releases and `master` stable releases
-- create GitHub Releases from the same artifacts and notes
-- define fallback behavior if a downstream marketplace publish fails after package creation
-
-#### NuGet policy
-
-- prefer trusted publishing over long-lived API keys
-- if trusted publishing cannot be established immediately, use a temporary secret-based fallback and record the debt explicitly
-
-#### Expected workflows
-
+- `.github/workflows/pr-title.yml`
 - `.github/workflows/publish.yml`
-- or a small set of focused workflows such as:
-  - `publish-nuget.yml`
-  - `publish-vscode.yml`
-  - `publish-vsix.yml`
+- `.github/workflows/release-prep.yml`
 
-#### Done when
+The existing CI uses `windows-latest`, .NET 8 and .NET 10, and Node.js. The docs workflow should follow that shape unless implementation proves that a narrower runner is enough.
 
-- a protected GitHub Actions run can publish public packages
-- a protected GitHub Actions run can create the GitHub Release
-- required secrets and environment reviews are documented clearly
+### 3.3 API documentation readiness
 
-### Workstream 7 - Extension Packaging and Marketplace Readiness
+Developer-facing projects have XML documentation comments and documentation file generation enabled or in progress.
 
-#### Goal
+API docs should initially target:
 
-Make both editor extensions releasable from the same repo version.
+- `Csxaml.Runtime`
+- `Csxaml.Tooling.Core`
+- `Csxaml.ControlMetadata`
+- `Csxaml.Testing`
+- `Csxaml.VisualStudio`
 
-#### Tasks
+Treat these as article-first unless a stable public API reason appears:
 
-- for VS Code:
-  - add packaging command
-  - add publishing command
-  - ensure version stamping comes from the release version
-  - decide whether the language server is bundled by default
-  - keep `csxaml.languageServer.path` as an override, not as the normal install requirement
-- for Visual Studio:
-  - ensure VSIX version stamping is driven from the same release version
-  - verify the existing VSIX packaging tests still pass
-  - add marketplace publish automation or an explicit first-release manual gate if automation needs one extra pass
+- `Csxaml.Generator`
+- `Csxaml.LanguageServer`
 
-#### Repo-specific expectation
-
-The public VS Code extension should ideally "just work" without asking the user to point to a separate language server binary.
-
-#### Expected files
-
-- `VSCodeExtension/package.json`
-- `VSCodeExtension/README.md`
-- any VS Code packaging scripts
-- `Csxaml.VisualStudio/Csxaml.VisualStudio.csproj`
-- Visual Studio publish manifest or helper scripts if needed
-
-#### Done when
-
-- both extensions build from CI artifacts
-- both extensions consume the same release version
-- marketplace-specific prerequisites are documented and tested
-
-### Workstream 8 - Templates, Samples, and Consumer Docs
-
-#### Goal
-
-Close the adoption gap for a new outside user.
-
-#### Tasks
-
-- decide whether the milestone ships:
-  - a `dotnet new` template package, or
-  - a polished starter sample first
-- ensure one sample path demonstrates package consumption rather than project-reference consumption only
-- write or finish the remaining product docs:
-  - native props/events guide
-  - component testing guide review and completion
-  - install/use package guide
-  - release/versioning notes
-- update README with:
-  - what to install
-  - where the docs live
-  - what is stable versus internal
-
-#### Guardrails
-
-- do not claim template polish that the repo cannot maintain
-- if the template package is not ready, ship a clear starter sample and record the template package as follow-up work
-- do not leave roadmap checkboxes stale if docs already exist but need review rather than creation
-
-#### Done when
-
-- an outside user has a documented path from zero to first working CSXAML app
-- milestone docs cover the supported v1 surface honestly
-- README and docs tell the same install story as the packages
-
-### Workstream 9 - Preview Release, Verification, and V1 Closeout
-
-#### Goal
-
-Ship a preview first, validate the whole release path, then close the milestone.
-
-#### Tasks
-
-- cut at least one preview release:
-  - example: `v1.0.0-preview.1`
-- validate:
-  - NuGet install
-  - VS Code extension install
-  - Visual Studio extension install
-  - sample or template flow
-  - changelog and GitHub Release formatting
-- fix any packaging or documentation gaps found in preview
-- only then tag the stable `1.0.0`
-
-#### Done when
-
-- preview artifacts are installable and believable
-- the release pipeline has been exercised end to end
-- milestone 15 roadmap items can be closed honestly
+Do not include test, demo, benchmark, generated fixture, or sample app assemblies in the public API reference.
 
 ---
 
-## 7. Workflow Matrix
+## 4. Non-Negotiable Constraints
 
-| Workflow | Trigger | Purpose | Publish allowed |
-| --- | --- | --- | --- |
-| `pr-title.yml` | PR opened/edited/synchronize | enforce Conventional Commit PR titles | No |
-| `ci.yml` | PRs, pushes to `develop` and `master` | restore, build, test, pack, build extensions, upload artifacts | No |
-| `release-prep.yml` | manual run | compute version, generate changelog, stage release notes | No |
-| `publish.yml` | pushes to `develop` and `master` | compute release plan, validate, publish NuGet, publish extensions, create release tag, create GitHub Release | Yes |
+### 4.1 Documentation constraints
 
-Keep each workflow focused. If one file becomes hard to scan, split it before proceeding.
+- Documentation must be accurate about preview status and current limitations.
+- Do not make the site look more stable than the product is.
+- The language overview should be approachable; the formal spec should remain precise.
+- Existing docs should be edited for public readers, not blindly dumped into navigation.
+- Every page should answer a real developer question.
+- Avoid repo-internal process details in first-contact user pages.
+
+### 4.2 API constraints
+
+- Generated API docs should expose intended developer surfaces only.
+- Use DocFX filters to hide accidental implementation details.
+- Keep API overview pages hand-written; generated reference alone is not enough.
+- If a public type appears confusing in generated docs, improve the XML comments rather than hiding the problem.
+
+### 4.3 Build and hosting constraints
+
+- Do not commit `_site` output.
+- Do not publish from pull request workflows.
+- Build docs in CI before deploying.
+- Use GitHub Actions Pages deployment instead of committing to `gh-pages` unless a blocker is discovered and recorded.
+- Use `windows-latest` at first because the repo contains WinUI and Visual Studio extension projects.
+
+### 4.4 Repo discipline
+
+- Keep the docs site config small and obvious.
+- Keep pages split by audience and task.
+- Update [README.md](./README.md) and [ROADMAP.md](./ROADMAP.md) when the site exists or changes the documented project status.
+- Do not refactor unrelated docs or code while implementing the site.
 
 ---
 
-## 8. Codebase Tracking Map
+## 5. Target Repository Layout
 
-Use this map to keep milestone edits anchored to the real repo.
+Prefer this structure:
 
-### 8.1 Packaging and build assets
+```text
+docfx.json
+filterConfig.yml
+docs-site/
+  index.md
+  toc.yml
+  articles/
+    getting-started/
+      index.md
+      quick-start.md
+      prerequisites.md
+    tutorials/
+      index.md
+      todo-app.md
+    language/
+      index.md
+      concepts.md
+      syntax.md
+      component-model.md
+      state-and-events.md
+      native-controls.md
+      external-controls.md
+      lifecycle.md
+      specification.md
+      supported-features.md
+    guides/
+      index.md
+      package-installation.md
+      native-props-and-events.md
+      component-testing.md
+      debugging-and-diagnostics.md
+      performance-and-scale.md
+      compatibility-policy.md
+      release-and-versioning.md
+    editors/
+      index.md
+      visual-studio-code.md
+      visual-studio.md
+      language-service-features.md
+    api/
+      index.md
+      packages-and-namespaces.md
+      runtime.md
+      testing.md
+      tooling.md
+      metadata.md
+    troubleshooting/
+      index.md
+      build-and-generation.md
+      editor-extensions.md
+      packages-and-versions.md
+    contributing/
+      docs.md
+```
 
-- `build/Csxaml.props`
-- `build/Csxaml.targets`
-- `Directory.Build.props`
-- `Directory.Build.targets`
-- new author-facing package project, expected `Csxaml/Csxaml.csproj`
+Generated paths:
+
+```text
+_site/
+api/
+```
+
+The generated paths must be ignored by git if they are not already ignored.
+
+---
+
+## 6. Public Site Information Architecture
+
+Use this as the target table of contents.
+
+### 6.1 Home
+
+Purpose: explain the product and route readers quickly.
+
+Must cover:
+
+- what CSXAML is
+- what problem it solves
+- current preview status
+- supported platform/runtime expectations
+- install path
+- first links:
+  - Quick Start
+  - Todo Tutorial
+  - Language Overview
+  - Editor Extensions
+  - API Reference
+
+### 6.2 Getting Started
+
+Purpose: get a new user to a working first component.
+
+Pages:
+
+- Prerequisites
+- Quick Start
+- Package installation
+- First component
+- Build and run
+- Common first-build failures
+
+Quick Start must include:
+
+- required .NET SDK and Windows/WinUI assumptions
+- package install commands
+- minimal `.csxaml` component
+- build command
+- what generated output or runtime behavior to expect
+- link to troubleshooting
+
+### 6.3 Tutorial: Build a Todo App
+
+Purpose: a guided end-to-end tutorial using realistic CSXAML patterns.
+
+The Todo tutorial should be the primary learning path.
+
+Required chapters:
+
+1. Create or open a WinUI app.
+2. Install the CSXAML package.
+3. Add the first `TodoBoard.csxaml` component.
+4. Render a list of native controls.
+5. Extract a `TodoCard` component.
+6. Add typed props.
+7. Add component state.
+8. Add event handlers.
+9. Select a todo item.
+10. Edit title and details.
+11. Toggle completion state.
+12. Add layout and styling.
+13. Add tests with `Csxaml.Testing`.
+14. Review the final component tree.
+15. Next steps.
+
+Use the current demo and runtime tests as source material. If the current demo has behavior that is not ready for documentation, either fix the demo first or write the tutorial around supported behavior.
+
+### 6.4 Language
+
+Purpose: explain CSXAML as a language before dropping readers into the full spec.
+
+Pages:
+
+- Language Overview
+- Concepts
+- Syntax
+- Component Model
+- Props
+- State
+- Expressions
+- Native Controls
+- Events
+- Child Content
+- Attached Properties
+- External Controls
+- Keys and Retained Identity
+- Lifecycle and Async
+- Supported Feature Matrix
+- Formal Language Specification
+
+The formal spec page may initially import or mirror [LANGUAGE-SPEC.md](./LANGUAGE-SPEC.md), but the overview pages must be shorter and task-oriented.
+
+### 6.5 Guides
+
+Purpose: keep practical deep dives discoverable.
+
+Pages:
+
+- Package Installation
+- Native Props and Events
+- External Control Interop
+- Component Testing
+- Debugging and Diagnostics
+- Performance and Scale
+- Compatibility Policy
+- Release and Versioning
+
+Most of these already exist under `docs/`. Implementation should copy or move them into the DocFX article tree, fix links, and edit headings/front matter for public navigation.
+
+### 6.6 Editor Extensions
+
+Purpose: document both editor experiences separately while explaining shared language-service behavior once.
+
+Pages:
+
+- Editor Extensions Overview
+- VS Code Extension
+- Visual Studio Extension
+- Language Service Features
+- Editor Troubleshooting
+
+VS Code page must cover:
+
+- installation path
+- packaged VSIX or marketplace path
+- runtime prerequisites
+- language server resolution behavior
+- supported features
+- settings
+- commands
+- troubleshooting
+
+Visual Studio page must cover:
+
+- installation path
+- VSIX or marketplace path
+- supported Visual Studio version
+- experimental instance workflow for contributors
+- supported language-service features
+- troubleshooting startup and marketplace issues
+
+Shared language-service page must cover:
+
+- diagnostics
+- completion
+- semantic tokens
+- formatting
+- go to definition
+- hover, if supported
+- known limitations
+
+### 6.7 API Reference
+
+Purpose: give developers a usable map before the generated reference.
+
+Pages:
+
+- API Overview
+- Packages and Namespaces
+- Runtime API
+- Testing API
+- Tooling API
+- Control Metadata API
+- Generated API Reference
+
+The API overview must answer:
+
+- which package a normal app author installs
+- which namespaces generated code depends on
+- which APIs are for tests
+- which APIs are for tooling/editor integrations
+- which APIs are advanced or subject to change
+
+### 6.8 Troubleshooting
+
+Purpose: centralize common failure paths.
+
+Pages:
+
+- Troubleshooting Overview
+- Build and Generation
+- Editor Extensions
+- Packages and Versions
+- Runtime Behavior
+- Known Limitations
+
+Seed this section from existing CI/release/package failures and current docs.
+
+### 6.9 Contributing to Docs
+
+Purpose: make docs maintenance repeatable.
+
+Must cover:
+
+- how to install or restore DocFX locally
+- how to build the docs
+- how to preview the site
+- how to add a page
+- how to update the TOC
+- how API docs are generated
+- how to fix DocFX warnings
+
+---
+
+## 7. DocFX Configuration Target
+
+### 7.1 `docfx.json`
+
+Add a root-level `docfx.json`.
+
+Expected responsibilities:
+
+- define API metadata generation
+- include generated API YAML
+- include article Markdown under `docs-site/`
+- include static resources, if any
+- set global metadata such as app title and GitHub repo URL
+- configure sitemap base URL once the final Pages URL is known
+
+Start with the default DocFX template. Do not customize visual design in the first pass unless a generated site is unusable.
+
+### 7.2 API metadata
+
+Prefer generating from built assemblies first if project-based DocFX metadata has trouble with WinUI workloads. Otherwise, generating from project files is acceptable.
+
+Recommended first implementation path:
+
+1. Restore and build API-bearing projects in Release.
+2. Run DocFX metadata against built assemblies and side-by-side XML files.
+3. Use `filterConfig.yml` to limit what appears.
+
+Candidate projects:
+
 - `Csxaml.Runtime/Csxaml.Runtime.csproj`
 - `Csxaml.Testing/Csxaml.Testing.csproj`
-
-### 8.2 Generator payload and metadata payload
-
-- `Csxaml.Generator/*`
-- `Csxaml.ControlMetadata/*`
-- any packaging-time target or script that stages generator output
-
-### 8.3 GitHub Actions and release config
-
-- `.github/workflows/*`
-- `cliff.toml`
-- `CHANGELOG.md`
-- release helper scripts under `scripts/release/`
-
-### 8.4 VS Code extension
-
-- `VSCodeExtension/package.json`
-- `VSCodeExtension/README.md`
-- `VSCodeExtension/src/*`
-- any extension packaging scripts
-
-### 8.5 Visual Studio extension
-
+- `Csxaml.Tooling.Core/Csxaml.Tooling.Core.csproj`
+- `Csxaml.ControlMetadata/Csxaml.ControlMetadata.csproj`
 - `Csxaml.VisualStudio/Csxaml.VisualStudio.csproj`
-- `Csxaml.VisualStudio/.vsextension/*`
-- any marketplace publish manifest or helper script
 
-### 8.6 Docs and roadmap touchpoints
+If Visual Studio extension metadata adds too much noise or requires Visual Studio-specific components that DocFX cannot resolve reliably, move it to a hand-written extension integration page and omit its generated API reference for the first published site.
 
+### 7.3 API filter
+
+Add `filterConfig.yml`.
+
+Default posture:
+
+- include public/protected APIs from intended assemblies
+- exclude tests, demo, benchmark, generated fixture, sample, and package-internal namespaces
+- exclude generated compiler artifacts if they leak into API metadata
+- exclude implementation detail namespaces only after confirming they are not developer surfaces
+
+Do not use filtering to hide missing XML docs that should be fixed.
+
+### 7.4 Front matter
+
+Each hand-written page should have front matter:
+
+```yaml
+---
+title: Page Title
+description: One sentence description for search results and previews.
+---
+```
+
+Keep descriptions factual and short.
+
+---
+
+## 8. GitHub Pages Workflow Target
+
+Add `.github/workflows/docs.yml`.
+
+### 8.1 Triggers
+
+```yaml
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - master
+  workflow_dispatch:
+```
+
+Pull requests should build and upload a docs artifact if useful, but must not deploy.
+
+Deployment should happen only on the chosen public branch. If public docs should track stable releases, deploy from `master`. If public docs should track active preview work, deploy from `develop`. Record the decision in the workflow and docs contributing page.
+
+### 8.2 Runner
+
+Use `windows-latest` initially.
+
+Reasons:
+
+- existing CI uses Windows
+- runtime and tests target WinUI
+- Visual Studio extension API metadata may need Windows-specific references
+- this avoids debugging Linux workload gaps during the first docs implementation
+
+If a later implementation proves docs can build reliably on Ubuntu, switching is acceptable in a separate cleanup.
+
+### 8.3 Workflow steps
+
+Required build job steps:
+
+1. Check out the repository.
+2. Set up .NET 8 and .NET 10.
+3. Set up Node.js only if docs build depends on extension package metadata or assets.
+4. Restore the solution.
+5. Build API-bearing projects in Release.
+6. Install or restore DocFX.
+7. Run DocFX metadata with warnings as errors.
+8. Run DocFX build with warnings as errors.
+9. Upload `_site` with `actions/upload-pages-artifact`.
+
+Required deploy job steps:
+
+1. Run only for allowed branch pushes or manual workflow dispatch.
+2. Use `actions/deploy-pages`.
+3. Set environment to `github-pages`.
+
+Required permissions:
+
+```yaml
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+```
+
+Add concurrency:
+
+```yaml
+concurrency:
+  group: pages
+  cancel-in-progress: false
+```
+
+---
+
+## 9. Local Author Commands
+
+These should work by the end of the implementation.
+
+### 9.1 Install or restore DocFX
+
+Prefer a local tool manifest if the repo does not already have one:
+
+```powershell
+dotnet new tool-manifest
+dotnet tool install docfx
+dotnet tool restore
+```
+
+If using a global tool instead:
+
+```powershell
+dotnet tool update -g docfx
+```
+
+The implementation must choose one path and document it. Prefer local tool manifest for reproducibility.
+
+### 9.2 Build API-bearing projects
+
+```powershell
+dotnet restore .\Csxaml.sln
+dotnet build .\Csxaml.Runtime\Csxaml.Runtime.csproj -c Release
+dotnet build .\Csxaml.Testing\Csxaml.Testing.csproj -c Release
+dotnet build .\Csxaml.ControlMetadata\Csxaml.ControlMetadata.csproj -c Release
+dotnet build .\Csxaml.Tooling.Core\Csxaml.Tooling.Core.csproj -c Release
+dotnet build .\Csxaml.VisualStudio\Csxaml.VisualStudio.csproj -c Release
+```
+
+If Visual Studio metadata is omitted from generated API docs, remove that build from the docs command list.
+
+### 9.3 Build and preview docs
+
+If using local tools:
+
+```powershell
+dotnet tool restore
+dotnet docfx docfx.json --serve
+```
+
+If using global DocFX:
+
+```powershell
+docfx docfx.json --serve
+```
+
+For stricter validation:
+
+```powershell
+dotnet docfx metadata docfx.json --warningsAsErrors
+dotnet docfx build docfx.json --warningsAsErrors
+```
+
+Adjust commands if the implementation pins scripts under `scripts/docs/`.
+
+---
+
+## 10. Implementation Workstreams
+
+Complete these in order unless a blocker requires a documented change.
+
+### Workstream 1 - Scaffold DocFX Site
+
+#### Goal
+
+Create a minimal DocFX site that builds locally.
+
+#### Tasks
+
+- add `docfx.json`
+- add `filterConfig.yml`
+- add `docs-site/index.md`
+- add `docs-site/toc.yml`
+- add initial article folders
+- add generated output paths to `.gitignore` if needed
+- add a docs contributing page with local build commands
+
+#### Expected files
+
+- `docfx.json`
+- `filterConfig.yml`
+- `docs-site/index.md`
+- `docs-site/toc.yml`
+- `docs-site/contributing/docs.md`
+- `.gitignore`
+
+#### Done when
+
+- `docfx docfx.json --serve` or `dotnet docfx docfx.json --serve` starts a local site
+- the home page renders
+- the TOC has the target top-level sections
+
+### Workstream 2 - Generate API Reference
+
+#### Goal
+
+Generate usable API docs for intended developer-facing assemblies.
+
+#### Tasks
+
+- build XML-doc-enabled projects in Release
+- configure DocFX metadata generation
+- add API output to the DocFX build content
+- add API filters
+- add hand-written API landing pages
+- verify API nav is understandable
+
+#### Expected files
+
+- `docfx.json`
+- `filterConfig.yml`
+- `docs-site/api/index.md`
+- `docs-site/api/packages-and-namespaces.md`
+- `docs-site/api/runtime.md`
+- `docs-site/api/testing.md`
+- `docs-site/api/tooling.md`
+- `docs-site/api/metadata.md`
+
+#### Done when
+
+- API pages generate
+- API pages do not include test/demo/sample projects
+- normal app authors can tell which package and namespace to use
+- tooling authors can find advanced surfaces
+
+### Workstream 3 - Write Getting Started and Todo Tutorial
+
+#### Goal
+
+Give new users a clear path from zero to a working Todo app.
+
+#### Tasks
+
+- write prerequisites page
+- write quick start page
+- write Todo tutorial
+- use examples that compile against current CSXAML behavior
+- link from home page and README
+- include troubleshooting links at likely failure points
+
+#### Expected files
+
+- `docs-site/articles/getting-started/index.md`
+- `docs-site/articles/getting-started/prerequisites.md`
+- `docs-site/articles/getting-started/quick-start.md`
+- `docs-site/articles/tutorials/index.md`
+- `docs-site/articles/tutorials/todo-app.md`
+
+#### Done when
+
+- a reader can install packages and create a first component
+- the Todo tutorial is complete enough to teach props, state, events, layout, and testing
+- all code snippets are verified manually or by a script/sample
+
+### Workstream 4 - Build Language Documentation
+
+#### Goal
+
+Create approachable language docs and preserve the formal spec.
+
+#### Tasks
+
+- write the language overview
+- write concepts page
+- split key language topics into short pages
+- include or mirror the formal spec
+- surface supported feature matrix
+- cross-link language pages to tutorial and API pages
+
+#### Expected files
+
+- `docs-site/articles/language/index.md`
+- `docs-site/articles/language/concepts.md`
+- `docs-site/articles/language/syntax.md`
+- `docs-site/articles/language/component-model.md`
+- `docs-site/articles/language/state-and-events.md`
+- `docs-site/articles/language/native-controls.md`
+- `docs-site/articles/language/external-controls.md`
+- `docs-site/articles/language/lifecycle.md`
+- `docs-site/articles/language/specification.md`
+- `docs-site/articles/language/supported-features.md`
+
+#### Done when
+
+- readers can learn concepts without reading the full spec first
+- the formal spec is discoverable
+- current feature support is explicit
+
+### Workstream 5 - Promote Existing Guides
+
+#### Goal
+
+Move existing repo docs into public documentation shape.
+
+#### Tasks
+
+- migrate or copy existing guide docs into `docs-site/articles/guides/`
+- fix headings and front matter
+- fix relative links
+- remove repo-internal phrasing from public pages
+- preserve useful technical detail
+
+#### Expected files
+
+- `docs-site/articles/guides/index.md`
+- `docs-site/articles/guides/package-installation.md`
+- `docs-site/articles/guides/native-props-and-events.md`
+- `docs-site/articles/guides/external-control-interop.md`
+- `docs-site/articles/guides/component-testing.md`
+- `docs-site/articles/guides/debugging-and-diagnostics.md`
+- `docs-site/articles/guides/performance-and-scale.md`
+- `docs-site/articles/guides/compatibility-policy.md`
+- `docs-site/articles/guides/release-and-versioning.md`
+
+#### Done when
+
+- all existing public-relevant docs are reachable from the site TOC
+- old docs are not duplicated in a way that creates obvious drift
+- links from README and ROADMAP point to the right canonical docs location
+
+### Workstream 6 - Document Editor Extensions
+
+#### Goal
+
+Add first-class docs for both editor extensions.
+
+#### Tasks
+
+- create editor extension overview page
+- convert VS Code README content into a user-facing page
+- convert Visual Studio bootstrap content into a user-facing page
+- add shared language-service feature page
+- add editor troubleshooting page
+- separate contributor/dev-host instructions from normal installation instructions
+
+#### Expected files
+
+- `docs-site/articles/editors/index.md`
+- `docs-site/articles/editors/visual-studio-code.md`
+- `docs-site/articles/editors/visual-studio.md`
+- `docs-site/articles/editors/language-service-features.md`
+- `docs-site/articles/troubleshooting/editor-extensions.md`
+
+#### Done when
+
+- VS Code users know how to install and configure the extension
+- Visual Studio users know how to install and troubleshoot the extension
+- shared language-service capabilities are documented once
+
+### Workstream 7 - Add Troubleshooting Hub
+
+#### Goal
+
+Make common failure modes easy to resolve.
+
+#### Tasks
+
+- add troubleshooting overview
+- add build and generation troubleshooting
+- add package/version troubleshooting
+- add editor troubleshooting
+- link troubleshooting from Quick Start, Tutorial, Guides, and Editors pages
+
+#### Expected files
+
+- `docs-site/articles/troubleshooting/index.md`
+- `docs-site/articles/troubleshooting/build-and-generation.md`
+- `docs-site/articles/troubleshooting/packages-and-versions.md`
+- `docs-site/articles/troubleshooting/editor-extensions.md`
+- `docs-site/articles/troubleshooting/runtime-behavior.md`
+
+#### Done when
+
+- common package, generator, editor, and runtime failures have a documented starting point
+- users can report issues with enough diagnostic context
+
+### Workstream 8 - Add GitHub Pages Deployment
+
+#### Goal
+
+Publish the site from GitHub Actions.
+
+#### Tasks
+
+- add `.github/workflows/docs.yml`
+- build docs on PRs and pushes
+- deploy only from the selected public branch
+- upload `_site` as the GitHub Pages artifact
+- configure environment and permissions
+- document required GitHub repository setting
+
+#### Expected files
+
+- `.github/workflows/docs.yml`
+- `docs-site/contributing/docs.md`
+- optionally `scripts/docs/Invoke-DocsBuild.ps1`
+
+#### Done when
+
+- PR workflow builds docs
+- branch push publishes to GitHub Pages
+- Pages deployment URL is visible in the workflow output
+- generated site output is not committed
+
+### Workstream 9 - Polish Navigation, Links, and Search
+
+#### Goal
+
+Make the site feel coherent and reliable.
+
+#### Tasks
+
+- verify TOC order
+- verify every top-level landing page exists
+- fix broken links
+- ensure page titles are unique and useful
+- configure sitemap base URL after the public URL is known
+- add logo/favicon only if assets already exist or are easy to produce
+- add README link to live docs after deployment
+
+#### Expected files
+
+- `docfx.json`
+- `docs-site/toc.yml`
 - `README.md`
 - `ROADMAP.md`
-- `docs/component-testing.md`
-- `docs/debugging-and-diagnostics.md`
-- `docs/external-control-interop.md`
-- new docs for:
-  - native props/events
-  - package install story
-  - release/versioning notes
+
+#### Done when
+
+- no broken internal links remain
+- the site has a readable public navigation path
+- README points to the docs site
+- ROADMAP reflects the documentation site status
 
 ---
 
-## 9. Validation Commands
+## 11. Content Quality Checklist
 
-These command shapes should exist by the end of the milestone.
+Every public page should pass this checklist:
 
-### 9.1 Correctness
+- clear title
+- one-sentence description
+- states audience or use case quickly
+- links to the next likely page
+- avoids stale release claims
+- avoids undocumented commands
+- code snippets are copyable and current
+- internal repo details are moved below user-facing setup
+- limitations are explicit where behavior is preview or incomplete
+
+---
+
+## 12. API Documentation Checklist
+
+Generated API docs are acceptable only when:
+
+- XML docs exist for public/protected APIs
+- public namespace list is intentional
+- accidental generated types are filtered out
+- package ownership is explained by hand-written API pages
+- advanced tooling APIs are labeled as advanced
+- normal app authors can avoid internal/tooling pages unless needed
+- DocFX warnings are either fixed or explicitly recorded as temporary debt
+
+---
+
+## 13. Validation Commands
+
+These commands should exist by the end of the work, either directly or through a script.
+
+### 13.1 Restore and build
 
 ```powershell
-dotnet test Csxaml.Generator.Tests\Csxaml.Generator.Tests.csproj -m:1 /p:UseSharedCompilation=false
-dotnet test Csxaml.Runtime.Tests\Csxaml.Runtime.Tests.csproj -m:1 /p:UseSharedCompilation=false
-dotnet test Csxaml.ControlMetadata.Generator.Tests\Csxaml.ControlMetadata.Generator.Tests.csproj -m:1 /p:UseSharedCompilation=false
-dotnet test Csxaml.ProjectSystem.Tests\Csxaml.ProjectSystem.Tests.csproj -m:1 /p:UseSharedCompilation=false
-dotnet test Csxaml.Tooling.Core.Tests\Csxaml.Tooling.Core.Tests.csproj -m:1 /p:UseSharedCompilation=false
-dotnet test Csxaml.VisualStudio.Tests\Csxaml.VisualStudio.Tests.csproj -m:1 /p:UseSharedCompilation=false
-```
-
-### 9.2 Pack and extension build
-
-```powershell
-dotnet pack .\Csxaml\Csxaml.csproj -c Release
-dotnet pack .\Csxaml.Runtime\Csxaml.Runtime.csproj -c Release
-dotnet pack .\Csxaml.Testing\Csxaml.Testing.csproj -c Release
+dotnet restore .\Csxaml.sln
+dotnet build .\Csxaml.Runtime\Csxaml.Runtime.csproj -c Release
+dotnet build .\Csxaml.Testing\Csxaml.Testing.csproj -c Release
+dotnet build .\Csxaml.ControlMetadata\Csxaml.ControlMetadata.csproj -c Release
+dotnet build .\Csxaml.Tooling.Core\Csxaml.Tooling.Core.csproj -c Release
 dotnet build .\Csxaml.VisualStudio\Csxaml.VisualStudio.csproj -c Release
-cd VSCodeExtension; npm ci; npx vsce package
 ```
 
-### 9.3 Release tooling
+### 13.2 Build docs
 
 ```powershell
-git cliff --bumped-version
-git cliff --output CHANGELOG.md
+dotnet tool restore
+dotnet docfx metadata .\docfx.json --warningsAsErrors
+dotnet docfx build .\docfx.json --warningsAsErrors
 ```
 
-If the final commands differ, update this plan in the same change that introduces the real command surface.
+If the implementation uses global DocFX instead of a local tool:
+
+```powershell
+docfx metadata .\docfx.json --warningsAsErrors
+docfx build .\docfx.json --warningsAsErrors
+```
+
+### 13.3 Preview docs
+
+```powershell
+dotnet docfx .\docfx.json --serve
+```
+
+or:
+
+```powershell
+docfx .\docfx.json --serve
+```
+
+### 13.4 Optional link check
+
+If a link checker is added:
+
+```powershell
+lychee .\_site
+```
+
+Do not make external-link failures block the first implementation unless the baseline is clean and reliable. Internal broken links should block.
 
 ---
 
-## 10. Review Gates After Each Workstream
+## 14. GitHub Pages Repository Settings
 
-Each workstream closes only after these checks are done:
+After `.github/workflows/docs.yml` is merged:
 
-1. the changed files are still easy to navigate
-2. related tests or validation commands were run
-3. the result was compared against [ROADMAP.md](./ROADMAP.md)
-4. the install/publish story is more explicit than before, not less
-5. no public-facing versioning or changelog behavior depends on tribal knowledge
+1. Open the repository settings on GitHub.
+2. Go to Pages.
+3. Under Build and deployment, set Source to GitHub Actions.
+4. Confirm the `github-pages` environment exists.
+5. Add a deployment protection rule if public docs should deploy only from the selected branch.
+6. Record the public docs URL in [README.md](./README.md).
 
-If a workstream changes packaging structure, the implementing agent must also confirm that an outside consumer can still understand:
-
-- what package to install
-- what version they are getting
-- what runtime/tooling payload is bundled
+If a custom domain is used later, configure it in GitHub settings. Do not rely only on a committed `CNAME` file.
 
 ---
 
-## 11. Risks and Decision Traps
+## 15. Risks and Decisions
 
-Track these explicitly while implementing.
+### 15.1 API metadata from WinUI/VSIX projects may be noisy
 
-### 11.1 Package boundary sprawl
+Risk: DocFX metadata generation may fail or produce too much irrelevant API content from Windows-specific projects.
 
-Risk: too many public packages make the product hard to adopt.
+Response: start on `windows-latest`, generate from built assemblies, and omit Visual Studio generated API docs from the first release if needed. Keep the Visual Studio extension documented as articles either way.
 
-Response: default to `Csxaml` plus `Csxaml.Runtime`, and justify any additional public package in source and docs.
+### 15.2 Existing docs may duplicate new public pages
 
-### 11.2 Repo-local assumptions leaking into packages
+Risk: docs drift if `docs/` and `docs-site/articles/` both contain canonical content.
 
-Risk: packaged targets still reference repo paths or repo-only generator behavior.
+Response: pick one canonical location during implementation. The preferred end state is public docs under `docs-site/articles/`, with old docs moved or replaced by redirecting/linking stubs if needed.
 
-Response: local-feed install validation is mandatory before any publish workflow is enabled.
+### 15.3 The tutorial may expose unsupported behavior
 
-### 11.3 VS Code extension not being self-sufficient
+Risk: the Todo tutorial teaches behavior that works only in the demo or tests.
 
-Risk: the marketplace extension technically publishes but still depends on a separately located language server binary.
+Response: base the tutorial on verified supported behavior. If the desired tutorial requires a missing capability, record the gap and adjust the tutorial rather than overstating support.
 
-Response: bundle the language server for the normal path and keep the current path setting as an override only.
+### 15.4 Docs workflow could duplicate CI work
 
-### 11.4 Marketplace publish asymmetry
+Risk: docs CI becomes slow by rebuilding too much.
 
-Risk: NuGet publish is automated but one extension still requires manual local steps.
+Response: first make it correct and reliable. After the site builds, optimize by building only API-bearing projects or using compiled artifacts if appropriate.
 
-Response: record any temporary manual gate explicitly in roadmap/docs and keep it as a short-lived milestone subtask, not a hidden exception.
+### 15.5 Public branch decision affects reader expectations
 
-### 11.5 Version drift across artifacts
+Risk: deploying from `develop` shows unreleased docs; deploying from `master` may lag preview packages.
 
-Risk: NuGet packages, VS Code extension, and VSIX use different versions.
+Response: choose explicitly:
 
-Response: one release version variable must feed all artifact stamps.
+- Deploy from `master` if docs should represent stable/public releases.
+- Deploy from `develop` if docs should represent current preview work.
+
+Record the decision in `docs-site/contributing/docs.md`.
 
 ---
 
-## 12. Implementation Issue Log
+## 16. Implementation Issue Log
 
 Fill this in as work lands.
 
 | ID | Workstream | File(s) | Problem | Resolution | Status |
 | --- | --- | --- | --- | --- | --- |
-| REL-1 | 2 | `build/Csxaml.props`, `build/Csxaml.targets`, package project | Public package still assumed repo-local generator paths. | Added packaged generator payload, packaged `dotnet exec` path, and local-feed validation outside the repo layout. | Closed |
-| REL-2 | 4 | `.github/workflows/ci.yml` | CI produced artifacts inconsistently across .NET and Node surfaces. | Added `Invoke-CiValidation.ps1` plus artifact CI workflow and validated the full local path sequentially to avoid WinAppSDK file-lock collisions. | Closed |
-| REL-3 | 7 | `VSCodeExtension/package.json`, extension packaging path | Marketplace packaging did not bundle the normal language server path. | Added extension packaging script, bundled `LanguageServer/` payload into the packaged VSIX, and tightened manifest/license metadata. | Closed |
-| REL-4 | 6 | publish workflow and environment config | NuGet or marketplace credentials were incomplete or not review-gated. | Added branch-driven publish workflow with protected environment boundaries and automatic post-publish tag creation; real publish still depends on maintainer-owned accounts and secrets. | Mitigated |
+| DOCS-1 | 1 | `docfx.json`, `docs-site/*` | DocFX site scaffold needed. | Added DocFX config, site content tree, TOC, local tool manifest, and docs build script. | Closed |
+| DOCS-2 | 2 | `filterConfig.yml`, API projects | API reference needs intentional public surface. | Added XML-doc metadata generation into `obj/docfx/api`, API filter, API overview pages, and generated-reference entry points. | Closed |
+| DOCS-3 | 3 | Tutorial docs | Todo app tutorial needs verified snippets. | Added quick start and Todo tutorial based on the current demo shape and testing API names. | Closed |
+| DOCS-4 | 8 | `.github/workflows/docs.yml` | GitHub Pages publish path needed. | Added docs workflow that builds on PRs and publishes `_site` to GitHub Pages from `master`. Repository Pages source still must be set to GitHub Actions after merge. | Mitigated |
 
 ---
 
-## 13. Execution Order
+## 17. Execution Order
 
-1. establish release governance and commit/version rules
-2. finalize package boundaries
-3. implement the author-facing package and local pack/install flow
-4. add artifact-only CI
-5. add release-prep automation with `git-cliff`
-6. add protected publish workflows
-7. finish extension packaging and version stamping
-8. finish templates, samples, and remaining docs
-9. cut a preview release from `develop`
-10. fix preview gaps
-11. publish the stable v1 release from `master`
+1. scaffold DocFX config and minimal site
+2. add local DocFX tool restore or document global tool usage
+3. generate API reference for the safest API-bearing projects
+4. add API overview pages
+5. write quick start
+6. write Todo tutorial
+7. build language overview pages
+8. migrate existing guides
+9. write extension docs
+10. add troubleshooting hub
+11. add GitHub Pages workflow
+12. verify local docs build with warnings as errors
+13. verify docs workflow on PR
+14. deploy from the selected public branch
+15. update README and ROADMAP with the live docs status
 
-Do not publish anything public before steps 1 through 5 are complete.
+Do not spend time on custom visual design before the content structure, API generation, and deployment path work.
 
 ---
 
-## 14. Definition of Done
+## 18. Definition of Done
 
-Milestone 15 is complete only when all of the following are true:
+The DocFX documentation site is complete only when all of the following are true:
 
-- public package boundaries are defined in source and docs
-- a local-feed package install works outside this repo's folder layout
-- GitHub Actions builds all release artifacts
-- GitHub Actions can publish the release artifacts through protected workflows
-- Conventional Commit enforcement exists
-- `git-cliff` generates the changelog and release notes
-- semantic versioning is applied consistently across packages and extensions
-- at least one preview release has been published and validated
-- README and docs explain the install and release story clearly
-- [ROADMAP.md](./ROADMAP.md) reflects the milestone's real state
-- the shipped product still aligns with [LANGUAGE-SPEC.md](./LANGUAGE-SPEC.md)
+- `docfx.json` builds the site locally
+- the site includes hand-written conceptual docs and generated API reference
+- quick start exists
+- Todo tutorial exists
+- language overview exists
+- formal language spec is reachable
+- VS Code extension page exists
+- Visual Studio extension page exists
+- API overview explains packages and namespaces
+- troubleshooting hub exists
+- `.github/workflows/docs.yml` builds on PRs
+- GitHub Pages deploys from the selected branch
+- `_site` and generated API output are not committed
+- README links to the docs site after deployment
+- ROADMAP reflects the real documentation-site status
+- DocFX warnings are fixed or tracked
+- internal links are clean
 
-If the repo can produce packages but a new user still has to guess what to install, how versions are chosen, or how releases are cut, the milestone is not done.
+If the site exists but a new user still has to read source files to build their first CSXAML component, this work is not done.

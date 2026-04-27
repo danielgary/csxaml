@@ -77,6 +77,9 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# DocFX
+_site/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 

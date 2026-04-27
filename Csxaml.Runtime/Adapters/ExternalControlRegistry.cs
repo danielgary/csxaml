@@ -1,11 +1,19 @@
 namespace Csxaml.Runtime;
 
+/// <summary>
+/// Stores external native controls that generated CSXAML components can render.
+/// </summary>
 public static class ExternalControlRegistry
 {
     private static readonly object Gate = new();
     private static readonly Dictionary<string, ExternalControlDescriptor> Descriptors =
         new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Registers an external control descriptor for use by the runtime.
+    /// </summary>
+    /// <param name="descriptor">The external control descriptor to register.</param>
+    /// <exception cref="InvalidOperationException">Thrown when a different control type is already registered for the same tag.</exception>
     public static void Register(ExternalControlDescriptor descriptor)
     {
         ArgumentNullException.ThrowIfNull(descriptor);

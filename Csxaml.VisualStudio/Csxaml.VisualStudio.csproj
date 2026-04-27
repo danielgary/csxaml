@@ -4,6 +4,8 @@
     <VsixDotnetTargetVersions>net8.0%3Bnet10.0</VsixDotnetTargetVersions>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>$(WarningsAsErrors);1591</WarningsAsErrors>
     <AssemblyName>Csxaml.VisualStudio</AssemblyName>
     <RootNamespace>Csxaml.VisualStudio</RootNamespace>
     <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP</NoWarn>

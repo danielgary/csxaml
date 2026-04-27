@@ -6,12 +6,21 @@ using Csxaml.Tooling.Core.Projects;
 
 namespace Csxaml.Tooling.Core.SemanticTokens;
 
+/// <summary>
+/// Provides semantic tokens for CSXAML markup and embedded C# expressions.
+/// </summary>
 public sealed partial class CsxamlSemanticTokenService
 {
     private readonly CsxamlCSharpSemanticTokenService _csharpSemanticTokenService = new();
     private readonly CsxamlTagSymbolResolver _tagResolver = new();
     private readonly CsxamlWorkspaceLoader _workspaceLoader = new();
 
+    /// <summary>
+    /// Gets semantic tokens for a CSXAML document.
+    /// </summary>
+    /// <param name="filePath">The CSXAML file path.</param>
+    /// <param name="text">The current CSXAML source text.</param>
+    /// <returns>The semantic tokens for the document.</returns>
     public IReadOnlyList<CsxamlSemanticToken> GetTokens(string filePath, string text)
     {
         var workspace = _workspaceLoader.Load(filePath, text);

@@ -1,9 +1,17 @@
 namespace Csxaml.Tooling.Core.Formatting;
 
+/// <summary>
+/// Formats CSXAML source text using the editor-facing indentation rules.
+/// </summary>
 public sealed class CsxamlFormattingService
 {
     private const int SpacesPerIndent = 4;
 
+    /// <summary>
+    /// Formats an entire CSXAML document.
+    /// </summary>
+    /// <param name="text">The source text to format.</param>
+    /// <returns>The formatted source text.</returns>
     public string FormatDocument(string text)
     {
         if (string.IsNullOrWhiteSpace(text))

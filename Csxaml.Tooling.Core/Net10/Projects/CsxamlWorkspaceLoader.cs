@@ -2,11 +2,20 @@ using Csxaml.Generator;
 
 namespace Csxaml.Tooling.Core.Projects;
 
+/// <summary>
+/// Loads project, component, and external-control metadata for editor services.
+/// </summary>
 public sealed class CsxamlWorkspaceLoader
 {
     private readonly CsxamlWorkspaceComponentCache _componentCache = new(new Parser());
     private readonly CsxamlExternalControlCache _externalControlCache = new(new ExternalControlMetadataBuilder());
 
+    /// <summary>
+    /// Loads a workspace snapshot for a CSXAML document.
+    /// </summary>
+    /// <param name="filePath">The CSXAML file path.</param>
+    /// <param name="currentText">The current unsaved source text for the file.</param>
+    /// <returns>The workspace snapshot used by tooling services.</returns>
     public CsxamlWorkspaceSnapshot Load(string filePath, string currentText)
     {
         var projectFile = CsxamlProjectLocator.FindOwningProjectFile(filePath)
