@@ -17,7 +17,7 @@ public sealed class ExtensionEntrypoint : Extension
         Metadata = new(
             id: "Csxaml.VisualStudio",
             version: this.ExtensionAssemblyVersion,
-            publisherName: "danielgarysoftware",
+            publisherName: "Daniel Gary Software",
             displayName: "CSXAML Bootstrap",
             description: "Bootstraps the first Visual Studio checkpoint for CSXAML authoring."),
     };

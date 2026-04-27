@@ -42,6 +42,8 @@ Current public release identities are:
   - `danielgarysoftware`
 - Visual Studio Marketplace publisher id:
   - `danielgarysoftware`
+- Visual Studio Marketplace publisher display name:
+  - `Daniel Gary Software`
 - repository and package license:
   - `Apache-2.0`
 
