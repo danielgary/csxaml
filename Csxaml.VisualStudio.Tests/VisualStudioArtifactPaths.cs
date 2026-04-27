@@ -13,6 +13,14 @@ internal static class VisualStudioArtifactPaths
             "extension.vsixmanifest");
     }
 
+    public static string GetPublishManifestPath()
+    {
+        return Path.Combine(
+            RepoRoot,
+            "Csxaml.VisualStudio",
+            "publishManifest.json");
+    }
+
     public static string GetVsixPath()
     {
         return GetExistingPath(
