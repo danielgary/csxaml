@@ -1,3 +1,7 @@
+if (-not (Get-Command Assert-PdbMatchesAssemblyDebugIdentity -ErrorAction SilentlyContinue)) {
+    . (Join-Path $PSScriptRoot "NuGetSymbolDebugIdentity.ps1")
+}
+
 function Get-NuGetPackageEntryNames {
     param([string]$PackagePath)
 
@@ -128,6 +132,46 @@ function Assert-SymbolPackageMatchesBinaries {
         if (($binaryEntries -notcontains $matchingDll) -and ($binaryEntries -notcontains $matchingExe)) {
             throw "Symbol package '$SymbolPackagePath' contains '$pdbEntry' without a matching DLL or EXE in '$PackagePath'."
         }
+    }
+
+    Assert-SymbolPackageDebugIdentities -PackagePath $PackagePath -SymbolPackagePath $SymbolPackagePath
+}
+
+function Assert-SymbolPackageDebugIdentities {
+    param(
+        [string]$PackagePath,
+        [string]$SymbolPackagePath
+    )
+
+    $extractRoot = Join-Path ([IO.Path]::GetTempPath()) "csxaml-symbol-package-validation-$([Guid]::NewGuid().ToString('N'))"
+    $packageExtractRoot = Join-Path $extractRoot "package"
+    $symbolExtractRoot = Join-Path $extractRoot "symbols"
+
+    try {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [IO.Compression.ZipFile]::ExtractToDirectory($PackagePath, $packageExtractRoot)
+        [IO.Compression.ZipFile]::ExtractToDirectory($SymbolPackagePath, $symbolExtractRoot)
+
+        $pdbEntries = @(Get-NuGetPackageEntryNames -PackagePath $SymbolPackagePath | Where-Object { $_ -like "*.pdb" })
+        foreach ($pdbEntry in $pdbEntries) {
+            $entryWithoutExtension = $pdbEntry.Substring(0, $pdbEntry.Length - 4)
+            $matchingDll = Join-Path $packageExtractRoot "$entryWithoutExtension.dll"
+            $matchingExe = Join-Path $packageExtractRoot "$entryWithoutExtension.exe"
+            $pdbPath = Join-Path $symbolExtractRoot $pdbEntry
+
+            if (Test-Path $matchingDll) {
+                Assert-PdbMatchesAssemblyDebugIdentity -AssemblyPath $matchingDll -PdbPath $pdbPath
+            }
+            elseif (Test-Path $matchingExe) {
+                Assert-PdbMatchesAssemblyDebugIdentity -AssemblyPath $matchingExe -PdbPath $pdbPath
+            }
+            else {
+                throw "Could not find an extracted binary for '$pdbEntry'."
+            }
+        }
+    }
+    finally {
+        Remove-Item $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
