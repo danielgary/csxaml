@@ -10,13 +10,21 @@ param(
     [string]$Source = "https://api.nuget.org/v3/index.json"
 )
 
+$ErrorActionPreference = "Stop"
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+. (Join-Path $PSScriptRoot "NuGetPackageArtifactValidation.ps1")
+
 $packageRoot = if ([IO.Path]::IsPathRooted($PackageDirectory)) {
     $PackageDirectory
 }
 else {
     Join-Path $repoRoot $PackageDirectory
 }
+
+Assert-NuGetPackageArtifacts `
+    -PackageDirectory $packageRoot `
+    -PackagesWithoutSymbolPackage @("Csxaml")
 
 $nupkgs = Get-ChildItem $packageRoot -Filter *.nupkg | Where-Object { $_.Name -notlike "*.snupkg" }
 $snupkgs = Get-ChildItem $packageRoot -Filter *.snupkg

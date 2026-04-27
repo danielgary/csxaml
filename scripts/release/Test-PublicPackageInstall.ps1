@@ -26,6 +26,8 @@ function Get-CsxamlVersion {
 }
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+. (Join-Path $PSScriptRoot "NuGetPackageArtifactValidation.ps1")
+
 $packageDirectory = Join-Path $repoRoot $PackageOutputDirectory
 $directoryBuildPropsPath = Join-Path $repoRoot "Directory.Build.props"
 
@@ -47,6 +49,11 @@ if ([string]::IsNullOrWhiteSpace($PackageVersion)) {
 if (-not (Test-Path $packageDirectory)) {
     throw "Package directory '$packageDirectory' does not exist. Run Pack-PublicPackages.ps1 first."
 }
+
+Assert-NuGetPackageArtifacts `
+    -PackageDirectory $packageDirectory `
+    -PackageVersion $PackageVersion `
+    -PackagesWithoutSymbolPackage @("Csxaml")
 
 Remove-Item $validationRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $validationRoot | Out-Null

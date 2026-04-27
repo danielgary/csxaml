@@ -14,6 +14,9 @@ $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $packageOutputDirectory = Join-Path $repoRoot $OutputDirectory
 
 New-Item -ItemType Directory -Force -Path $packageOutputDirectory | Out-Null
+Get-ChildItem -Path $packageOutputDirectory -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Extension -in @(".nupkg", ".snupkg") } |
+    Remove-Item -Force
 
 $projects = @(
     "Csxaml.Runtime\Csxaml.Runtime.csproj",

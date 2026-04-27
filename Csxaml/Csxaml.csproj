@@ -15,8 +15,7 @@
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>$(CsxamlRepositoryUrl)</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IncludeSymbols>false</IncludeSymbols>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeGeneratorPayloadInPackage</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
@@ -46,7 +45,9 @@
 
   <Target Name="IncludeGeneratorPayloadInPackage" DependsOnTargets="PublishGeneratorForPackage">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="$(CsxamlGeneratorPublishDirectory)**\\*">
+      <TfmSpecificPackageFile
+        Include="$(CsxamlGeneratorPublishDirectory)**\\*"
+        Exclude="$(CsxamlGeneratorPublishDirectory)**\\*.pdb">
         <PackagePath>tools/Csxaml.Generator/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
