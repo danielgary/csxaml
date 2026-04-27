@@ -77,7 +77,13 @@ component Element TodoBoard {
                     <ScrollViewer AutomationProperties.Name="Todo List">
                         <StackPanel Spacing={12}>
                             foreach (var item in Items.Value) {
-                                <TextBlock Key={item.Id} Text={item.Title} />
+                                <TodoCard
+                                    Key={item.Id}
+                                    Title={item.Title}
+                                    IsDone={item.IsDone}
+                                    IsSelected={item.Id == SelectedItemId.Value}
+                                    OnSelect={() => SelectItem(item.Id)}
+                                    OnToggle={() => ToggleItem(item.Id)} />
                             }
                         </StackPanel>
                     </ScrollViewer>
