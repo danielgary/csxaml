@@ -14,8 +14,10 @@ CSXAML editor support is built around a shared tooling stack:
 
 Start with the editor you use:
 
-- [VS Code Extension](visual-studio-code.md)
-- [Visual Studio Extension](visual-studio.md)
+- [Install VS Code Extension](visual-studio-code.md)
+- [Develop VS Code Extension](visual-studio-code-development.md)
+- [Install Visual Studio Extension](visual-studio.md)
+- [Develop Visual Studio Extension](visual-studio-development.md)
 - [Language Service Features](language-service-features.md)
 
 Both editor hosts should stay aligned because they share the same language-service implementation.

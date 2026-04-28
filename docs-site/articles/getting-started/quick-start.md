@@ -5,7 +5,8 @@ description: Install CSXAML and create a first generated WinUI component.
 
 # Quick Start
 
-This quick start assumes an existing WinUI app or library project.
+This quick start assumes an existing WinUI app. By the end, the app window
+will render a generated CSXAML component.
 
 ## 1. Install the package
 
@@ -23,7 +24,7 @@ Keep the Windows App SDK package in the app project:
 
 ## 2. Add a component
 
-Create `HelloCard.csxaml`:
+Create `Components/HelloCard.csxaml`:
 
 ```csharp
 using Microsoft.UI.Xaml.Controls;
@@ -38,7 +39,59 @@ component Element HelloCard(string Title) {
 }
 ```
 
-## 3. Build
+## 3. Add a host panel
+
+In `MainWindow.xaml`, add a named panel that CSXAML can render into:
+
+```xml
+<Window
+    x:Class="MyApp.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="CSXAML Quick Start">
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <StackPanel
+            x:Name="RootPanel"
+            Margin="24" />
+    </Grid>
+</Window>
+```
+
+## 4. Render the component
+
+In `MainWindow.xaml.cs`, create the generated component, set its typed props,
+and render it through `CsxamlHost`:
+
+```csharp
+using Csxaml.Runtime;
+using Microsoft.UI.Xaml;
+using MyApp.Components;
+
+namespace MyApp;
+
+public sealed partial class MainWindow : Window
+{
+    private readonly CsxamlHost _host;
+
+    public MainWindow()
+    {
+        InitializeComponent();
+
+        var card = new HelloCardComponent();
+        card.SetProps(new HelloCardProps("Hello from CSXAML"));
+
+        _host = new CsxamlHost(RootPanel, card);
+        _host.Render();
+    }
+}
+```
+
+`HelloCard.csxaml` generates two normal C# types:
+
+- `HelloCardComponent`, the runtime component instance.
+- `HelloCardProps`, the typed props record for `Title`.
+
+## 5. Build
 
 Build the project:
 
@@ -48,10 +101,21 @@ dotnet build
 
 The package-provided targets discover `.csxaml` files, run the packaged generator, and write generated C# under `obj\<configuration>\<tfm>\Csxaml\Generated\`.
 
-## 4. Use the generated component
+## 6. Run
 
-Generated components are normal C# types in the namespace declared by the `.csxaml` file. Use them through the CSXAML runtime host or from other generated CSXAML components.
+Run the WinUI app from Visual Studio or your normal project launch command.
 
-## 5. Next
+Expected result: the app window shows a `StackPanel` with the title
+`Hello from CSXAML` and a `Tap` button.
+
+## 7. Common checks
+
+If `HelloCardComponent` cannot be found, confirm the `.csxaml` file namespace
+matches the `using MyApp.Components;` line.
+
+If no generated files appear under `obj`, confirm the project references the
+`Csxaml` package and the file extension is exactly `.csxaml`.
+
+## 8. Next
 
 Build the [Todo tutorial](../tutorials/todo-app.md) to learn state, props, events, child components, and testing.

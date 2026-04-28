@@ -5,9 +5,13 @@ description: How to diagnose retained rendering, state, event, and lifecycle beh
 
 # Runtime Behavior Troubleshooting
 
-## State did not rerender
+## Symptom: state changed but the UI did not rerender
 
-Check whether the new value is actually different. `State<T>` suppresses no-op invalidation for equal values and same-reference assignments.
+Likely causes:
+
+1. The new value is equal to the old value.
+2. A reference type was mutated in place.
+3. External state changed outside a CSXAML event callback.
 
 For in-place mutation:
 
@@ -16,9 +20,16 @@ Items.Value.Add(item);
 Items.Touch();
 ```
 
-Prefer assigning a new collection when practical.
+Prefer assigning a new collection when practical:
 
-## Repeated child state moved to the wrong item
+```csharp
+Items.Value = Items.Value.Append(item).ToList();
+```
+
+In tests, call `Rerender()` when changing external state outside an interaction
+callback.
+
+## Symptom: repeated child state moved to the wrong item
 
 Use stable `Key` values for repeated component children:
 
@@ -28,10 +39,25 @@ Use stable `Key` values for repeated component children:
 
 Keys must be unique among siblings.
 
-## Event handler does not run
+## Symptom: event handler does not run
 
-Check that the attribute is a supported event and the delegate type matches the expected event shape. For example, `OnClick` expects `Action`, while `OnTextChanged` expects `Action<string>`.
+Likely causes:
 
-## Removed component still receives async work
+1. The attribute is not a supported event for that control.
+2. The event value is a string instead of a C# expression.
+3. The delegate shape does not match the event.
+
+Common expected shapes:
+
+| Event | Delegate |
+| --- | --- |
+| `OnClick` | `Action` |
+| `OnTextChanged` | `Action<string>` |
+| `OnCheckedChanged` | `Action<bool>` |
+
+## Symptom: removed component still receives async work
 
 Late async continuations can still execute ordinary C# code, but state invalidation after unmount must not resurrect or rerender the removed component.
+
+If the continuation updates component state after unmount, check the lifecycle
+and disposal flow around the component that started the work.

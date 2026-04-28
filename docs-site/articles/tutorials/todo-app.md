@@ -16,7 +16,12 @@ This tutorial builds a small Todo board using the supported CSXAML v1 surface:
 - controlled `TextBox` and `CheckBox` inputs
 - hostless component tests
 
-The repo demo under `Csxaml.Demo` is the reference implementation for this tutorial.
+The repo demo is the reference implementation for this tutorial:
+
+- [`Csxaml.Demo`](https://github.com/danielgary/csxaml/tree/develop/Csxaml.Demo)
+- [`TodoBoard.csxaml`](https://github.com/danielgary/csxaml/blob/develop/Csxaml.Demo/Components/TodoBoard.csxaml)
+- [`TodoCard.csxaml`](https://github.com/danielgary/csxaml/blob/develop/Csxaml.Demo/Components/TodoCard.csxaml)
+- [`TodoEditor.csxaml`](https://github.com/danielgary/csxaml/blob/develop/Csxaml.Demo/Components/TodoEditor.csxaml)
 
 ## 1. Start with a WinUI project
 
@@ -63,13 +68,17 @@ component Element TodoCard(
 }
 ```
 
-Typed props are part of the generated component constructor surface. Event props are ordinary C# delegates.
+Typed props become a generated props record. Event props are ordinary C# delegates.
+
+Checkpoint: after the board uses this component, each task will show its title,
+status, select action, and toggle action.
 
 ## 4. Add an editor component
 
 Create `TodoEditor.csxaml`:
 
 ```csharp
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 
 namespace MyApp.Components;
@@ -85,12 +94,15 @@ component Element TodoEditor(
     render <StackPanel Spacing={8}>
         <TextBlock Text="Selected task" />
         <TextBox
+            AutomationProperties.AutomationId="SelectedTodoTitle"
             Text={Title}
             OnTextChanged={value => OnTitleChanged(ItemId, value)} />
         <TextBox
+            AutomationProperties.AutomationId="SelectedTodoNotes"
             Text={Notes}
             OnTextChanged={value => OnNotesChanged(ItemId, value)} />
         <CheckBox
+            AutomationProperties.AutomationId="SelectedTodoDone"
             Content="Done"
             IsChecked={IsDone}
             OnCheckedChanged={value => OnDoneChanged(ItemId, value)} />
@@ -100,6 +112,10 @@ component Element TodoEditor(
 
 Controlled input is explicit: component code owns the value, and input events write the new value back.
 
+Checkpoint: after the board uses this component, selecting a task should show
+that task's title, notes, and done state in the editor. The automation IDs make
+the same fields easy to query in tests.
+
 ## 5. Add the board state
 
 Create `TodoBoard.csxaml`:
@@ -107,6 +123,7 @@ Create `TodoBoard.csxaml`:
 ```csharp
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using MyApp;
 
 namespace MyApp.Components;
 
@@ -174,6 +191,10 @@ component Element TodoBoard {
 
 `State<T>` invalidates the component when `Value` changes. In-place collection mutation does not automatically rerender; assign a new value or call `Touch()` after a deliberate in-place update.
 
+Expected result: the app shows two task cards on the left and an editor on the
+right. Selecting the second task updates the editor. Editing the title updates
+the selected card.
+
 ## 6. Add keys to repeated children
 
 The `Key` attribute tells the runtime which child identity should be retained across rerenders:
@@ -191,13 +212,19 @@ Use stable keys for repeated component children when the order can change or ite
 Typical test shape:
 
 ```csharp
-using var render = CsxamlTestHost.Render(new TodoBoard());
+using Csxaml.Testing;
+using MyApp.Components;
+
+using var render = CsxamlTestHost.Render<TodoBoardComponent>();
 
 render.Click(render.FindByText("Select"));
 render.EnterText(render.FindByAutomationId("SelectedTodoTitle"), "Updated title");
 
 Assert.IsNotNull(render.TryFindByText("Updated title"));
 ```
+
+This test proves that user-like interactions flow through component events,
+update `State<T>`, rerender the logical tree, and expose the updated title.
 
 Use semantic queries such as automation id, automation name, text, and content whenever possible.
 

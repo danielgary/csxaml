@@ -12,8 +12,16 @@ Use these entry points:
 - <xref:Csxaml.ControlMetadata>
 - <xref:Csxaml.Runtime>
 - <xref:Csxaml.Testing>
-- <xref:Csxaml.Tooling.Core.Markup>
-- <xref:Csxaml.Tooling.Core.Bootstrap>
 - <xref:Csxaml.VisualStudio>
+
+Useful tooling namespaces:
+
+- <xref:Csxaml.Tooling.Core.Completion>
+- <xref:Csxaml.Tooling.Core.Diagnostics>
+- <xref:Csxaml.Tooling.Core.Definitions>
+- <xref:Csxaml.Tooling.Core.Formatting>
+- <xref:Csxaml.Tooling.Core.Hover>
+- <xref:Csxaml.Tooling.Core.Markup>
+- <xref:Csxaml.Tooling.Core.Projects>
 
 If a generated page is unclear, update the XML documentation on the source type or member, then rebuild the site.

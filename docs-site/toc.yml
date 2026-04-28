@@ -5,6 +5,8 @@ items:
     items:
       - name: Overview
         href: articles/getting-started/index.md
+      - name: Why CSXAML?
+        href: articles/getting-started/why-csxaml.md
       - name: Prerequisites
         href: articles/getting-started/prerequisites.md
       - name: Quick Start
@@ -63,10 +65,14 @@ items:
     items:
       - name: Overview
         href: articles/editors/index.md
-      - name: VS Code Extension
+      - name: Install VS Code Extension
         href: articles/editors/visual-studio-code.md
-      - name: Visual Studio Extension
+      - name: Develop VS Code Extension
+        href: articles/editors/visual-studio-code-development.md
+      - name: Install Visual Studio Extension
         href: articles/editors/visual-studio.md
+      - name: Develop Visual Studio Extension
+        href: articles/editors/visual-studio-development.md
       - name: Language Service Features
         href: articles/editors/language-service-features.md
   - name: API Reference

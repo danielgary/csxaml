@@ -9,7 +9,6 @@
             "Csxaml.ControlMetadata/Csxaml.ControlMetadata.csproj",
             "Csxaml.Runtime/Csxaml.Runtime.csproj",
             "Csxaml.Testing/Csxaml.Testing.csproj",
-            "Csxaml.Tooling.Core/Csxaml.Tooling.Core.csproj",
             "Csxaml.VisualStudio/Csxaml.VisualStudio.csproj"
           ]
         }
@@ -18,6 +17,25 @@
       "filter": "filterConfig.yml",
       "properties": {
         "Configuration": "Release",
+        "RestoreConfigFile": "docs-site/NuGet.Config",
+        "RestoreIgnoreFailedSources": "true"
+      },
+      "disableGitFeatures": false
+    },
+    {
+      "src": [
+        {
+          "src": ".",
+          "files": [
+            "Csxaml.Tooling.Core/Csxaml.Tooling.Core.csproj"
+          ]
+        }
+      ],
+      "dest": "obj/docfx/api-tooling",
+      "filter": "filterConfig.yml",
+      "properties": {
+        "Configuration": "Release",
+        "TargetFramework": "net10.0",
         "RestoreConfigFile": "docs-site/NuGet.Config",
         "RestoreIgnoreFailedSources": "true"
       },
@@ -33,11 +51,24 @@
         ]
       },
       {
+        "src": ".",
+        "files": [
+          "docs/external-control-interop.md"
+        ]
+      },
+      {
         "src": "obj/docfx/api",
         "files": [
           "**/*.yml"
         ],
         "dest": "api"
+      },
+      {
+        "src": "obj/docfx/api-tooling",
+        "files": [
+          "**/*.yml"
+        ],
+        "dest": "api/tooling"
       }
     ],
     "output": "_site",

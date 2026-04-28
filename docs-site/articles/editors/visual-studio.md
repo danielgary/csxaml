@@ -1,9 +1,9 @@
 ---
-title: Visual Studio Extension
-description: Install, bootstrap, verify, and troubleshoot the CSXAML Visual Studio extension.
+title: Install Visual Studio Extension
+description: Install and verify the CSXAML Visual Studio extension.
 ---
 
-# Visual Studio Extension
+# Install Visual Studio Extension
 
 The Visual Studio extension uses the shared CSXAML language stack rather than a Visual-Studio-only semantic fork.
 
@@ -18,37 +18,24 @@ Current extension shape:
 
 The current host path targets the Visual Studio 2026 / version 18 VisualStudio.Extensibility model.
 
-Expected local environment:
+Expected environment:
 
 - Visual Studio 2026 / version 18
-- Visual Studio extension development workload
 - machine-wide .NET 10 runtime under `C:\Program Files\dotnet`
 
-## Build
+## Install
 
-```powershell
-dotnet build .\Csxaml.VisualStudio\Csxaml.VisualStudio.csproj
-```
+Use the current preview VSIX from the project release or artifact you are
+validating. Install it into a compatible Visual Studio 2026 / version 18
+instance.
 
-The VSIX is produced under:
+The source-build bootstrap path is for contributors and extension validation.
+See [Develop the Visual Studio Extension](visual-studio-development.md) for that
+workflow.
 
-```text
-Csxaml.VisualStudio\bin\Debug\net8.0-windows8.0\
-```
+## Verify installation
 
-## Experimental instance bootstrap
-
-For contributor testing:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\Run-CsxamlVisualStudioBootstrap.ps1
-```
-
-Close any existing experimental instance before rerunning the bootstrap script.
-
-## Verify
-
-In the experimental instance:
+In Visual Studio:
 
 1. Open `Csxaml.Demo/Components/TodoCard.csxaml`.
 2. Confirm semantic coloring is active.

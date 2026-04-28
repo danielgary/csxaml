@@ -57,16 +57,16 @@ Feature-matrix status mapping:
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| NuGet package consumption | Supported in v1 | Clean validation exists from locally packed `1.0.0` artifacts. |
+| NuGet package consumption | Preview shipping path | Clean validation exists from locally packed `0.1.0-preview.1` artifacts, matching the public package examples. |
 | Starter sample app | Supported in v1 | `samples/Csxaml.Starter` exists as a small example app. |
 | Starter `dotnet new` template | Supported in v1 | `Csxaml.Templates` installs `csxaml-starter`, and the smoke script validates creation and build from a clean temp directory. |
 | Visual Studio VSIX workflow | Supported in v1 | Documented bootstrap and packaging path exist for the current Visual Studio 18 authoring story. |
-| VS Code extension workflow | Supported in v1 | The repo-local extension still supports local iteration, and `scripts/Package-VSCodeExtension.ps1` produces an installable `1.0.0` `.vsix` with a bundled language server. |
+| VS Code extension workflow | Preview shipping path | The repo-local extension still supports local iteration, and `scripts/Package-VSCodeExtension.ps1` produces an installable VSIX aligned to the current `0.1.0-preview.1` package line with a bundled language server. |
 | Benchmark runner and local perf gate | Supported in v1 | `scripts/Run-Benchmarks.ps1` writes timestamped benchmark snapshots, maintains `artifacts/benchmarks/baseline.json` and `baseline.md`, and gates the 1000-item hostless runtime rerender lanes on the audited runner while metadata, generator, and tooling remain report-only. |
 
 ## Current Release Watch Items
 
-These are not blockers for `v1.0.0`, but they remain important follow-up work:
+These are not blockers for the current preview line, but they remain important follow-up work:
 
 - no CI trend lane exists yet for benchmark history
 - broader editor code-action coverage remains intentionally small
