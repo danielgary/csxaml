@@ -74,7 +74,7 @@ public sealed class ComponentTreeCoordinatorSlotTests
     {
         public WrapperVersionHostComponent()
         {
-            Heading = new Csxaml.Runtime.State<string>("Wrapper", () => RequestRender?.Invoke());
+            Heading = new Csxaml.Runtime.State<string>("Wrapper", InvalidateState, ValidateStateWrite);
         }
 
         public Csxaml.Runtime.State<string> Heading { get; }

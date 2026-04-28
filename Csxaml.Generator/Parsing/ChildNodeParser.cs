@@ -218,46 +218,82 @@ internal sealed class ChildNodeParser
             return false;
         }
 
-        if (tagName.Prefix is null)
-        {
-            return _context.PeekIdentifier(tagName.LocalName, 2) &&
-                !_context.PeekSymbol(":", 3);
-        }
-
-        return _context.PeekIdentifier(tagName.Prefix, 2) &&
-            _context.PeekSymbol(":", 3) &&
-            _context.PeekIdentifier(tagName.LocalName, 4);
+        return TryPeekTagText(2, out var closingTagText) &&
+            string.Equals(closingTagText, tagName.Text, StringComparison.Ordinal);
     }
 
     private MarkupTagName ParseTagName()
     {
         var firstPart = _context.ReadIdentifier("unsupported tag name");
-        if (!_context.TryReadSymbol(":"))
+        if (_context.TryReadSymbol(":"))
         {
+            var localName = _context.ReadIdentifier("unsupported tag name");
             return new MarkupTagName(
+                $"{firstPart.Text}:{localName.Text}",
                 firstPart.Text,
-                null,
-                firstPart.Text,
-                firstPart.Span);
+                localName.Text,
+                new TextSpan(firstPart.Span.Start, localName.Span.End - firstPart.Span.Start));
         }
 
-        var localName = _context.ReadIdentifier("unsupported tag name");
+        if (_context.TryReadSymbol("."))
+        {
+            var localName = _context.ReadIdentifier("unsupported tag name");
+            return new MarkupTagName(
+                $"{firstPart.Text}.{localName.Text}",
+                null,
+                $"{firstPart.Text}.{localName.Text}",
+                new TextSpan(firstPart.Span.Start, localName.Span.End - firstPart.Span.Start));
+        }
+
         return new MarkupTagName(
-            $"{firstPart.Text}:{localName.Text}",
             firstPart.Text,
-            localName.Text,
-            new TextSpan(firstPart.Span.Start, localName.Span.End - firstPart.Span.Start));
+            null,
+            firstPart.Text,
+            firstPart.Span);
+    }
+
+    private bool TryPeekTagText(int offset, out string tagText)
+    {
+        tagText = string.Empty;
+        if (_context.Peek(offset).Kind != TokenKind.Identifier)
+        {
+            return false;
+        }
+
+        var firstPart = _context.Peek(offset).Text;
+        if (_context.PeekSymbol(":", offset + 1) && _context.Peek(offset + 2).Kind == TokenKind.Identifier)
+        {
+            tagText = $"{firstPart}:{_context.Peek(offset + 2).Text}";
+            return true;
+        }
+
+        if (_context.PeekSymbol(".", offset + 1) && _context.Peek(offset + 2).Kind == TokenKind.Identifier)
+        {
+            tagText = $"{firstPart}.{_context.Peek(offset + 2).Text}";
+            return true;
+        }
+
+        tagText = firstPart;
+        return true;
     }
 
     private void ReadMatchingClosingTag(MarkupTagName tagName)
     {
-        if (tagName.Prefix is not null)
+        var firstPart = _context.ReadIdentifier($"unsupported tag name '{tagName.Text}'");
+        var actualTagName = firstPart.Text;
+        if (_context.TryReadSymbol(":"))
         {
-            _context.ReadIdentifier(tagName.Prefix, $"unsupported tag name '{tagName.Text}'");
-            _context.ReadSymbol(":", $"unsupported tag name '{tagName.Text}'");
+            actualTagName = $"{firstPart.Text}:{_context.ReadIdentifier($"unsupported tag name '{tagName.Text}'").Text}";
+        }
+        else if (_context.TryReadSymbol("."))
+        {
+            actualTagName = $"{firstPart.Text}.{_context.ReadIdentifier($"unsupported tag name '{tagName.Text}'").Text}";
         }
 
-        _context.ReadIdentifier(tagName.LocalName, $"unsupported tag name '{tagName.Text}'");
+        if (!string.Equals(actualTagName, tagName.Text, StringComparison.Ordinal))
+        {
+            throw _context.CreateException($"unsupported tag name '{tagName.Text}'");
+        }
     }
 
     private static bool IsDefaultSlotTag(MarkupTagName tagName)

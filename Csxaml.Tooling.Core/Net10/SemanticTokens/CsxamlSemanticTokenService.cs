@@ -6,12 +6,21 @@ using Csxaml.Tooling.Core.Projects;
 
 namespace Csxaml.Tooling.Core.SemanticTokens;
 
+/// <summary>
+/// Provides semantic tokens for CSXAML markup and embedded C# expressions.
+/// </summary>
 public sealed partial class CsxamlSemanticTokenService
 {
     private readonly CsxamlCSharpSemanticTokenService _csharpSemanticTokenService = new();
     private readonly CsxamlTagSymbolResolver _tagResolver = new();
     private readonly CsxamlWorkspaceLoader _workspaceLoader = new();
 
+    /// <summary>
+    /// Gets semantic tokens for a CSXAML document.
+    /// </summary>
+    /// <param name="filePath">The CSXAML file path.</param>
+    /// <param name="text">The current CSXAML source text.</param>
+    /// <returns>The semantic tokens for the document.</returns>
     public IReadOnlyList<CsxamlSemanticToken> GetTokens(string filePath, string text)
     {
         var workspace = _workspaceLoader.Load(filePath, text);
@@ -62,7 +71,7 @@ public sealed partial class CsxamlSemanticTokenService
 
             foreach (var attribute in element.Attributes)
             {
-                EmitAttributeToken(tokens, attribute, resolvedTag);
+                EmitAttributeToken(tokens, attribute, resolvedTag, scan.UsingDirectives, currentNamespace);
             }
         }
     }
@@ -88,7 +97,9 @@ public sealed partial class CsxamlSemanticTokenService
     private static void EmitAttributeToken(
         ICollection<CsxamlSemanticToken> tokens,
         CsxamlMarkupAttributeReference attribute,
-        CsxamlResolvedTag resolvedTag)
+        CsxamlResolvedTag resolvedTag,
+        IReadOnlyList<CsxamlUsingDirectiveInfo> usingDirectives,
+        string currentNamespace)
     {
         if (attribute.Name == "Key")
         {
@@ -98,9 +109,11 @@ public sealed partial class CsxamlSemanticTokenService
 
         var attachedPropertySeparator = attribute.Name.IndexOf('.');
         if (attachedPropertySeparator > 0 &&
-            AttachedPropertyMetadataRegistry.TryGetProperty(
+            CsxamlAttachedPropertyResolver.TryResolve(
                 attribute.Name[..attachedPropertySeparator],
                 attribute.Name[(attachedPropertySeparator + 1)..],
+                usingDirectives,
+                currentNamespace,
                 out _))
         {
             tokens.Add(new CsxamlSemanticToken(attribute.Start, attribute.Length, CsxamlSemanticTokenType.Property, IsDefaultLibrary: true));

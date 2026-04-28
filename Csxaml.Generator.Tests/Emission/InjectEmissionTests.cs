@@ -43,6 +43,8 @@ public sealed class InjectEmissionTests
 
         StringAssert.Contains(emitted, "Count ??= CreateCountState();");
         StringAssert.Contains(emitted, "State<int> CreateCountState()");
+        StringAssert.Contains(emitted, "InvalidateState,");
+        StringAssert.Contains(emitted, "ValidateStateWrite");
     }
 
     [TestMethod]

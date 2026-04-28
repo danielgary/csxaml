@@ -134,9 +134,10 @@ internal sealed class CsxamlRenderProjectionEmitter
         }
 
         if (property.IsAttached &&
-            AttachedPropertyMetadataRegistry.TryGetProperty(
-                property.OwnerName!,
-                property.PropertyName,
+            CsxamlAttachedPropertyResolver.TryResolve(
+                property,
+                _usingDirectives,
+                _currentNamespace,
                 out var attachedProperty))
         {
             return CreateProjectedPropertyType(attachedProperty!.ClrTypeName, attachedProperty.ValueKindHint);

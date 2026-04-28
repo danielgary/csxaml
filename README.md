@@ -2,157 +2,184 @@
 
 CSXAML is an experimental source-generated language for building WinUI apps with XAML-like markup and real C# expressions.
 
-The project is currently a broad prototype rather than a packaged v1 release. The compiler/runtime path is well covered through Milestone 14 of the roadmap; the remaining v1 work is mostly packaging, templates, release process, and more polished distribution.
+The repo and public release artifacts are licensed under Apache-2.0.
 
 ## Current Status
 
-- Milestones 1-14 are implemented and documented in [ROADMAP.md](ROADMAP.md).
-- Milestone 14, performance and large-app hardening, is complete with recorded BenchmarkDotNet baselines and one measured tooling optimization.
-- Milestone 15, packaging/templates/docs/v1 release, is in progress with preview packages and clean package-consumer validation in place.
-- The repo contains a working WinUI demo, a shared language server, a Visual Studio extension host, a local VS Code extension, and hostless component testing APIs.
-- A small starter sample lives under `samples/Csxaml.Starter`.
-- Benchmark scaffolding lives under `Csxaml.Benchmarks`.
-- The supported source contract is described in [LANGUAGE-SPEC.md](LANGUAGE-SPEC.md), with compatibility limits in [docs/compatibility-policy.md](docs/compatibility-policy.md).
+The compiler/runtime path is broad enough for a credible v1 slice, and the remaining work is mostly release validation, public hosting, and polish around distribution.
 
-## What Works Today
+Current productization state:
 
-The current prototype supports:
+- public package boundary: `Csxaml` and `Csxaml.Runtime`
+- starter sample and template work exist in the repo
+- benchmark and performance documentation exist for Milestone 14
+- VS Code and Visual Studio extension packaging paths exist
+- XML API documentation is enabled on developer-facing assemblies
+- DocFX site source exists and generates API reference from XML docs at build time
+- GitHub Actions owns CI, packaging, release prep, publish, and docs-site deployment workflows
 
-- `.csxaml` source generation through shared MSBuild assets in `build/` and the preview `Csxaml.Generator` package
-- one `component Element` declaration per `.csxaml` file
-- file-scoped namespaces, normal `using` directives, aliases, and `using static`
-- typed component parameters and generated props records
-- component-local `State<T>`
-- explicit `inject Type name;` service declarations
-- local helper code and file-local helper declarations
-- `render <Root />;` as the final markup statement
-- native elements, component elements, attributes, events, and attached properties
-- `if` and constrained `foreach` blocks in markup
-- keyed child/component identity preservation
-- default slots through `<Slot />`
-- metadata-driven WinUI property/event validation and emission
-- retained native rendering with adapters for the supported control set
-- external controls from referenced assemblies through normal `using` imports and aliases
-- hostless logical-tree component tests through `Csxaml.Testing`
-- source maps, `#line` mappings, and wrapped runtime exception context
-- shared tooling semantics through `Csxaml.Tooling.Core` and `Csxaml.LanguageServer`
+## Repo At A Glance
 
-## Supported Control Slice
+The repo is organized around four main layers:
 
-Built-in metadata currently covers:
+- compiler and metadata:
+  `Csxaml.ControlMetadata`, `Csxaml.ControlMetadata.Generator`, `Csxaml.Generator`
+- runtime:
+  `Csxaml.Runtime`, `Csxaml.Testing`
+- performance and measurement:
+  `Csxaml.Benchmarks`
+- tooling and editor integration:
+  `Csxaml.Tooling.Core`, `Csxaml.LanguageServer`, `Csxaml.VisualStudio`, `VSCodeExtension/`
+- demo and build fixtures:
+  `Csxaml.Demo`, `Csxaml.ExternalControls`, `Csxaml.ProjectSystem.Components`, `Csxaml.ProjectSystem.Consumer`
 
-- `Border`
-- `Button`
-- `CheckBox`
-- `Grid`
-- `ScrollViewer`
-- `StackPanel`
-- `TextBlock`
-- `TextBox`
+## Project Guide
 
-Attached-property metadata currently covers:
+### Core language and runtime
 
-- `Grid.Row`
-- `Grid.Column`
-- `Grid.RowSpan`
-- `Grid.ColumnSpan`
-- `AutomationProperties.Name`
-- `AutomationProperties.AutomationId`
+- `Csxaml.ControlMetadata`  
+  Shared metadata model for controls, properties, events, child-content rules, and value-kind hints.
 
-External controls are supported when they can be discovered deterministically from project references and fit the documented supported shape. See [docs/external-control-interop.md](docs/external-control-interop.md).
+- `Csxaml.ControlMetadata.Generator`  
+  Generates that metadata from WinUI and supported external controls.
 
-## Repo Map
+- `Csxaml.Generator`  
+  Parses `.csxaml`, validates it, and emits deterministic generated C#.
 
-| Path | Purpose |
-| --- | --- |
-| `Csxaml.Generator` | CLI generator, parser, validator, emitter, diagnostics, source maps |
-| `Csxaml.ControlMetadata` | Shared built-in and generated control metadata model |
-| `Csxaml.ControlMetadata.Generator` | Reflection-based metadata generator for the curated WinUI control slice |
-| `Csxaml.Runtime` | Logical nodes, component instances, state, reconciliation, WinUI projection, control adapters, hosting |
-| `Csxaml.Testing` | Hostless C# component testing helpers |
-| `Csxaml.Benchmarks` | BenchmarkDotNet scenarios for generator, metadata, runtime, and tooling performance |
-| `Csxaml.Tooling.Core` | Shared editor services for completion, diagnostics, semantic tokens, formatting, definitions, and projected C# |
-| `Csxaml.LanguageServer` | LSP wrapper over the shared tooling core |
-| `Csxaml.VisualStudio` | Visual Studio 2026 / v18 extension host and VSIX packaging path |
-| `VSCodeExtension` | Local VS Code extension using TextMate grammar plus the shared language server |
-| `Csxaml.Demo` | WinUI Todo demo that dogfoods DI, controlled inputs, layout, slots, styles, and external controls |
-| `samples/Csxaml.Starter` | Minimal WinUI CSXAML starter sample |
-| `Csxaml.ProjectSystem.*` | Cross-project generation and consumption fixtures |
-| `*.Tests` | MSTest coverage for generator, runtime, tooling, metadata, project-system, and VS packaging behavior |
-| `docs/` | Focused authoring, compatibility, diagnostics, lifecycle, testing, interop, and bootstrap docs |
+- `Csxaml.Runtime`  
+  Retained-mode runtime that reconciles logical trees and projects them to WinUI.
 
-## Build And Test
+- `Csxaml.Testing`  
+  Hostless component test support helpers.
 
-Typical verification from the repo root after restore:
+- `Csxaml.Benchmarks`  
+  BenchmarkDotNet and WinUI smoke harnesses for generator, metadata, runtime, tooling, and projection measurements.
+
+### Tooling and editor integration
+
+- `Csxaml.Tooling.Core`  
+  Shared language-service logic: completion, definitions, formatting, hover, semantic tokens, markup scanning, C# projection, and diagnostics.
+
+- `Csxaml.LanguageServer`  
+  LSP host built on top of `Csxaml.Tooling.Core`.
+
+- `Csxaml.VisualStudio`  
+  Visual Studio extension host and VSIX packaging.
+
+- `VSCodeExtension/`  
+  VS Code extension assets, snippets, grammar, and extension host code.
+
+### Demo and fixture apps
+
+- `Csxaml.Demo`  
+  Main demo WinUI app showing the current CSXAML authoring model.
+
+- `Csxaml.ExternalControls`  
+  Sample external controls used to prove external-control interop.
+
+- `Csxaml.ProjectSystem.Components`  
+  Fixture component library for project-reference validation.
+
+- `Csxaml.ProjectSystem.Consumer`  
+  Fixture consumer app that references the generated component library.
+
+### Test projects
+
+- `Csxaml.ControlMetadata.Generator.Tests`
+- `Csxaml.Generator.Tests`
+- `Csxaml.Runtime.Tests`
+- `Csxaml.Tooling.Core.Tests`
+- `Csxaml.VisualStudio.Tests`
+- `Csxaml.ProjectSystem.Tests`
+
+These projects provide regression coverage for metadata generation, parsing, validation, emission, runtime behavior, tooling, editor hosts, and project-system integration.
+
+## Non-Project Folders
+
+- `build/` - shared MSBuild targets and generation wiring
+- `docs/` - supporting documentation
+- `docs-site/` - DocFX documentation site source
+- `scripts/` - helper scripts
+- `samples/` - outside-consumer and starter examples
+- `templates/` - template package sources
+- `artifacts/` - build outputs and packaged artifacts
+
+## Where To Start
+
+If you are new to the repo, this reading order works well:
+
+1. `LANGUAGE-SPEC.md`
+2. `docs-site/index.md`
+3. `Csxaml.Generator/`
+4. `Csxaml.Runtime/`
+5. `Csxaml.Demo/`
+6. `Csxaml.Tooling.Core/`
+
+## Key Docs
+
+- [Documentation Site Source](docs-site/index.md)
+- [Language Specification](LANGUAGE-SPEC.md)
+- [Roadmap](ROADMAP.md)
+- [Package Installation](docs/package-installation.md)
+- [Native Props And Events](docs/native-props-and-events.md)
+- [Performance And Scale](docs/performance-and-scale.md)
+- [Release And Versioning](docs/release-and-versioning.md)
+- [Component Testing](docs/component-testing.md)
+- [Agent Working Rules And Project Inventory](AGENTS.md)
+- [VS Code Extension](VSCodeExtension/README.md)
+
+## Documentation Site
+
+The DocFX documentation site lives under `docs-site/` and generates API reference pages from XML documentation comments at build time.
+
+Build it locally from the repo root:
 
 ```powershell
-dotnet test .\Csxaml.sln --no-restore -m:1
+powershell -ExecutionPolicy Bypass -File .\scripts\docs\Invoke-DocsBuild.ps1
 ```
 
-The sequential `-m:1` form avoids a Visual Studio VSIX packaging race seen during parallel solution builds on this machine.
-
-To build the demo:
+Preview it locally:
 
 ```powershell
-dotnet build .\Csxaml.Demo\Csxaml.Demo.csproj
+powershell -ExecutionPolicy Bypass -File .\scripts\docs\Invoke-DocsBuild.ps1 -Serve
 ```
 
-To build the starter sample:
+Generated API YAML is written under `obj\docfx\api`, and the static site is written under `_site`.
 
-```powershell
-dotnet build .\samples\Csxaml.Starter\Csxaml.Starter.csproj --no-restore
-```
+## Install Story
 
-To build and smoke the benchmark harness:
+For outside consumers, the intended package install path is:
 
-```powershell
-dotnet build .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj
-dotnet run --project .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj -c Release -- --filter *MetadataBenchmarks.BuiltInControlLookup* --job Dry --warmupCount 1 --iterationCount 1
-```
+- install `Csxaml`
+- keep `Microsoft.WindowsAppSDK` in the app project
+- author `.csxaml` files normally
 
-To build the language server:
+The package install guide lives in [docs/package-installation.md](docs/package-installation.md).
 
-```powershell
-dotnet build .\Csxaml.LanguageServer\Csxaml.LanguageServer.csproj
-```
+For a small outside-consumer example that uses the package path instead of repo-local project references, see [samples/PackageHello](samples/PackageHello/README.md).
 
-To build the Visual Studio extension:
+## Release Model
 
-```powershell
-dotnet build .\Csxaml.VisualStudio\Csxaml.VisualStudio.csproj
-```
+CSXAML treats release governance as part of the product surface:
 
-The current local environment used for this audit was .NET SDK `10.0.203` on Windows ARM64.
+- semantic versioning is the public version contract
+- Conventional Commits are the semantic input to release notes and version bumps
+- `git-cliff` generates `CHANGELOG.md` and release notes
+- GitHub Actions is the system of record for CI, packaging, docs, and publishing
+- pushes to `develop` create preview releases, and pushes to `master` create stable releases
+- release tags are created by automation after publish succeeds
 
-## Documentation
+The current release and versioning policy lives in [docs/release-and-versioning.md](docs/release-and-versioning.md).
 
-Start here:
+## Current Limitations
 
-- [ROADMAP.md](ROADMAP.md): milestone status, v1 gates, and planning risks
-- [LANGUAGE-SPEC.md](LANGUAGE-SPEC.md): normative draft language contract
-- [docs/supported-feature-matrix.md](docs/supported-feature-matrix.md): supported, experimental, and unsupported feature table
-- [docs/compatibility-policy.md](docs/compatibility-policy.md): Milestone 13 compatibility promise
-- [docs/getting-started.md](docs/getting-started.md): repo-local and preview-package first-use paths
-- [docs/native-props-events.md](docs/native-props-events.md): built-in native control props/events guide
-- [docs/external-control-interop.md](docs/external-control-interop.md): referenced-control interop model and limits
-- [docs/component-testing.md](docs/component-testing.md): hostless component testing APIs
-- [docs/debugging-and-diagnostics.md](docs/debugging-and-diagnostics.md): source maps, diagnostics, and runtime failure context
-- [docs/lifecycle-and-async.md](docs/lifecycle-and-async.md): mount, disposal, and async-after-unmount behavior
-- [docs/performance-and-scale.md](docs/performance-and-scale.md): benchmark commands and v1 scale envelope
-- [docs/packaging-and-release.md](docs/packaging-and-release.md): package boundaries and release process
-- [docs/visual-studio-bootstrap.md](docs/visual-studio-bootstrap.md): VSIX bootstrap and experimental-instance workflow
-- [VSCodeExtension/README.md](VSCodeExtension/README.md): local VS Code extension workflow
-- [AGENTS.md](AGENTS.md): repository working rules and code-organization expectations
+These areas remain intentionally outside the current v1 promise:
 
-## Known Gaps
+- named slots and slot fallback content
+- broader external attached-property owner discovery
+- richer event-argument projection beyond the current supported slice
+- virtualization and very large visible-list strategies
+- `DataContext`-heavy third-party control interop
+- dedicated source-level lifecycle or cancellation syntax
 
-The important unfinished areas are:
-
-- no CI trend or performance regression gate exists yet
-- starter template package is not implemented yet
-- the current packages are preview validation packages, not a tagged v1 release
-- VS Code packaging is still local-development oriented
-- hover and richer code actions are not implemented in the shared language server
-- named slots, external attached-property owner discovery, richer event-argument projection, virtualization, and `DataContext`-heavy third-party interop remain outside the current v1 slice
-
-This repo intentionally prefers clear, explicit, small units over clever compression. A working implementation that is hard to read is not considered done here.
+The supported feature matrix lives in [docs/supported-feature-matrix.md](docs/supported-feature-matrix.md).

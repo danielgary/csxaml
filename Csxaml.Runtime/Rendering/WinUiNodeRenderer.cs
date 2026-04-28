@@ -2,11 +2,17 @@ using Microsoft.UI.Xaml;
 
 namespace Csxaml.Runtime;
 
+/// <summary>
+/// Projects CSXAML native runtime nodes into retained WinUI elements.
+/// </summary>
 public sealed class WinUiNodeRenderer : IDisposable
 {
     private readonly ControlAdapterRegistry _registry;
     private RenderedNativeElement? _root;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WinUiNodeRenderer"/> class.
+    /// </summary>
     public WinUiNodeRenderer()
         : this(new ControlAdapterRegistry())
     {
@@ -17,6 +23,11 @@ public sealed class WinUiNodeRenderer : IDisposable
         _registry = registry;
     }
 
+    /// <summary>
+    /// Renders a native runtime node tree to a WinUI root element.
+    /// </summary>
+    /// <param name="node">The native runtime node tree to project.</param>
+    /// <returns>The retained WinUI root element.</returns>
     public UIElement Render(NativeNode node)
     {
         try
@@ -147,6 +158,9 @@ public sealed class WinUiNodeRenderer : IDisposable
         }
     }
 
+    /// <summary>
+    /// Releases retained native elements owned by the renderer.
+    /// </summary>
     public void Dispose()
     {
         _root?.Dispose();

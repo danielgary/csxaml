@@ -17,6 +17,8 @@ public sealed class CsxamlToolingServiceTests
         using var tempFile = TemporaryCsxamlFile.Create(
             Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
             """
+            using Microsoft.UI.Xaml.Controls;
+
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
@@ -189,6 +191,8 @@ public sealed class CsxamlToolingServiceTests
     {
         const string text =
             """
+            using Microsoft.UI.Xaml.Controls;
+
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
@@ -204,6 +208,33 @@ public sealed class CsxamlToolingServiceTests
         var attributeStart = text.IndexOf("Grid.Row", StringComparison.Ordinal);
 
         Assert.IsTrue(
+            tokens.Any(token =>
+                token.Start == attributeStart &&
+                token.Length == "Grid.Row".Length &&
+                token.Type == CsxamlSemanticTokenType.Property),
+            string.Join(", ", tokens.Select(token => $"{token.Type}@{token.Start}:{token.Length}")));
+    }
+
+    [TestMethod]
+    public void Semantic_tokens_do_not_classify_invisible_attached_properties()
+    {
+        const string text =
+            """
+            namespace Csxaml.Demo;
+
+            component Element ToolingProbe() {
+                render <TextBlock Grid.Row={1} />;
+            }
+            """;
+
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            text);
+
+        var tokens = new CsxamlSemanticTokenService().GetTokens(tempFile.FilePath, text);
+        var attributeStart = text.IndexOf("Grid.Row", StringComparison.Ordinal);
+
+        Assert.IsFalse(
             tokens.Any(token =>
                 token.Start == attributeStart &&
                 token.Length == "Grid.Row".Length &&

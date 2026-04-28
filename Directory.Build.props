@@ -1,3 +1,7 @@
 <Project>
+  <PropertyGroup>
+    <CsxamlVersion Condition="'$(CsxamlVersion)' == ''">0.1.0-preview.1</CsxamlVersion>
+    <CsxamlRepositoryUrl Condition="'$(CsxamlRepositoryUrl)' == ''">https://github.com/danielgary/csxaml</CsxamlRepositoryUrl>
+  </PropertyGroup>
   <Import Project="build\Csxaml.props" Condition="Exists('build\Csxaml.props')" />
 </Project>

@@ -1,3 +1,5 @@
+using Csxaml.LanguageServer.Protocol;
+
 namespace Csxaml.LanguageServer.Documents;
 
 internal sealed class TextDocumentStore
@@ -11,7 +13,7 @@ internal sealed class TextDocumentStore
             return text;
         }
 
-        var filePath = new Uri(uri).LocalPath;
+        var filePath = LspDocumentUriConverter.ToFilePath(uri);
         text = File.Exists(filePath) ? File.ReadAllText(filePath) : string.Empty;
         _documents[uri] = text;
         return text;

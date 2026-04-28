@@ -9,7 +9,7 @@ internal sealed class DisposableProbeChildComponent : ComponentInstance, IDispos
     {
         InstanceId = ++_nextId;
         LastCreated = this;
-        Count = new Csxaml.Runtime.State<int>(0, () => RequestRender?.Invoke());
+        Count = new Csxaml.Runtime.State<int>(0, InvalidateState, ValidateStateWrite);
     }
 
     public static int DisposeCount { get; private set; }

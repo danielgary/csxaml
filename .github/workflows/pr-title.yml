@@ -1,0 +1,23 @@
+name: PR Title
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+jobs:
+  conventional-pr-title:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PR title
+        shell: pwsh
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: ./scripts/release/Test-ConventionalCommit.ps1 -Message $env:PR_TITLE -Context "PR title"

@@ -6,25 +6,24 @@
     <Nullable>enable</Nullable>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <UseWinUI>true</UseWinUI>
-    <IsPackable>true</IsPackable>
-    <PackageId>Csxaml.Runtime</PackageId>
-    <Version>0.1.0-preview.1</Version>
-    <Authors>CSXAML</Authors>
-    <Description>Runtime component, reconciliation, state, hosting, and WinUI projection support for CSXAML.</Description>
-    <PackageTags>csxaml;winui;xaml;runtime</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>$(WarningsAsErrors);1591</WarningsAsErrors>
+    <PackageId>Csxaml.Runtime</PackageId>
+    <Version>$(CsxamlVersion)</Version>
+    <Authors>CSXAML Contributors</Authors>
+    <Description>Retained WinUI runtime used by generated CSXAML components.</Description>
+    <PackageTags>csxaml;winui;xaml;csharp;runtime</PackageTags>
+    <PackageReadmeFile>package-readme.md</PackageReadmeFile>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>$(CsxamlRepositoryUrl)</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProjectReferenceBuildOutputInPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\\Csxaml.ControlMetadata\\Csxaml.ControlMetadata.csproj" />
+    <ProjectReference Include="..\\Csxaml.ControlMetadata\\Csxaml.ControlMetadata.csproj" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,6 +32,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Csxaml.Benchmarks" />
     <InternalsVisibleTo Include="Csxaml.Runtime.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="package-readme.md" Pack="true" PackagePath="" />
+    <None Include="..\\LICENSE.md" Pack="true" PackagePath="" Link="LICENSE.md" />
+  </ItemGroup>
+
+  <Target Name="IncludeProjectReferenceBuildOutputInPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+    </ItemGroup>
+  </Target>
 </Project>

@@ -21,10 +21,13 @@ internal sealed class Validator
     public CompilationContext Validate(
         IReadOnlyList<ParsedComponent> components,
         ProjectGenerationContext? project = null,
-        IReadOnlyList<string>? referencePaths = null)
+        IReadOnlyList<string>? referencePaths = null,
+        bool ignoreReferencedComponentLoadFailures = false)
     {
         var projectContext = project ?? ProjectGenerationContext.CreateDefault();
-        var referencedComponents = _referencedComponentCatalogBuilder.Build(referencePaths ?? Array.Empty<string>());
+        var referencedComponents = _referencedComponentCatalogBuilder.Build(
+            referencePaths ?? Array.Empty<string>(),
+            ignoreReferencedComponentLoadFailures);
         var componentCatalog = ComponentCatalogBuilder.Build(components, projectContext, referencedComponents);
         var nativeControls = _externalControlCatalogBuilder.Build(
             components,

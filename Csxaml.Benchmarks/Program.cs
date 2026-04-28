@@ -4,8 +4,18 @@ namespace Csxaml.Benchmarks;
 
 internal static class Program
 {
-    private static void Main(string[] args)
+    [STAThread]
+    public static int Main(string[] args)
     {
-        BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+        Directory.CreateDirectory(RepoPaths.BenchmarkArtifactsDirectory);
+
+        if (WinUiSmokeCommand.TryRun(args))
+        {
+            return 0;
+        }
+
+        BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly)
+            .Run(args, new BenchmarkConfig());
+        return 0;
     }
 }

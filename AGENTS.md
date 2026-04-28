@@ -17,6 +17,117 @@ Do not collapse major logic into giant files. Do not hide complexity behind clev
 
 ---
 
+## Repository Layout
+
+This repo is split into a few clear layers so a reader can find the compiler, runtime, tooling, and demo code without guessing.
+
+### Root-level docs and build files
+
+- `LANGUAGE-SPEC.md`  
+  The language contract for CSXAML.
+
+- `ROADMAP.md`  
+  Milestones, scope, and current project status.
+
+- `README.md`  
+  Human-readable repo overview.
+
+- `plan.md`  
+  Active execution plan for larger spec/runtime/tooling changes.
+
+- `Csxaml.sln`  
+  The main solution file.
+
+- `Directory.Build.props` / `Directory.Build.targets`  
+  Shared build configuration for the repo.
+
+- `NuGet.Config`  
+  Restore sources and package configuration.
+
+### Root-level folders
+
+- `build/`  
+  Shared MSBuild targets and generation wiring.
+
+- `docs/`  
+  Supporting docs such as debugging notes and external-control interop details.
+
+- `scripts/`  
+  Helper scripts for development workflows.
+
+- `VSCodeExtension/`  
+  VS Code extension assets, grammar, snippets, and extension host code.
+
+- `artifacts/`  
+  Built artifacts and packaged outputs.
+
+- `.vscode/`  
+  Local editor and workspace settings.
+
+## Project Inventory
+
+This is the quick reference for every project in the solution and what it is responsible for.
+
+### Core compiler and metadata projects
+
+| Project | Kind | Purpose |
+| --- | --- | --- |
+| `Csxaml.ControlMetadata` | library | Shared metadata model for controls, properties, events, child-content rules, and value-kind hints. |
+| `Csxaml.ControlMetadata.Generator` | executable | Generates control metadata from WinUI and supported external controls into the shared metadata model. |
+| `Csxaml.Generator` | executable | The CSXAML compiler/source generator pipeline: tokenization, parsing, validation, source mapping, and C# emission. |
+
+### Runtime and support projects
+
+| Project | Kind | Purpose |
+| --- | --- | --- |
+| `Csxaml.Runtime` | library | Retained-mode runtime: nodes, component instances, state invalidation, reconciliation, adapter wiring, WinUI projection, and runtime diagnostics. |
+| `Csxaml.Testing` | library | Test support helpers used by runtime and integration tests. |
+
+### Tooling and editor projects
+
+| Project | Kind | Purpose |
+| --- | --- | --- |
+| `Csxaml.Tooling.Core` | library | Shared language-service logic: markup scanning, C# projection, completion, definitions, formatting, semantic tokens, and workspace loading. |
+| `Csxaml.LanguageServer` | executable | LSP host built on top of `Csxaml.Tooling.Core`. |
+| `Csxaml.VisualStudio` | extension project | Visual Studio-specific host for document registration, language-server startup, and VSIX packaging. |
+
+### Demo and fixture projects
+
+| Project | Kind | Purpose |
+| --- | --- | --- |
+| `Csxaml.Demo` | WinUI app | Main demo application showing the current CSXAML authoring model end to end. |
+| `Csxaml.ExternalControls` | WinUI library | Small sample external controls used to prove external-control metadata generation and runtime interop. |
+| `Csxaml.ProjectSystem.Components` | WinUI library | Fixture component library used to verify normal project-reference consumption of generated CSXAML components. |
+| `Csxaml.ProjectSystem.Consumer` | WinUI app | Fixture consumer app that references `Csxaml.ProjectSystem.Components` to prove project-system and build integration. |
+
+### Test projects
+
+| Project | Kind | Purpose |
+| --- | --- | --- |
+| `Csxaml.ControlMetadata.Generator.Tests` | test project | Regression coverage for metadata extraction and generation. |
+| `Csxaml.Generator.Tests` | test project | Coverage for tokenizer, parser, validation, emission, diagnostics, and source mapping. |
+| `Csxaml.Runtime.Tests` | test project | Coverage for state invalidation, lifecycle, reconciliation, native projection, adapters, retained identity, and runtime diagnostics. |
+| `Csxaml.Tooling.Core.Tests` | test project | Coverage for completion, definitions, formatting, semantic tokens, C# projection, and language-server protocol behavior. |
+| `Csxaml.VisualStudio.Tests` | test project | Coverage for VSIX packaging and Visual Studio host integration behavior. |
+| `Csxaml.ProjectSystem.Tests` | test project | End-to-end proof that generated CSXAML components work through ordinary project references and repo build wiring. |
+
+### Important non-project deliverables
+
+- `VSCodeExtension/`  
+  The VS Code extension lives outside the `.sln`, but it is still one of the main editor-facing deliverables in the repo.
+
+## Where To Start
+
+If you are new to the repo, read in this order:
+
+1. `LANGUAGE-SPEC.md` for the intended language surface
+2. `Csxaml.Generator/` for how `.csxaml` turns into generated C#
+3. `Csxaml.Runtime/` for how generated trees become retained WinUI UI
+4. `Csxaml.Demo/` for the current end-to-end example
+5. `Csxaml.Tooling.Core/`, then `Csxaml.LanguageServer/` or `Csxaml.VisualStudio/`, for editor behavior
+
+---
+
 ## Non-Negotiables
 
 ### 1. Keep files small

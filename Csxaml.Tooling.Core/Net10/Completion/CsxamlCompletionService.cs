@@ -5,12 +5,22 @@ using Csxaml.Tooling.Core.Projects;
 
 namespace Csxaml.Tooling.Core.Completion;
 
+/// <summary>
+/// Provides CSXAML and embedded C# completion items.
+/// </summary>
 public sealed class CsxamlCompletionService
 {
     private readonly CsxamlCSharpCompletionService _csharpCompletionService = new();
     private readonly CsxamlTagSymbolResolver _tagResolver = new();
     private readonly CsxamlWorkspaceLoader _workspaceLoader = new();
 
+    /// <summary>
+    /// Gets completion items for a source position.
+    /// </summary>
+    /// <param name="filePath">The CSXAML file path.</param>
+    /// <param name="text">The current CSXAML source text.</param>
+    /// <param name="position">The zero-based source offset where completions are requested.</param>
+    /// <returns>The completion items available at the position.</returns>
     public IReadOnlyList<CsxamlCompletionItem> GetCompletions(
         string filePath,
         string text,

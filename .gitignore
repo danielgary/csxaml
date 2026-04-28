@@ -33,6 +33,8 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+!scripts/[Rr]elease/
+!scripts/[Rr]elease/**
 
 # Build results on 'Bin' directories
 **/[Bb]in/*
@@ -74,6 +76,9 @@ BenchmarkDotNet.Artifacts/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+
+# DocFX
+_site/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -410,6 +415,7 @@ FodyWeavers.xsd
 
 # Built Visual Studio Code Extensions
 *.vsix
+VSCodeExtension/dist/
 
 # Windows Installer files from build outputs
 *.cab

@@ -1,9 +1,23 @@
 <Project>
   <PropertyGroup>
+    <CsxamlToolRoot Condition="'$(CsxamlToolRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\tools\Csxaml.Generator\Csxaml.Generator.dll')">$(MSBuildThisFileDirectory)..\tools\Csxaml.Generator\</CsxamlToolRoot>
+    <CsxamlImportedFromPackage Condition="'$(CsxamlImportedFromPackage)' == '' and '$(CsxamlToolRoot)' != ''">true</CsxamlImportedFromPackage>
+    <EnableCsxaml Condition="'$(EnableCsxaml)' == '' and '$(CsxamlImportedFromPackage)' == 'true'">true</EnableCsxaml>
     <EnableCsxaml Condition="'$(EnableCsxaml)' == ''">false</EnableCsxaml>
     <CsxamlEnableDefaultSourceGlob Condition="'$(CsxamlEnableDefaultSourceGlob)' == ''">true</CsxamlEnableDefaultSourceGlob>
     <CsxamlGeneratorProjectCandidate>$(MSBuildThisFileDirectory)..\Csxaml.Generator\Csxaml.Generator.csproj</CsxamlGeneratorProjectCandidate>
     <CsxamlGeneratorProject Condition="'$(CsxamlGeneratorProject)' == '' and Exists('$(CsxamlGeneratorProjectCandidate)')">$(CsxamlGeneratorProjectCandidate)</CsxamlGeneratorProject>
-    <CsxamlGeneratorAssembly Condition="'$(CsxamlGeneratorAssembly)' == '' and '$(CsxamlGeneratorProject)' == ''">$(MSBuildThisFileDirectory)..\tools\net10.0\any\Csxaml.Generator.dll</CsxamlGeneratorAssembly>
+    <CsxamlGeneratorDll Condition="'$(CsxamlGeneratorDll)' == '' and '$(CsxamlToolRoot)' != ''">$(CsxamlToolRoot)Csxaml.Generator.dll</CsxamlGeneratorDll>
+    <CsxamlControlMetadataProjectCandidate>$(MSBuildThisFileDirectory)..\Csxaml.ControlMetadata\Csxaml.ControlMetadata.csproj</CsxamlControlMetadataProjectCandidate>
+    <CsxamlControlMetadataProject Condition="'$(CsxamlControlMetadataProject)' == '' and Exists('$(CsxamlControlMetadataProjectCandidate)')">$(CsxamlControlMetadataProjectCandidate)</CsxamlControlMetadataProject>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlEnableDefaultSourceGlob)' == 'true'">
+    <CsxamlSource Include="$(MSBuildProjectDirectory)\**\*.csxaml" Exclude="$(DefaultItemExcludes);$(MSBuildProjectDirectory)\bin\**;$(MSBuildProjectDirectory)\obj\**" />
+  </ItemGroup>
+
+  <ItemGroup
+    Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlImportedFromPackage)' != 'true' and Exists('$(CsxamlControlMetadataProject)') and '$(MSBuildProjectFullPath)' != '$(CsxamlControlMetadataProject)'">
+    <ProjectReference Include="$(CsxamlControlMetadataProject)" PrivateAssets="all" />
+  </ItemGroup>
 </Project>

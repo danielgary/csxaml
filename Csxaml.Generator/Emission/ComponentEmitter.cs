@@ -169,7 +169,8 @@ internal sealed class ComponentEmitter
                     return new State<{{stateField.TypeName}}>(
                 {{CodeBlockFormatter.Indent(LineDirectiveFormatter.Wrap(component.Source, stateField.InitialValueSpan, stateField.InitialValueExpression), 8)}}
                         ,
-                        () => RequestRender?.Invoke());
+                        InvalidateState,
+                        ValidateStateWrite);
                 }
                 """;
             _writer.WriteMappedBlock(

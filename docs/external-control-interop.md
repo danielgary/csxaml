@@ -119,6 +119,7 @@ The current attached-property slice is still intentionally built-in only.
 Today that means:
 
 - external controls can receive supported built-in attached properties such as `Grid.Row` or `AutomationProperties.Name`
+- attached-property owners still resolve through ordinary visible type names or explicit type aliases, just like the rest of CSXAML
 - discovery of external attached-property owners is not part of the current supported slice
 
 This is one of the places where the roadmap is intentionally leaving room for future expansion without over-promising v1.

@@ -50,9 +50,16 @@ internal sealed class CsxamlCSharpProjectionBuilder
         AppendComponentProperties(writer, file.Component.Parameters);
         AppendInjectFields(writer, file.Component.InjectFields);
         AppendPropertyCoercionHelpers(writer);
+        AppendStateHelpers(writer);
         AppendStateFields(writer, source, file.Component.StateFields);
+        AppendStateInitialization(writer, source, file.Component.StateFields);
 
         writer.AppendSynthetic("void __Render()\n{\n");
+        if (file.Component.StateFields.Count > 0)
+        {
+            writer.AppendSynthetic("__CsxamlInitializeState();\n");
+        }
+
         if (file.Component.HelperCode is not null)
         {
             writer.AppendMapped(file.Component.HelperCode.CodeText, file.Component.HelperCode.Span.Start);
@@ -93,6 +100,15 @@ internal sealed class CsxamlCSharpProjectionBuilder
             private static global::Microsoft.UI.Xaml.Thickness __CsxamlProjectionToThickness(global::Microsoft.UI.Xaml.Thickness value) => value;
             private static global::Microsoft.UI.Xaml.Thickness __CsxamlProjectionToThickness(double value) => default;
             private static global::Microsoft.UI.Xaml.Thickness __CsxamlProjectionToThickness(decimal value) => default;
+
+            """);
+    }
+
+    private static void AppendStateHelpers(CsxamlProjectionWriter writer)
+    {
+        writer.AppendSynthetic(
+            """
+            private static State<T> __CsxamlCreateState<T>(T value) => new(value, static () => { });
 
             """);
     }
@@ -171,15 +187,89 @@ internal sealed class CsxamlCSharpProjectionBuilder
     {
         foreach (var stateField in stateFields)
         {
-            writer.AppendMapped(
-                source.Text.Substring(stateField.Span.Start, stateField.Span.Length),
-                stateField.Span.Start);
-            writer.AppendSynthetic("\n");
+            AppendStateFieldDeclaration(writer, source, stateField);
         }
 
         if (stateFields.Count > 0)
         {
             writer.AppendSynthetic("\n");
         }
+    }
+
+    private static void AppendStateInitialization(
+        CsxamlProjectionWriter writer,
+        SourceDocument source,
+        IReadOnlyList<StateFieldDefinition> stateFields)
+    {
+        if (stateFields.Count == 0)
+        {
+            return;
+        }
+
+        writer.AppendSynthetic("void __CsxamlInitializeState()\n{\n");
+        foreach (var stateField in stateFields)
+        {
+            writer.AppendSynthetic($"    {stateField.Name} ??= Create{stateField.Name}State();\n");
+        }
+
+        writer.AppendSynthetic("}\n\n");
+        foreach (var stateField in stateFields)
+        {
+            AppendStateFactoryMethod(writer, source, stateField);
+        }
+
+        writer.AppendSynthetic("\n");
+    }
+
+    private static void AppendStateFieldDeclaration(
+        CsxamlProjectionWriter writer,
+        SourceDocument source,
+        StateFieldDefinition stateField)
+    {
+        if (!TryGetStateDeclarationOffsets(source, stateField, out var stateKeywordOffset, out var typeNameOffset, out var fieldNameOffset))
+        {
+            writer.AppendSynthetic(
+                $"State<{CsxamlProjectionTypeNameFormatter.Format(stateField.TypeName)}> {stateField.Name} = null!;\n");
+            return;
+        }
+
+        var declarationStart = stateField.Span.Start;
+        var typeNameStart = declarationStart + typeNameOffset;
+        var fieldNameStart = declarationStart + fieldNameOffset;
+
+        writer.AppendMapped("State<", declarationStart + stateKeywordOffset);
+        writer.AppendMapped(stateField.TypeName, typeNameStart);
+        writer.AppendMapped(">", typeNameStart + stateField.TypeName.Length);
+        writer.AppendSynthetic(" ");
+        writer.AppendMapped(stateField.Name, fieldNameStart);
+        writer.AppendSynthetic(" = null!;\n");
+    }
+
+    private static void AppendStateFactoryMethod(
+        CsxamlProjectionWriter writer,
+        SourceDocument source,
+        StateFieldDefinition stateField)
+    {
+        writer.AppendSynthetic(
+            $"State<{CsxamlProjectionTypeNameFormatter.Format(stateField.TypeName)}> Create{stateField.Name}State()\n{{\n    return __CsxamlCreateState<{CsxamlProjectionTypeNameFormatter.Format(stateField.TypeName)}>(");
+        writer.AppendMapped(stateField.InitialValueExpression, stateField.InitialValueSpan.Start);
+        writer.AppendSynthetic(");\n}\n");
+    }
+
+    private static bool TryGetStateDeclarationOffsets(
+        SourceDocument source,
+        StateFieldDefinition stateField,
+        out int stateKeywordOffset,
+        out int typeNameOffset,
+        out int fieldNameOffset)
+    {
+        var declarationText = source.Text.Substring(stateField.Span.Start, stateField.Span.Length);
+        stateKeywordOffset = declarationText.IndexOf("State<", StringComparison.Ordinal);
+        typeNameOffset = declarationText.IndexOf(stateField.TypeName, StringComparison.Ordinal);
+        fieldNameOffset = declarationText.IndexOf(
+            stateField.Name,
+            typeNameOffset + stateField.TypeName.Length,
+            StringComparison.Ordinal);
+        return stateKeywordOffset >= 0 && typeNameOffset >= 0 && fieldNameOffset >= 0;
     }
 }

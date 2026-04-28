@@ -9,6 +9,8 @@ public sealed class AttachedPropertyEmissionTests
         var editor = GeneratorTestHarness.Parse(
             "TodoEditor.csxaml",
             """
+            using Microsoft.UI.Xaml.Automation;
+
             component Element TodoEditor(string Title) {
                 render <Border AutomationProperties.Name="Inner Editor">
                     <TextBlock Text={Title} />
@@ -18,6 +20,9 @@ public sealed class AttachedPropertyEmissionTests
         var board = GeneratorTestHarness.Parse(
             "TodoBoard.csxaml",
             """
+            using Microsoft.UI.Xaml.Automation;
+            using Microsoft.UI.Xaml.Controls;
+
             component Element TodoBoard {
                 render <Grid RowDefinitions="Auto,*">
                     <TextBlock Grid.Row={0} AutomationProperties.Name="Board Title" Text="Todo Board" />

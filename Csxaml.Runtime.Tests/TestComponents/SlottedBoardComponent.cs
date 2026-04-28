@@ -4,7 +4,7 @@ internal sealed class SlottedBoardComponent : ComponentInstance
 {
     public SlottedBoardComponent(IReadOnlyList<CardItemModel> items)
     {
-        Items = new Csxaml.Runtime.State<List<CardItemModel>>(items.ToList(), () => RequestRender?.Invoke());
+        Items = new Csxaml.Runtime.State<List<CardItemModel>>(items.ToList(), InvalidateState, ValidateStateWrite);
     }
 
     public Csxaml.Runtime.State<List<CardItemModel>> Items { get; }

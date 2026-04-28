@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: VSCodeExtension/package-lock.json
+
+      - name: Validate, test, and package
+        shell: pwsh
+        run: ./scripts/release/Invoke-CiValidation.ps1
+
+      - name: Upload NuGet artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csxaml-nuget-artifacts
+          path: artifacts/packages/*
+          if-no-files-found: warn
+
+      - name: Upload extension artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csxaml-extension-artifacts
+          path: artifacts/extensions/**/*
+          if-no-files-found: warn

@@ -5,8 +5,19 @@ using ControlMetadataModel = Csxaml.ControlMetadata.ControlMetadata;
 
 namespace Csxaml.Tooling.Core.Completion;
 
+/// <summary>
+/// Resolves CSXAML tag names against built-in controls, external controls, and workspace components.
+/// </summary>
 public sealed class CsxamlTagSymbolResolver
 {
+    /// <summary>
+    /// Resolves a tag name in the supplied namespace and workspace context.
+    /// </summary>
+    /// <param name="tagName">The tag name to resolve.</param>
+    /// <param name="usingDirectives">The using directives visible to the source file.</param>
+    /// <param name="currentNamespace">The current CSXAML namespace.</param>
+    /// <param name="workspace">The workspace snapshot used for project symbols.</param>
+    /// <returns>The resolved tag information.</returns>
     public CsxamlResolvedTag Resolve(
         string tagName,
         IReadOnlyList<CsxamlUsingDirectiveInfo> usingDirectives,

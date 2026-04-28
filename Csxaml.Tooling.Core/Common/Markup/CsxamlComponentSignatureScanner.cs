@@ -2,8 +2,16 @@ using System.Text.RegularExpressions;
 
 namespace Csxaml.Tooling.Core.Markup;
 
+/// <summary>
+/// Scans CSXAML source text for component declarations and parameter signatures.
+/// </summary>
 public static partial class CsxamlComponentSignatureScanner
 {
+    /// <summary>
+    /// Scans source text for component declarations.
+    /// </summary>
+    /// <param name="text">The CSXAML source text to scan.</param>
+    /// <returns>The component signatures discovered in the source text.</returns>
     public static IReadOnlyList<CsxamlComponentSignature> Scan(string text)
     {
         var declarations = new List<CsxamlComponentSignature>();

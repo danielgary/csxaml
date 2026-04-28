@@ -1,0 +1,9 @@
+apiRules:
+  - exclude:
+      uidRegex: ^Csxaml\.(Benchmarks|Demo|ExternalControls|ProjectSystem|Runtime\.Tests|Generator\.Tests|ControlMetadata\.Generator\.Tests|Tooling\.Core\.Tests|VisualStudio\.Tests)(\.|$)
+  - exclude:
+      uidRegex: ^Csxaml\.Generator(\.|$)
+  - exclude:
+      uidRegex: ^Csxaml\.LanguageServer(\.|$)
+  - include:
+      uidRegex: ^Csxaml\.

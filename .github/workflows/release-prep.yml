@@ -1,0 +1,81 @@
+name: Release Prep
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Explicit release version. Leave blank to use git-cliff --bumped-version.
+        required: false
+        type: string
+      preview:
+        description: Treat this prep run as a preview release.
+        required: true
+        default: true
+        type: boolean
+      preview_number:
+        description: Preview sequence appended when version is inferred and preview mode is enabled.
+        required: false
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup git-cliff
+        uses: kenji-miyake/setup-git-cliff@v1
+
+      - name: Generate release prep artifacts
+        id: prep
+        shell: pwsh
+        run: |
+          $parameters = @{}
+          if ('${{ inputs.version }}') {
+            $parameters.Version = '${{ inputs.version }}'
+          }
+          if ('${{ inputs.preview }}' -eq 'true') {
+            $parameters.Preview = $true
+          }
+          if ('${{ inputs.preview_number }}') {
+            $parameters.PreviewNumber = [int]'${{ inputs.preview_number }}'
+          }
+
+          ./scripts/release/Invoke-ReleasePrep.ps1 @parameters
+
+          $metadata = Get-Content artifacts/release-prep/release-metadata.json -Raw | ConvertFrom-Json
+          "release_version=$($metadata.ReleaseVersion)" >> $env:GITHUB_OUTPUT
+          "package_version=$($metadata.PackageVersion)" >> $env:GITHUB_OUTPUT
+          "vscode_version=$($metadata.VsCodeVersion)" >> $env:GITHUB_OUTPUT
+          "vsix_version=$($metadata.VsixVersion)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload release prep artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-prep-${{ steps.prep.outputs.release_version }}
+          path: artifacts/release-prep/*
+
+      - name: Summarize release prep
+        shell: pwsh
+        run: |
+          $metadata = Get-Content artifacts/release-prep/release-metadata.json -Raw | ConvertFrom-Json
+          Add-Content $env:GITHUB_STEP_SUMMARY "## Release Prep"
+          Add-Content $env:GITHUB_STEP_SUMMARY ""
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Release version: ``$($metadata.ReleaseVersion)``"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- NuGet version: ``$($metadata.PackageVersion)``"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- VS Code version: ``$($metadata.VsCodeVersion)``"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Visual Studio VSIX version: ``$($metadata.VsixVersion)``"
+          Add-Content $env:GITHUB_STEP_SUMMARY ""
+          Add-Content $env:GITHUB_STEP_SUMMARY "<details><summary>Release Notes Preview</summary>"
+          Add-Content $env:GITHUB_STEP_SUMMARY ""
+          Get-Content artifacts/release-prep/release-notes.md | Add-Content $env:GITHUB_STEP_SUMMARY
+          Add-Content $env:GITHUB_STEP_SUMMARY ""
+          Add-Content $env:GITHUB_STEP_SUMMARY "</details>"

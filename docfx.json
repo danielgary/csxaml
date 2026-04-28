@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": ".",
+          "files": [
+            "Csxaml.ControlMetadata/Csxaml.ControlMetadata.csproj",
+            "Csxaml.Runtime/Csxaml.Runtime.csproj",
+            "Csxaml.Testing/Csxaml.Testing.csproj",
+            "Csxaml.Tooling.Core/Csxaml.Tooling.Core.csproj",
+            "Csxaml.VisualStudio/Csxaml.VisualStudio.csproj"
+          ]
+        }
+      ],
+      "dest": "obj/docfx/api",
+      "filter": "filterConfig.yml",
+      "properties": {
+        "Configuration": "Release",
+        "RestoreConfigFile": "docs-site/NuGet.Config",
+        "RestoreIgnoreFailedSources": "true"
+      },
+      "disableGitFeatures": false
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "src": "docs-site",
+        "files": [
+          "**/*.{md,yml}"
+        ]
+      },
+      {
+        "src": "obj/docfx/api",
+        "files": [
+          "**/*.yml"
+        ],
+        "dest": "api"
+      }
+    ],
+    "output": "_site",
+    "template": [
+      "default",
+      "modern"
+    ],
+    "globalMetadata": {
+      "_appName": "CSXAML",
+      "_appTitle": "CSXAML Documentation",
+      "_enableSearch": true,
+      "_gitContribute": {
+        "repo": "https://github.com/danielgary/csxaml",
+        "branch": "develop"
+      }
+    },
+    "sitemap": {
+      "baseUrl": "https://danielgary.github.io/csxaml/"
+    }
+  }
+}

@@ -2,8 +2,16 @@ using System.Text.RegularExpressions;
 
 namespace Csxaml.Tooling.Core.Markup;
 
+/// <summary>
+/// Scans CSXAML source text for using directives.
+/// </summary>
 public static partial class CsxamlUsingDirectiveScanner
 {
+    /// <summary>
+    /// Scans source text for using directives.
+    /// </summary>
+    /// <param name="text">The CSXAML source text to scan.</param>
+    /// <returns>The using directives discovered in the source text.</returns>
     public static IReadOnlyList<CsxamlUsingDirectiveInfo> Scan(string text)
     {
         var directives = new List<CsxamlUsingDirectiveInfo>();

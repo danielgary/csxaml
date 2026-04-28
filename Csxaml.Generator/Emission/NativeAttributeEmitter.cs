@@ -4,13 +4,18 @@ namespace Csxaml.Generator;
 
 internal sealed class NativeAttributeEmitter
 {
+    private readonly AttachedPropertyBindingResolver _attachedPropertyResolver;
     private readonly string _componentName;
     private readonly SourceDocument _source;
 
-    public NativeAttributeEmitter(SourceDocument source, string componentName)
+    public NativeAttributeEmitter(
+        SourceDocument source,
+        string componentName,
+        AttachedPropertyBindingResolver attachedPropertyResolver)
     {
         _source = source;
         _componentName = componentName;
+        _attachedPropertyResolver = attachedPropertyResolver;
     }
 
     public string BuildEventsExpression(MarkupNode markupNode, ControlMetadataModel control)
@@ -52,7 +57,7 @@ internal sealed class NativeAttributeEmitter
     {
         var properties = markupNode.Properties
             .Where(property => property.IsAttached)
-            .Select(BuildAttachedPropertyValue)
+            .Select(property => BuildAttachedPropertyValue(markupNode.TagName, property))
             .ToList();
 
         return FormatArray("NativeAttachedPropertyValue", properties);
@@ -97,11 +102,9 @@ internal sealed class NativeAttributeEmitter
             """;
     }
 
-    private string BuildAttachedPropertyValue(PropertyNode property)
+    private string BuildAttachedPropertyValue(string tagName, PropertyNode property)
     {
-        var metadata = AttachedPropertyMetadataRegistry.GetProperty(
-            property.OwnerName!,
-            property.PropertyName);
+        var metadata = _attachedPropertyResolver.ResolveOrThrow(_source, tagName, property);
 
         if (property.ValueKind == PropertyValueKind.StringLiteral)
         {

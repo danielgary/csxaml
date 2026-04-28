@@ -5,18 +5,21 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
     <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Csxaml.ControlMetadata\Csxaml.ControlMetadata.csproj" />
-    <ProjectReference Include="..\Csxaml.Generator\Csxaml.Generator.csproj" />
-    <ProjectReference Include="..\Csxaml.Runtime\Csxaml.Runtime.csproj" />
-    <ProjectReference Include="..\Csxaml.Tooling.Core\Csxaml.Tooling.Core.csproj" />
+    <ProjectReference Include="..\\Csxaml.ControlMetadata\\Csxaml.ControlMetadata.csproj" />
+    <ProjectReference Include="..\\Csxaml.Generator\\Csxaml.Generator.csproj" />
+    <ProjectReference Include="..\\Csxaml.Runtime\\Csxaml.Runtime.csproj" />
+    <ProjectReference Include="..\\Csxaml.Tooling.Core\\Csxaml.Tooling.Core.csproj" />
   </ItemGroup>
 </Project>

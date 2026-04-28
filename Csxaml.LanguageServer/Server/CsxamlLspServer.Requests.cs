@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Csxaml.LanguageServer.Documents;
+using Csxaml.LanguageServer.Protocol;
 using Csxaml.Tooling.Core.Completion;
 
 namespace Csxaml.LanguageServer.Server;
@@ -25,6 +26,14 @@ internal sealed partial class CsxamlLspServer
 
             case "textDocument/completion":
                 await _writer.WriteResponseAsync(id, HandleCompletion(root), cancellationToken);
+                return;
+
+            case "textDocument/hover":
+                await _writer.WriteResponseAsync(id, HandleHover(root), cancellationToken);
+                return;
+
+            case "textDocument/codeAction":
+                await _writer.WriteResponseAsync(id, HandleCodeAction(root), cancellationToken);
                 return;
 
             case "textDocument/definition":
@@ -57,6 +66,11 @@ internal sealed partial class CsxamlLspServer
                     resolveProvider = false,
                     triggerCharacters = new[] { "<", ":", " ", ".", "{" },
                 },
+                hoverProvider = true,
+                codeActionProvider = new
+                {
+                    codeActionKinds = new[] { "quickfix" },
+                },
                 definitionProvider = true,
                 documentFormattingProvider = true,
                 semanticTokensProvider = new
@@ -82,6 +96,7 @@ internal sealed partial class CsxamlLspServer
         var @params = root.GetProperty("params");
         var textDocument = @params.GetProperty("textDocument");
         var uri = textDocument.GetProperty("uri").GetString()!;
+        var filePath = LspDocumentUriConverter.ToFilePath(uri);
         var position = @params.GetProperty("position");
         var text = _documents.GetOrLoad(uri);
         var offset = LspTextPositionConverter.GetOffset(
@@ -89,7 +104,7 @@ internal sealed partial class CsxamlLspServer
             position.GetProperty("line").GetInt32(),
             position.GetProperty("character").GetInt32());
 
-        var items = _completionService.GetCompletions(new Uri(uri).LocalPath, text, offset)
+        var items = _completionService.GetCompletions(filePath, text, offset)
             .Select(
                 item => new
                 {
@@ -114,6 +129,7 @@ internal sealed partial class CsxamlLspServer
     {
         var @params = root.GetProperty("params");
         var uri = @params.GetProperty("textDocument").GetProperty("uri").GetString()!;
+        var filePath = LspDocumentUriConverter.ToFilePath(uri);
         var position = @params.GetProperty("position");
         var text = _documents.GetOrLoad(uri);
         var offset = LspTextPositionConverter.GetOffset(
@@ -121,7 +137,7 @@ internal sealed partial class CsxamlLspServer
             position.GetProperty("line").GetInt32(),
             position.GetProperty("character").GetInt32());
 
-        var definition = _definitionService.GetDefinition(new Uri(uri).LocalPath, text, offset);
+        var definition = _definitionService.GetDefinition(filePath, text, offset);
         if (definition is null)
         {
             return null;
@@ -134,7 +150,7 @@ internal sealed partial class CsxamlLspServer
         {
             new
             {
-                uri = new Uri(definition.FilePath).AbsoluteUri,
+                uri = LspDocumentUriConverter.ToDocumentUri(definition.FilePath),
                 range = new
                 {
                     start = new { line = start.Line, character = start.Character },

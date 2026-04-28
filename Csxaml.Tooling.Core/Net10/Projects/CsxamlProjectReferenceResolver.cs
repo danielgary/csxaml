@@ -2,8 +2,16 @@ using System.Xml.Linq;
 
 namespace Csxaml.Tooling.Core.Projects;
 
+/// <summary>
+/// Resolves transitive project references for CSXAML tooling.
+/// </summary>
 public static class CsxamlProjectReferenceResolver
 {
+    /// <summary>
+    /// Resolves all transitive project references for a project.
+    /// </summary>
+    /// <param name="project">The project whose references should be resolved.</param>
+    /// <returns>The referenced projects in traversal order.</returns>
     public static IReadOnlyList<CsxamlProjectInfo> ResolveTransitive(CsxamlProjectInfo project)
     {
         var results = new List<CsxamlProjectInfo>();

@@ -5,15 +5,7 @@ namespace Csxaml.Tooling.Core.Tests.Tooling.LanguageServer;
 [TestClass]
 public sealed class CsxamlLanguageServerProtocolTests
 {
-    private static readonly string RepoRoot = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-    private static readonly string ServerExecutablePath = Path.Combine(
-        RepoRoot,
-        "Csxaml.LanguageServer",
-        "bin",
-        "Debug",
-        "net10.0",
-        "Csxaml.LanguageServer.exe");
+    private static readonly string RepoRoot = LanguageServerTestPaths.RepoRoot;
 
     [TestMethod]
     public async Task Protocol_smoke_path_serves_completion_definition_and_semantic_tokens()
@@ -21,6 +13,8 @@ public sealed class CsxamlLanguageServerProtocolTests
         using var tempFile = TemporaryCsxamlFile.Create(
             Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
             """
+            using Microsoft.UI.Xaml.Automation;
+
             namespace Csxaml.Demo;
 
             component Element ToolingProbe() {
@@ -130,11 +124,70 @@ public sealed class CsxamlLanguageServerProtocolTests
         Assert.IsGreaterThan(0, diagnostics.GetArrayLength());
     }
 
+    [TestMethod]
+    public async Task Protocol_accepts_percent_encoded_windows_file_uris_for_provider_requests()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            """
+            namespace Csxaml.Demo;
+
+            component Element ToolingProbe {
+                State<string> SelectedId = new State<string>("todo-1");
+                var current = SelectedId.Value;
+                render <TodoCard AutomationProperties.Name={SelectedId.Value} />;
+            }
+            """);
+
+        await using var client = await StartClientAsync();
+        var documentUri = CreatePercentEncodedWindowsFileUri(tempFile.FilePath);
+        await OpenDocumentAsync(client, documentUri, tempFile.Text);
+
+        var hoverPosition = GetLineAndCharacter(
+            tempFile.Text,
+            tempFile.Text.IndexOf("TodoCard", StringComparison.Ordinal) + 1);
+        var hoverResponse = await client.SendRequestAsync(
+            "textDocument/hover",
+            new
+            {
+                textDocument = new { uri = documentUri },
+                position = new { line = hoverPosition.Line, character = hoverPosition.Character },
+            },
+            CancellationToken.None);
+        var hasHoverError = hoverResponse.TryGetProperty("error", out var hoverError);
+        Assert.IsFalse(
+            hasHoverError,
+            hasHoverError ? hoverError.GetRawText() : hoverResponse.GetRawText());
+        StringAssert.Contains(
+            hoverResponse.GetProperty("result").GetProperty("contents").GetProperty("value").GetString(),
+            "TodoCard");
+
+        var tokenResponse = await client.SendRequestAsync(
+            "textDocument/semanticTokens/full",
+            new
+            {
+                textDocument = new { uri = documentUri },
+            },
+            CancellationToken.None);
+        var hasTokenError = tokenResponse.TryGetProperty("error", out var tokenError);
+        Assert.IsFalse(
+            hasTokenError,
+            hasTokenError ? tokenError.GetRawText() : tokenResponse.GetRawText());
+        Assert.IsGreaterThan(0, tokenResponse.GetProperty("result").GetProperty("data").GetArrayLength());
+    }
+
     private static async Task<LanguageServerClient> StartClientAsync()
     {
-        Assert.IsTrue(File.Exists(ServerExecutablePath), $"Missing server executable at {ServerExecutablePath}");
+        var serverExecutablePath = LanguageServerTestPaths.GetServerExecutablePath();
 
-        var client = await LanguageServerClient.StartAsync(ServerExecutablePath, RepoRoot);
+        Assert.IsTrue(File.Exists(serverExecutablePath), $"Missing server executable at {serverExecutablePath}");
+
+        var client = await LanguageServerClient.StartAsync(serverExecutablePath, RepoRoot);
         await client.SendRequestAsync(
             "initialize",
             new
@@ -185,5 +238,12 @@ public sealed class CsxamlLanguageServerProtocolTests
         }
 
         return (line, character);
+    }
+
+    private static string CreatePercentEncodedWindowsFileUri(string filePath)
+    {
+        var fullPath = Path.GetFullPath(filePath);
+        var normalizedPath = fullPath.Replace('\\', '/');
+        return $"file:///{Uri.EscapeDataString(normalizedPath[..2])}/{normalizedPath[3..]}";
     }
 }

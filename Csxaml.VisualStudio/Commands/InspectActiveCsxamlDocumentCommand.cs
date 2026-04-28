@@ -6,16 +6,26 @@ using Microsoft.VisualStudio.Extensibility.Editor;
 
 namespace Csxaml.VisualStudio.Commands;
 
+/// <summary>
+/// Shows bootstrap details for the active CSXAML document in Visual Studio.
+/// </summary>
 [VisualStudioContribution]
 public sealed class InspectActiveCsxamlDocumentCommand : Command
 {
     private readonly CsxamlBootstrapProbe _probe;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InspectActiveCsxamlDocumentCommand"/> class.
+    /// </summary>
+    /// <param name="probe">The bootstrap probe used to inspect the active document.</param>
     public InspectActiveCsxamlDocumentCommand(CsxamlBootstrapProbe probe)
     {
         _probe = probe;
     }
 
+    /// <summary>
+    /// Gets the Visual Studio command registration and activation rules.
+    /// </summary>
     public override CommandConfiguration CommandConfiguration => new("%CsxamlBootstrap.InspectActiveDocument.DisplayName%")
     {
         Placements = new[]
@@ -28,6 +38,12 @@ public sealed class InspectActiveCsxamlDocumentCommand : Command
             @"(?i).*\.csxaml$"),
     };
 
+    /// <summary>
+    /// Executes the command against the active editor document.
+    /// </summary>
+    /// <param name="context">The Visual Studio client context.</param>
+    /// <param name="cancellationToken">A token that cancels command execution.</param>
+    /// <returns>A task that completes when the command has shown its prompt.</returns>
     public override async Task ExecuteCommandAsync(IClientContext context, CancellationToken cancellationToken)
     {
         var textView = await context.GetActiveTextViewAsync(cancellationToken);

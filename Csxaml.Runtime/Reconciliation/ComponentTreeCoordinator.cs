@@ -1,13 +1,23 @@
 namespace Csxaml.Runtime;
 
+/// <summary>
+/// Coordinates component rendering, state invalidation, and child component reconciliation.
+/// </summary>
 public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
 {
+    private const string StateWriteDuringRenderMessage =
+        "Component state writes during render are not allowed. Move the update into an event handler, effect, or other post-render path.";
     private readonly IComponentActivator _activator;
     private readonly ComponentContext _context;
     private readonly ComponentInstance _rootComponent;
     private bool _isDisposed;
     private int _renderDepth;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ComponentTreeCoordinator"/> class by activating the root component type.
+    /// </summary>
+    /// <param name="rootComponentType">The component type to instantiate as the root.</param>
+    /// <param name="services">The services available to the component tree.</param>
     public ComponentTreeCoordinator(
         Type rootComponentType,
         IServiceProvider? services = null)
@@ -15,11 +25,20 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ComponentTreeCoordinator"/> class with an existing root component.
+    /// </summary>
+    /// <param name="rootComponent">The root component instance to render.</param>
     public ComponentTreeCoordinator(ComponentInstance rootComponent)
         : this(rootComponent, services: null, activator: null)
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ComponentTreeCoordinator"/> class with an existing root component and services.
+    /// </summary>
+    /// <param name="rootComponent">The root component instance to render.</param>
+    /// <param name="services">The services available to the component tree.</param>
     public ComponentTreeCoordinator(
         ComponentInstance rootComponent,
         IServiceProvider? services)
@@ -37,6 +56,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         _rootComponent = rootComponent;
         _rootComponent.Initialize(_context);
         _rootComponent.RequestRender = RequestRenderTree;
+        _rootComponent.StateWriteValidator = ValidateStateWrite;
     }
 
     private ComponentTreeCoordinator(RootActivation activation)
@@ -44,8 +64,15 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
     {
     }
 
+    /// <summary>
+    /// Occurs after a render produces a new native runtime tree.
+    /// </summary>
     public event Action<NativeNode>? TreeUpdated;
 
+    /// <summary>
+    /// Renders the root component and returns the expanded native runtime tree.
+    /// </summary>
+    /// <returns>The native runtime tree produced by the render.</returns>
     public NativeNode Render()
     {
         ThrowIfDisposed();
@@ -71,6 +98,9 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Disposes the root component tree.
+    /// </summary>
     public void Dispose()
     {
         if (_isDisposed)
@@ -83,6 +113,10 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         ComponentDisposer.Dispose(_rootComponent);
     }
 
+    /// <summary>
+    /// Asynchronously disposes the root component tree.
+    /// </summary>
+    /// <returns>A task-like value that completes when asynchronous disposal has finished.</returns>
     public ValueTask DisposeAsync()
     {
         if (_isDisposed)
@@ -102,11 +136,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
             return;
         }
 
-        if (_renderDepth > 0)
-        {
-            throw new InvalidOperationException(
-                "Component state writes during render are not allowed. Move the update into an event handler, effect, or other post-render path.");
-        }
+        ValidateStateWrite();
 
         Render();
     }
@@ -151,6 +181,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         {
             var child = owner.ChildComponents.Resolve(componentNode, _context, _activator);
             child.RequestRender = RequestRenderTree;
+            child.StateWriteValidator = ValidateStateWrite;
             child.SetProps(componentNode.Props);
             child.SetChildContent(componentNode.ChildContent);
             return MergeAttachedProperties(RenderComponent(child), componentNode.AttachedProperties);
@@ -231,6 +262,14 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         {
             throw new InvalidOperationException(
                 "Component renders are non-reentrant.");
+        }
+    }
+
+    private void ValidateStateWrite()
+    {
+        if (_renderDepth > 0)
+        {
+            throw new InvalidOperationException(StateWriteDuringRenderMessage);
         }
     }
 

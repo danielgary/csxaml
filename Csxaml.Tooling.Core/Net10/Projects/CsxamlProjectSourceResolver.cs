@@ -1,7 +1,15 @@
 namespace Csxaml.Tooling.Core.Projects;
 
+/// <summary>
+/// Resolves C# source files that should participate in editor projections.
+/// </summary>
 public static class CsxamlProjectSourceResolver
 {
+    /// <summary>
+    /// Resolves non-generated C# source paths for the supplied projects.
+    /// </summary>
+    /// <param name="projects">The projects whose source files should be located.</param>
+    /// <returns>The resolved source file paths.</returns>
     public static IReadOnlyList<string> ResolveSourcePaths(IEnumerable<CsxamlProjectInfo> projects)
     {
         return projects

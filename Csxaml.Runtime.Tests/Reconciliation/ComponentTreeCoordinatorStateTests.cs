@@ -34,4 +34,32 @@ public sealed class ComponentTreeCoordinatorStateTests
         var latestTree = RuntimeTreeHelpers.RootStackPanel(updatedTrees[^1]);
         Assert.AreEqual("Fixed:1", RuntimeTreeHelpers.CardHeader(RuntimeTreeHelpers.ChildCard(latestTree, 1)));
     }
+
+    [TestMethod]
+    public void EqualStateAssignment_DoesNotTriggerCoordinatorUpdate()
+    {
+        var root = new FixedParentComponent();
+        var coordinator = new ComponentTreeCoordinator(root);
+        var updatedTrees = new List<NativeNode>();
+        coordinator.TreeUpdated += updatedTrees.Add;
+
+        coordinator.Render();
+        root.Version.Value = 0;
+
+        Assert.HasCount(1, updatedTrees);
+    }
+
+    [TestMethod]
+    public void Touch_TriggersCoordinatorUpdateWithoutValueChange()
+    {
+        var root = new FixedParentComponent();
+        var coordinator = new ComponentTreeCoordinator(root);
+        var updatedTrees = new List<NativeNode>();
+        coordinator.TreeUpdated += updatedTrees.Add;
+
+        coordinator.Render();
+        root.Version.Touch();
+
+        Assert.HasCount(2, updatedTrees);
+    }
 }

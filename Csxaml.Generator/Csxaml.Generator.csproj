@@ -4,26 +4,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>true</IsPackable>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
-    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-    <PackageId>Csxaml.Generator</PackageId>
-    <Version>0.1.0-preview.1</Version>
-    <Authors>CSXAML</Authors>
-    <Description>Build-time generator package for compiling CSXAML component files.</Description>
-    <PackageTags>csxaml;winui;xaml;generator;build</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <NoWarn>$(NoWarn);1591</NoWarn>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeGeneratorToolFiles</TargetsForTfmSpecificContentInPackage>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>$(WarningsAsErrors);1591</WarningsAsErrors>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\build\Csxaml.props" Pack="true" PackagePath="buildTransitive\Csxaml.Generator.props" />
-    <None Include="..\build\Csxaml.targets" Pack="true" PackagePath="buildTransitive\Csxaml.Generator.targets" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\\Csxaml.ControlMetadata\\Csxaml.ControlMetadata.csproj" />
@@ -31,13 +15,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Csxaml.Generator.Tests" />
-    <InternalsVisibleTo Include="Csxaml.Tooling.Core" />
     <InternalsVisibleTo Include="Csxaml.Benchmarks" />
+    <InternalsVisibleTo Include="Csxaml.Tooling.Core" />
   </ItemGroup>
-
-  <Target Name="IncludeGeneratorToolFiles" DependsOnTargets="Build">
-    <ItemGroup>
-      <TfmSpecificPackageFile Include="$(TargetDir)**\*.*" PackagePath="tools\$(TargetFramework)\any\%(RecursiveDir)%(Filename)%(Extension)" />
-    </ItemGroup>
-  </Target>
 </Project>

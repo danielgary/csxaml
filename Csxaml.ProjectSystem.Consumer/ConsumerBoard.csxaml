@@ -1,5 +1,6 @@
 using Csxaml.ProjectSystem.Components;
 using Admin = Csxaml.ProjectSystem.Components.Admin;
+using Microsoft.UI.Xaml.Automation;
 
 namespace Csxaml.ProjectSystem.Consumer;
 

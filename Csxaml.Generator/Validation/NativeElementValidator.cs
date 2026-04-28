@@ -8,9 +8,10 @@ internal sealed class NativeElementValidator
         SourceDocument source,
         MarkupNode node,
         ControlMetadataModel control,
-        string? parentTagName)
+        string? parentTagName,
+        AttachedPropertyBindingResolver bindingResolver)
     {
-        ValidateAttributes(source, node, control, parentTagName, _attachedPropertyValidator);
+        ValidateAttributes(source, node, control, parentTagName, _attachedPropertyValidator, bindingResolver);
         ValidateChildren(source, node, control);
     }
 
@@ -24,7 +25,8 @@ internal sealed class NativeElementValidator
         MarkupNode node,
         ControlMetadataModel control,
         string? parentTagName,
-        AttachedPropertyValidator attachedPropertyValidator)
+        AttachedPropertyValidator attachedPropertyValidator,
+        AttachedPropertyBindingResolver bindingResolver)
     {
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in node.Properties)
@@ -44,7 +46,7 @@ internal sealed class NativeElementValidator
 
             if (property.IsAttached)
             {
-                attachedPropertyValidator.Validate(source, node, property, parentTagName);
+                attachedPropertyValidator.Validate(source, node, property, parentTagName, bindingResolver);
                 continue;
             }
 

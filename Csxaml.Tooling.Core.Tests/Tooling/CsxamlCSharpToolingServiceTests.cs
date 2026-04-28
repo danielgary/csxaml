@@ -91,9 +91,95 @@ public sealed class CsxamlCSharpToolingServiceTests
                 render <Border
                     Background={TodoColors.NotDoneBackground}
                     Padding={12}>
-                    <TextBlock Text="Hello" Foreground={TodoColors.DoneForeground} />
-                    <Button Style={TodoStyles.CardActionButton} />
+                    <StackPanel>
+                        <TextBlock Text="Hello" Foreground={TodoColors.DoneForeground} />
+                        <Button Style={TodoStyles.CardActionButton} />
+                    </StackPanel>
                 </Border>;
+            }
+            """);
+
+        var diagnostics = new CsxamlDiagnosticService().GetDiagnostics(tempFile.FilePath, tempFile.Text);
+
+        Assert.IsFalse(
+            diagnostics.Any(),
+            $"Diagnostics: {string.Join(" | ", diagnostics.Select(diagnostic => diagnostic.Message))}");
+    }
+
+    [TestMethod]
+    public void Diagnostics_allow_alias_imported_external_controls_in_demo_workspace()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            """
+            using Microsoft.UI.Xaml;
+            using DemoControls = Csxaml.ExternalControls;
+            using WinUi = Microsoft.UI.Xaml.Controls;
+
+            namespace Csxaml.Demo;
+
+            component Element ToolingProbe {
+                render <Grid>
+                    <DemoControls:StatusButton BadgeText="ready">
+                        <TextBlock Text="Ready" />
+                    </DemoControls:StatusButton>
+                    <WinUi:InfoBar
+                        IsOpen={true}
+                        Severity={WinUi.InfoBarSeverity.Informational}
+                        Title="Interop"
+                        Message="Works" />
+                </Grid>;
+            }
+            """);
+
+        var diagnostics = new CsxamlDiagnosticService().GetDiagnostics(tempFile.FilePath, tempFile.Text);
+
+        Assert.IsFalse(
+            diagnostics.Any(diagnostic => diagnostic.Message.Contains("unsupported tag name", StringComparison.OrdinalIgnoreCase)),
+            $"Diagnostics: {string.Join(" | ", diagnostics.Select(diagnostic => diagnostic.Message))}");
+    }
+
+    [TestMethod]
+    public void Diagnostics_allow_csxaml_state_constructor_shape_in_helper_code()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            """
+            namespace Csxaml.Demo;
+
+            component Element ToolingProbe {
+                State<List<string>> Items = new State<List<string>>(new List<string> { "A", "B" });
+                State<string> SelectedItemId = new State<string>(Items.Value[0]);
+
+                render <TextBlock Text={SelectedItemId.Value} />;
+            }
+            """);
+
+        var diagnostics = new CsxamlDiagnosticService().GetDiagnostics(tempFile.FilePath, tempFile.Text);
+
+        Assert.IsFalse(
+            diagnostics.Any(diagnostic =>
+                diagnostic.Message.Contains("invalidate", StringComparison.OrdinalIgnoreCase) ||
+                diagnostic.Message.Contains("State<List<string>>.State", StringComparison.OrdinalIgnoreCase) ||
+                diagnostic.Message.Contains("State<string>.State", StringComparison.OrdinalIgnoreCase)),
+            $"Diagnostics: {string.Join(" | ", diagnostics.Select(diagnostic => diagnostic.Message))}");
+    }
+
+    [TestMethod]
+    public void Diagnostics_allow_state_initializers_to_reference_injected_services_and_prior_state_fields()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            """
+            namespace Csxaml.Demo;
+
+            component Element ToolingProbe {
+                inject ITodoService todoService;
+
+                State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(todoService.LoadItems());
+                State<string> SelectedItemId = new State<string>(Items.Value[0].Id);
+
+                render <TextBlock Text={SelectedItemId.Value} />;
             }
             """);
 

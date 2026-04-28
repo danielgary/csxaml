@@ -28,7 +28,9 @@ This maintained revision log starts with the final pre-1.0 tightening pass. Earl
 
 | Revision | Date | Summary |
 | --- | --- | --- |
+| `draft-v1-prepin-alignment` | 2026-04-15 | Closed the last known source/implementation drift around attached-property owner visibility and dotted tag admission: generator, tooling, demos, fixtures, and repo docs now follow the spec's ordinary-import/type-alias owner-resolution model, and tooling/parser tag scanning now consistently admits dotted tag forms. |
 | `draft-v1-prepin-final` | 2026-04-15 | Final pre-1.0 contract tightening pass: added a maintained revision log; clarified file-local helper support, `using static`, balanced-island lexical requirements, render detection examples, slot placement, controlled-input adapter expectations, duplicate-key failure phase, and runtime failure/disposal wording. |
+| `draft-v1-state-equality` | 2026-04-15 | Changed `State<T>` invalidation from always-dirty-on-assignment to reference-equality (reference types) and default-equality (value types) suppression; added explicit `Touch()` method as the rerender escape hatch for controlled-mutation patterns; updated §10.2.1, added §10.2.1.1, and updated §10.4 accordingly. |
 
 ### Decision Log
 
@@ -41,7 +43,8 @@ The following decisions are fixed for this revision of the spec:
 - `component Element` remains the v1 declaration form because the language still distinguishes a renderable UI component kind explicitly
 - v1 keeps exactly one component declaration per `.csxaml` file; additional file-local helper components remain deferred
 - file-level ordinary C# `using` support includes `using static`, but static imports affect only ordinary C# name lookup, not tag resolution or attached-property owner lookup
-- `State<T>` invalidation remains assignment-driven in v1
+- `State<T>` invalidation skips rerender on reference equality (reference types) or default-equality (value types); authors use `Touch()` to force a rerender despite equality
+- `State<T>` invalidation remains assignment-driven in v1; in-place mutation does not trigger rerender without an explicit `Touch()` call
 - default slot outlets remain at-most-once and are invalid inside `foreach` in v1
 - the runtime lifecycle contract is normative for mount, rerender, unmount, and disposal behavior, but v1 does not yet add dedicated source-level cancellation syntax
 
@@ -913,11 +916,30 @@ A state field:
 
 Only reads and writes of `State<T>.Value` are part of the language contract.
 
-In-place mutation of an object or collection currently stored inside a `State<T>` does not automatically invalidate the component.
+A successful assignment to `Value` MUST mark the owning component dirty unless the newly assigned value is equal to the previous value under the equality rule defined below. When the equality rule treats the new and previous values as equal, the assignment MUST NOT mark the component dirty.
 
-Every successful assignment to `Value` MUST mark the owning component dirty, even when the newly assigned value is reference-equal or `Equals`-equal to the previous value.
+The equality rule is:
 
-Assigning the same reference back to `Value` is valid. That is the explicit rerender signal when an author chooses controlled mutation over replacement.
+- for reference types, `ReferenceEquals(previous, next)`
+- for value types, `EqualityComparer<T>.Default.Equals(previous, next)`
+
+Implementations MUST NOT use `Equals` or `IEquatable<T>` for reference-type comparison. The contract for reference types is identity, not semantic equality. This avoids surprising no-rerender behavior for `record` types and other reference types that override `Equals` with value-based semantics, and it keeps the equality check cheap and predictable.
+
+Authors who need to signal a rerender despite equality MUST use the explicit `Touch()` method described in §10.2.1.1.
+
+In-place mutation of an object or collection currently stored inside a `State<T>` does not automatically invalidate the component, and reassigning the same reference back to `Value` no longer signals invalidation by itself. Authors who mutate in place MUST call `Touch()` to trigger rerender.
+
+### 10.2.1.1 The `Touch()` Method
+
+`State<T>` exposes a `Touch()` method that marks the owning component dirty without changing the stored value.
+
+`Touch()` exists for the explicit case where an author has mutated the contents of a reference held by `Value` in place and wants to signal a rerender without replacement, or where an author wants to force a rerender despite the equality rule defined in §10.2.1.
+
+`Touch()` MUST mark the component dirty unconditionally. It follows the same scheduling and batching rules as ordinary `Value` assignments (§10.2.2).
+
+Authors SHOULD prefer replacement over mutation-plus-`Touch()` where practical, because replacement keeps data flow assignment-driven and easier to trace per §10.4. `Touch()` is the documented escape hatch when replacement is impractical, not a first-choice pattern.
+
+Calling `Touch()` on a state field belonging to an unmounted component MUST follow the same rule as a post-unmount `Value` write per §10.2.4: the call MUST NOT resurrect or rerender the disposed component instance.
 
 ### 10.2.2 Scheduling and Batching
 
@@ -963,6 +985,8 @@ Explicit state does not require immutable data structures.
 Authors MAY replace a value with a new object, or mutate a local object or collection and then assign it back through `Value`.
 
 The language contract is assignment-driven, not collection-strategy-driven.
+
+Authors who mutate in place and then reassign the same reference MUST use `Touch()` (§10.2.1.1) to trigger rerender. Reassigning the same reference no longer signals invalidation by itself under the equality rule in §10.2.1.
 
 That means this style is preferred:
 
@@ -1908,7 +1932,7 @@ Known gaps relative to the intended v1 experience:
 - whole-file comment support needs further hardening beyond the helper-code and boundary scanners
 - external control namespace syntax, referenced-assembly discovery, and generated runtime registration are implemented for the current supported slice; [docs/external-control-interop.md](docs/external-control-interop.md) describes that slice and its current limitations, while broader external control shape coverage is still in progress
 - the v1 styling story is intentionally thin and currently stops at reusable values plus WinUI `Style` support; richer styling constructs remain future work
-- broader attached-property owner resolution through file-level imports and external metadata is not yet implemented
+- external attached-property owner discovery beyond the current loaded metadata slice is not yet implemented
 - IME composition hardening for controlled text input is not yet complete across every WinUI input path
 - controls, templates, and libraries that assume ambient `DataContext`, deep templating, or virtualization remain interop boundaries rather than first-class v1 CSXAML abstractions
 - named slots, slot fallback content, and fragment-root slot pass-through are intentionally deferred

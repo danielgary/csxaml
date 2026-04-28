@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Csxaml.LanguageServer.Documents;
+using Csxaml.LanguageServer.Protocol;
 using Csxaml.Tooling.Core.SemanticTokens;
 
 namespace Csxaml.LanguageServer.Server;
@@ -23,8 +24,9 @@ internal sealed partial class CsxamlLspServer
     private object HandleSemanticTokens(JsonElement root)
     {
         var uri = root.GetProperty("params").GetProperty("textDocument").GetProperty("uri").GetString()!;
+        var filePath = LspDocumentUriConverter.ToFilePath(uri);
         var text = _documents.GetOrLoad(uri);
-        var tokens = _semanticTokenService.GetTokens(new Uri(uri).LocalPath, text);
+        var tokens = _semanticTokenService.GetTokens(filePath, text);
 
         var data = new List<int>();
         var previousLine = 0;

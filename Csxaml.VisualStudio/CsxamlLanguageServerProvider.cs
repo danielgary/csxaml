@@ -7,15 +7,26 @@ using Nerdbank.Streams;
 
 namespace Csxaml.VisualStudio;
 
+/// <summary>
+/// Starts and connects Visual Studio to the CSXAML language server process.
+/// </summary>
 [VisualStudioContribution]
 public sealed class CsxamlLanguageServerProvider : LanguageServerProvider
 {
     private Process? _process;
 
+    /// <summary>
+    /// Gets the language server registration used by Visual Studio for CSXAML documents.
+    /// </summary>
     public override LanguageServerProviderConfiguration LanguageServerProviderConfiguration => new(
         "%CsxamlLanguageServer.DisplayName%",
         [DocumentFilter.FromDocumentType(CsxamlDocumentTypeConfiguration.CsxamlDocumentType)]);
 
+    /// <summary>
+    /// Creates the duplex pipe used by Visual Studio to communicate with the CSXAML language server.
+    /// </summary>
+    /// <param name="cancellationToken">A token that cancels language server startup.</param>
+    /// <returns>The language server communication pipe.</returns>
     public override Task<IDuplexPipe?> CreateServerConnectionAsync(CancellationToken cancellationToken)
     {
         var extensionDirectory = Path.GetDirectoryName(typeof(CsxamlLanguageServerProvider).Assembly.Location)
@@ -49,6 +60,10 @@ public sealed class CsxamlLanguageServerProvider : LanguageServerProvider
         return Task.FromResult<IDuplexPipe?>(new DuplexPipe(input, output));
     }
 
+    /// <summary>
+    /// Releases the language server process owned by the provider.
+    /// </summary>
+    /// <param name="disposing">A value indicating whether managed resources should be disposed.</param>
     protected override void Dispose(bool disposing)
     {
         if (disposing && _process is { HasExited: false })
