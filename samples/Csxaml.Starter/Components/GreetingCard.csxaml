@@ -1,0 +1,18 @@
+using Microsoft.UI.Xaml;
+
+namespace Csxaml.Starter;
+
+component Element GreetingCard(string Name, int Count) {
+    var clickLabel = Count == 1 ? "1 click" : $"{Count} clicks";
+
+    render <Border
+        AutomationProperties.Name="Greeting card"
+        BorderThickness={1}
+        Padding={16}
+        Margin={new Thickness(0, 8, 0, 8)}>
+        <StackPanel Spacing={4}>
+            <TextBlock Text={$"Hello, {Name}!"} FontSize={20} />
+            <TextBlock Text={$"The button has recorded {clickLabel}."} />
+        </StackPanel>
+    </Border>;
+}

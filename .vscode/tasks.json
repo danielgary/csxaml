@@ -2,13 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build-demo-x64",
+      "label": "build-demo",
       "type": "process",
       "command": "dotnet",
       "args": [
         "build",
         "${workspaceFolder}\\Csxaml.Demo\\Csxaml.Demo.csproj",
-        "-p:Platform=x64",
         "-nr:false",
         "-p:UseSharedCompilation=false"
       ],
@@ -20,6 +19,132 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "build-starter",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}\\samples\\Csxaml.Starter\\Csxaml.Starter.csproj",
+        "-nr:false",
+        "-p:UseSharedCompilation=false"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "run-benchmarks",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "-c",
+        "Release",
+        "--project",
+        "${workspaceFolder}\\Csxaml.Benchmarks\\Csxaml.Benchmarks.csproj",
+        "--",
+        "--filter",
+        "*",
+        "--job",
+        "short"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "test"
+    },
+    {
+      "label": "run-benchmarks-generator",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "-c",
+        "Release",
+        "--project",
+        "${workspaceFolder}\\Csxaml.Benchmarks\\Csxaml.Benchmarks.csproj",
+        "--",
+        "--filter",
+        "*Generator*",
+        "--job",
+        "short"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "test"
+    },
+    {
+      "label": "run-benchmarks-metadata",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "-c",
+        "Release",
+        "--project",
+        "${workspaceFolder}\\Csxaml.Benchmarks\\Csxaml.Benchmarks.csproj",
+        "--",
+        "--filter",
+        "*Metadata*",
+        "--job",
+        "short"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "test"
+    },
+    {
+      "label": "run-benchmarks-runtime",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "-c",
+        "Release",
+        "--project",
+        "${workspaceFolder}\\Csxaml.Benchmarks\\Csxaml.Benchmarks.csproj",
+        "--",
+        "--filter",
+        "*Runtime*",
+        "--job",
+        "short"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "test"
+    },
+    {
+      "label": "run-benchmarks-tooling",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "-c",
+        "Release",
+        "--project",
+        "${workspaceFolder}\\Csxaml.Benchmarks\\Csxaml.Benchmarks.csproj",
+        "--",
+        "--filter",
+        "*Tooling*",
+        "--job",
+        "short"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "test"
     },
     {
       "label": "build-csxaml-vsix",

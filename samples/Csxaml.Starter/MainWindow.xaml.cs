@@ -1,26 +1,25 @@
-using System;
 using Csxaml.Runtime;
 using Microsoft.UI.Xaml;
 using Windows.Graphics;
 
-namespace Csxaml.Demo;
+namespace Csxaml.Starter;
 
 public sealed partial class MainWindow : Window
 {
     private readonly CsxamlHost _host;
 
-    public MainWindow(IServiceProvider services)
+    public MainWindow()
     {
         InitializeComponent();
         ConfigureStartupWindow();
 
-        _host = new CsxamlHost(ComponentHost, typeof(TodoBoardComponent), services);
+        _host = new CsxamlHost(ComponentHost, typeof(StarterPageComponent));
         _host.Render();
     }
 
     private void ConfigureStartupWindow()
     {
-        AppWindow.Title = "CSXAML Todo Board";
-        AppWindow.Resize(new SizeInt32(1180, 780));
+        AppWindow.Title = "CSXAML Starter";
+        AppWindow.Resize(new SizeInt32(720, 520));
     }
 }

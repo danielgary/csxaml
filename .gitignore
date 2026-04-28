@@ -423,3 +423,6 @@ VSCodeExtension/dist/
 *.msix
 *.msm
 *.msp
+
+# Language server project cache
+*.lscache

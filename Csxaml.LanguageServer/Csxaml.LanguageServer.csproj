@@ -8,6 +8,7 @@
     <WarningsAsErrors>$(WarningsAsErrors);1591</WarningsAsErrors>
     <AssemblyName>Csxaml.LanguageServer</AssemblyName>
     <RootNamespace>Csxaml.LanguageServer</RootNamespace>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,8 +1,22 @@
-# csxaml
+# CSXAML
 
-CSXAML is an experimental source-generated language for building WinUI apps with XAML-like structure and real C# expressions.
+CSXAML is an experimental source-generated language for building WinUI apps with XAML-like markup and real C# expressions.
 
 The repo and public release artifacts are licensed under Apache-2.0.
+
+## Current Status
+
+The compiler/runtime path is broad enough for a credible v1 slice, and the remaining work is mostly release validation, public hosting, and polish around distribution.
+
+Current productization state:
+
+- public package boundary: `Csxaml` and `Csxaml.Runtime`
+- starter sample and template work exist in the repo
+- benchmark and performance documentation exist for Milestone 14
+- VS Code and Visual Studio extension packaging paths exist
+- XML API documentation is enabled on developer-facing assemblies
+- DocFX site source exists and generates API reference from XML docs at build time
+- GitHub Actions owns CI, packaging, release prep, publish, and docs-site deployment workflows
 
 ## Repo At A Glance
 
@@ -36,15 +50,15 @@ The repo is organized around four main layers:
   Retained-mode runtime that reconciles logical trees and projects them to WinUI.
 
 - `Csxaml.Testing`  
-  Test support helpers used by runtime and integration tests.
+  Hostless component test support helpers.
 
 - `Csxaml.Benchmarks`  
-  BenchmarkDotNet and WinUI smoke harnesses for generator, metadata, runtime, and projection measurements.
+  BenchmarkDotNet and WinUI smoke harnesses for generator, metadata, runtime, tooling, and projection measurements.
 
 ### Tooling and editor integration
 
 - `Csxaml.Tooling.Core`  
-  Shared language-service logic: completion, definitions, formatting, semantic tokens, markup scanning, and C# projection.
+  Shared language-service logic: completion, definitions, formatting, hover, semantic tokens, markup scanning, C# projection, and diagnostics.
 
 - `Csxaml.LanguageServer`  
   LSP host built on top of `Csxaml.Tooling.Core`.
@@ -84,7 +98,10 @@ These projects provide regression coverage for metadata generation, parsing, val
 
 - `build/` - shared MSBuild targets and generation wiring
 - `docs/` - supporting documentation
+- `docs-site/` - DocFX documentation site source
 - `scripts/` - helper scripts
+- `samples/` - outside-consumer and starter examples
+- `templates/` - template package sources
 - `artifacts/` - build outputs and packaged artifacts
 
 ## Where To Start
@@ -92,10 +109,11 @@ These projects provide regression coverage for metadata generation, parsing, val
 If you are new to the repo, this reading order works well:
 
 1. `LANGUAGE-SPEC.md`
-2. `Csxaml.Generator/`
-3. `Csxaml.Runtime/`
-4. `Csxaml.Demo/`
-5. `Csxaml.Tooling.Core/`
+2. `docs-site/index.md`
+3. `Csxaml.Generator/`
+4. `Csxaml.Runtime/`
+5. `Csxaml.Demo/`
+6. `Csxaml.Tooling.Core/`
 
 ## Key Docs
 
@@ -142,13 +160,26 @@ For a small outside-consumer example that uses the package path instead of repo-
 
 ## Release Model
 
-CSXAML now treats release governance as part of the product surface:
+CSXAML treats release governance as part of the product surface:
 
 - semantic versioning is the public version contract
 - Conventional Commits are the semantic input to release notes and version bumps
 - `git-cliff` generates `CHANGELOG.md` and release notes
-- GitHub Actions is the system of record for CI, packaging, and publishing
+- GitHub Actions is the system of record for CI, packaging, docs, and publishing
 - pushes to `develop` create preview releases, and pushes to `master` create stable releases
 - release tags are created by automation after publish succeeds
 
 The current release and versioning policy lives in [docs/release-and-versioning.md](docs/release-and-versioning.md).
+
+## Current Limitations
+
+These areas remain intentionally outside the current v1 promise:
+
+- named slots and slot fallback content
+- broader external attached-property owner discovery
+- richer event-argument projection beyond the current supported slice
+- virtualization and very large visible-list strategies
+- `DataContext`-heavy third-party control interop
+- dedicated source-level lifecycle or cancellation syntax
+
+The supported feature matrix lives in [docs/supported-feature-matrix.md](docs/supported-feature-matrix.md).

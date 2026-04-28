@@ -4,23 +4,51 @@
 
 This document records the measured Milestone 14 performance story for CSXAML v1.
 
-It exists to answer three questions directly:
+It exists to answer four questions directly:
 
-1. what was measured
-2. what was optimized
-3. what scale CSXAML v1 is honestly intended to handle
+1. how generation time grows as a solution gains more `.csxaml` files
+2. whether metadata lookup and discovery stay cheap enough for build and tooling paths
+3. whether retained runtime reconciliation handles realistic rerender pressure
+4. whether editor services remain responsive for small and larger workspaces
 
 The language semantics remain defined by [LANGUAGE-SPEC.md](../LANGUAGE-SPEC.md). This document is about measured implementation posture, not new language rules.
 
-## How To Run The Measurements
+## Audit Environment
 
-From the repo root:
+The BenchmarkDotNet `ShortRun` baselines were captured on 2026-04-23.
+
+- OS: Windows `10.0.26200.8246`
+- Platform: `win-arm64`
+- .NET SDK: `10.0.203`
+- .NET host runtime: `10.0.7`
+- Installed SDKs: `8.0.420`, `10.0.203`
+
+The latest documented full verification used:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/perf/run-milestone-14.ps1
+dotnet test .\Csxaml.sln --no-restore -m:1
 ```
 
-That runs the `BenchmarkDotNet` suite in [`Csxaml.Benchmarks`](../Csxaml.Benchmarks) and writes artifacts under `artifacts/benchmarks`.
+That sequential solution run passed with 199 passed, 17 skipped, and 216 total tests. The sequential `-m:1` form remains the reliable command while a parallel VSIX packaging file-lock race is unresolved.
+
+## Commands
+
+Build and list benchmarks:
+
+```powershell
+dotnet build .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj -c Release
+dotnet run -c Release --project .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj -- --list flat
+dotnet run -c Release --project .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj -- --filter *
+```
+
+Run focused categories:
+
+```powershell
+dotnet run -c Release --project .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj -- --filter *Generator*
+dotnet run -c Release --project .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj -- --filter *Metadata*
+dotnet run -c Release --project .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj -- --filter *Runtime*
+dotnet run -c Release --project .\Csxaml.Benchmarks\Csxaml.Benchmarks.csproj -- --filter *Tooling*
+```
 
 For the WinUI projection/editing smoke path:
 
@@ -33,55 +61,63 @@ That writes:
 - `artifacts/benchmarks/winui-smoke.json`
 - `artifacts/benchmarks/winui-smoke.md`
 
-## What Was Measured
+## Scenario Categories
 
-Milestone 14 added repeatable measurement coverage for:
+Generator scenarios measure:
 
-- generator parsing and end-to-end generation
-- metadata lookup and attached-property resolution
-- hostless runtime initial render and retained rerender scenarios
-- WinUI retained patch versus replacement for supported built-in input controls
+- 1 component
+- 25 components
+- 100 components
+- 500 components
+- components using helper code, state, `if`, `foreach`, and slots
 
-The benchmark scenarios are intentionally tied to the current v1 language and runtime contract:
+Metadata scenarios measure:
 
-- medium `.csxaml` source with imports, helper code, slots, and attached properties
-- multi-file generation
-- flat repeated-child render
-- keyed single-item update
+- built-in control metadata lookup
+- attached-property metadata lookup
+- external control registry lookup
+
+Runtime scenarios measure:
+
+- keyed-list initial render
 - keyed reorder
+- middle insert rerender
 - list/detail editor rerender
 - `State<T>` no-op versus `Touch()` behavior
-- retained `TextBox` projection versus replacement
 
-## Key Results
+Tooling scenarios measure:
 
-### Generator
+- tag completion in a small workspace
+- attribute completion for built-in controls
+- diagnostics over a small workspace
+- formatting over mixed C#/markup documents
 
-The generator baseline showed that parsing is not the dominant cost for normal files.
+## Results Summary
 
-Representative results from the Milestone 14 benchmark suite:
+| Category | Scenario | Mean | Allocated | Notes |
+| --- | --- | ---: | ---: | --- |
+| Generator | 1 component | `145.7 us` | `247.24 KB` | Direct generator path, not process startup. |
+| Generator | 25 components | `3.602 ms` | `6050.87 KB` | Same scenario shape as above. |
+| Generator | 100 components | `18.068 ms` | `24169.98 KB` | Same scenario shape as above. |
+| Generator | 500 components | `91.597 ms` | `121019.99 KB` | Same scenario shape as above. |
+| Metadata | Built-in control lookup | `25.39 ns` | `0 B` | Eight built-in control lookups. |
+| Metadata | Attached-property lookup | `39.84 ns` | `248 B` | Four attached-property lookups. |
+| Runtime | Initial render, 100 items | `49.05 us` | `249.05 KB` | Hostless keyed-list initial render. |
+| Runtime | Reverse rerender, 100 items | `34.28 us` | `146.51 KB` | Retained keyed reorder. |
+| Runtime | Middle insert rerender, 100 items | `35.14 us` | `149.30 KB` | Retained keyed insert. |
+| Runtime | Initial render, 1000 items | `625.37 us` | `2478.34 KB` | Hostless keyed-list initial render. |
+| Runtime | Reverse rerender, 1000 items | `436.43 us` | `1467.80 KB` | Retained keyed reorder. |
+| Runtime | Middle insert rerender, 1000 items | `434.58 us` | `1484.66 KB` | Retained keyed insert. |
+| Tooling | Tag completion | `30.75 ms` | `2531.20 KB` | Small synthetic workspace after markup-first completion optimization. |
+| Tooling | Attribute completion | `29.84 ms` | `2532.48 KB` | Same workspace after optimization. |
+| Tooling | Diagnostics | `164.92 us` | `16.96 KB` | Small synthetic workspace. |
+| Tooling | Formatting | `483.7 ns` | `3.1 KB` | Mixed C#/markup document. |
 
-- medium-component parse: about `7.8 us`, about `35 KB`
-- medium-component generation: about `101 us`, about `346 KB`
-- multi-file generation: about `155 us`, about `406 KB`
+## What Was Optimized
 
-That means the generator's first performance pressure is validation/emission and generated-file shaping, not raw tokenization throughput.
+### Attached-property resolution
 
-### Metadata
-
-Built-in and external lookup were already cheap. Attached-property owner resolution was the first clearly wasteful metadata path.
-
-Before optimization:
-
-- built-in control lookup: about `2.7 ns`, `0 B`
-- attached-property owner resolution: about `232.7 ns`, about `1296 B`
-- external control registry lookup: about `10.6 ns`, `0 B`
-
-After optimization:
-
-- built-in control lookup: about `2.8 ns`, `0 B`
-- attached-property owner resolution: about `26.7 ns`, about `152 B`
-- external control registry lookup: about `10.7 ns`, `0 B`
+Attached-property owner resolution was the first clearly wasteful metadata path.
 
 The optimization was deliberately narrow:
 
@@ -89,36 +125,22 @@ The optimization was deliberately narrow:
 - the resolver uses explicit loops instead of repeated LINQ filtering/grouping
 - alias, visibility, and ambiguity behavior remain unchanged
 
-### Hostless Runtime
+### Child-component store reuse
 
-Initial render remained roughly linear and stayed within the expected v1 non-virtualized range.
+Large repeated trees contain many leaf components whose child-component stores were previously allocating empty dictionaries and sets on every rerender.
 
-After the Milestone 14 runtime optimization pass:
+`ChildComponentStore` now lazily allocates per-render collections and reuses those collections across render passes, which reduced allocation pressure in large keyed rerenders.
 
-| Scenario | Mean | Allocated |
-| --- | ---: | ---: |
-| initial render, 100 items | `5.603 us` | `31.4 KB` |
-| initial render, 1000 items | `54.243 us` | `327.49 KB` |
-| keyed one-item update, 100 items | `24.792 us` | `110.97 KB` |
-| keyed reorder, 100 items | `26.168 us` | `111.6 KB` |
-| list/detail update, 100 items | `4.662 us` | `28.27 KB` |
-| keyed one-item update, 1000 items | `263.161 us` | `1100.04 KB` |
-| keyed reorder, 1000 items | `299.712 us` | `1111.21 KB` |
-| list/detail update, 1000 items | `46.030 us` | `267.34 KB` |
+### Markup-first tooling completion
 
-The main runtime optimization was also narrow and explicit:
+The clearest tooling hot spot was completion. Plain markup tag and attribute-name contexts now short-circuit the heavier C# projection/workspace path.
 
-- `ChildComponentStore` now lazily allocates its per-render collections
-- those collections are reused across render passes instead of being recreated on every component render
+Measured effect in the synthetic tooling workspace:
 
-That matters because large repeated trees contain many leaf components whose child-component stores were previously allocating empty dictionaries and sets on every rerender.
+- tag completion improved from `90.32 ms` to `30.75 ms`
+- attribute completion improved from `66.94 ms` to `29.84 ms`
 
-Compared with the pre-optimization baseline:
-
-- keyed one-item update at 1000 items improved from about `313 us` / `1490 KB` to about `263 us` / `1100 KB`
-- keyed reorder at 1000 items improved from about `353 us` / `1501 KB` to about `300 us` / `1111 KB`
-
-### WinUI Projection And Editing
+## WinUI Projection and Editing
 
 The WinUI smoke path measures retained patch versus replacement for supported built-in input controls.
 
@@ -132,13 +154,11 @@ Representative retained versus replacement results:
 That is the expected shape for the current runtime:
 
 - retained patching is materially cheaper than replacement
-- replacement is also more likely to disrupt user-visible editing state
+- replacement is more likely to disrupt user-visible editing state
 
-Focus-sensitive WinUI smoke scenarios are environment-dependent. The harness records explicit `unavailable` results when the machine cannot establish programmatic focus for the projected control. That does not change the runtime contract; it only limits what the perf smoke can measure automatically on a given machine.
+Focus-sensitive WinUI smoke scenarios are environment-dependent. The harness records explicit `unavailable` results when the machine cannot establish programmatic focus for the projected control.
 
-Focus and selection correctness are still covered by the existing WinUI runtime tests on environments that support live WinUI activation.
-
-## Intended V1 Scale
+## Intended V1 Scale Envelope
 
 CSXAML v1 is intended to be comfortable for:
 
@@ -147,17 +167,9 @@ CSXAML v1 is intended to be comfortable for:
 - dashboards and forms
 - nested component trees in the small-to-medium range
 - repeated-child surfaces where item counts are in the low hundreds
+- list/detail flows with retained controls
 
-CSXAML v1 can tolerate higher counts as a stress case, but that is not the same thing as promising virtualization-class behavior.
-
-### Comfortable
-
-- detail editors with retained controls
-- list/detail flows
-- repeated sidebars and boards in the 50 to 200 item range
-- component composition where rerenders touch a focused editor while unrelated siblings update
-
-### Stress Case, But Measured
+The measured stress envelope includes:
 
 - 1000-item `foreach` trees
 - repeated keyed reorders at 1000 items
@@ -165,48 +177,27 @@ CSXAML v1 can tolerate higher counts as a stress case, but that is not the same 
 
 These scenarios are useful for bounding behavior. They are not the recommended everyday authoring target for large enterprise list surfaces.
 
-### Outside The Intended V1 Scale Story
+## Outside the V1 Scale Story
 
 CSXAML v1 is not a replacement for WinUI virtualization primitives.
 
-For large scrolling data surfaces, authors should still expect to need native virtualization-aware controls and future dedicated interop/design work rather than plain `foreach`.
+For large scrolling data surfaces, authors should still expect to use native virtualization-aware controls and future dedicated interop/design work rather than plain `foreach`.
 
-In particular, this milestone does not claim parity with:
+This milestone does not claim parity with:
 
 - `ListView`
 - `ItemsRepeater`
 - `DataTemplate`-driven virtualization
 - `INotifyCollectionChanged`-optimized native large-list behavior
 
-## What Was Optimized
+## Known Limits
 
-The milestone intentionally optimized only measured hot spots.
-
-### Landed
-
-1. attached-property resolution
-   - file(s): `Csxaml.ControlMetadata/Registry/AttachedPropertyMetadataRegistry.cs`, `Csxaml.ControlMetadata/Resolution/AttachedPropertyReferenceResolver.cs`
-   - problem: repeated LINQ-based filtering/grouping and no property-name index
-   - result: attached-property lookup dropped to roughly one-ninth of the previous time and reduced allocations sharply
-
-2. child-component store reuse
-   - file(s): `Csxaml.Runtime/Components/ChildComponentStore.cs`
-   - problem: per-component per-render collection allocation, including on leaf components with no child components
-   - result: large keyed rerenders allocate substantially less and complete noticeably faster
-
-### Intentionally Not Optimized Further In Milestone 14
-
-- generator parsing throughput, because it was already cheap relative to end-to-end generation
-- built-in native-control registry lookup, because it was already negligible
-- external-control registry lookup, because it was already negligible
-- broad WinUI focus-sensitive perf automation, because the remaining gap is environment activation/focus availability rather than an obvious hot-path bug
-
-## Remaining Limits And Honest Caveats
-
-- WinUI perf smoke is repeatable, but focus-sensitive scenarios may report `unavailable` on machines that cannot establish programmatic focus for the projected controls.
-- The hostless runtime measurements intentionally separate reconciliation cost from live WinUI projection cost. They are useful, but they are not the whole UI-thread story.
-- The benchmark numbers in this document come from one machine and should be treated as comparative evidence, not universal hard guarantees.
-- `foreach` remains a repeated-child construct, not a virtualization feature.
+- the recorded baselines are `ShortRun` release baselines, not CI trend data
+- no CI trend or performance regression gate exists yet
+- projected WinUI benchmarks may be environment-sensitive because WinUI activation is not equally reliable on every machine
+- external-control discovery relies on referenced-assembly reflection and still needs larger reference-graph measurement
+- tooling workspace loading remains an important editor cost even after the markup-first completion optimization
+- very large third-party control surfaces are not proven
 
 ## Bottom Line
 
@@ -214,6 +205,6 @@ Milestone 14 closes with a measured, documented, and more efficient v1 performan
 
 - the repo now has repeatable benchmark and WinUI smoke entry points
 - the first real hot spots were optimized without weakening the spec
-- the intended v1 scale is now documented directly instead of being implied
+- the intended v1 scale is documented directly instead of being implied
 
 That is the line CSXAML v1 should hold: honest scale, explicit tradeoffs, and predictable behavior first.

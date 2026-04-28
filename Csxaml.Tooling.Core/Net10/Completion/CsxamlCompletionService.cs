@@ -26,15 +26,30 @@ public sealed class CsxamlCompletionService
         string text,
         int position)
     {
+        var markup = CsxamlMarkupScanner.Scan(text);
+        var context = CsxamlMarkupContextAnalyzer.Analyze(text, position);
+        if (context.Kind is CsxamlMarkupContextKind.TagName or CsxamlMarkupContextKind.AttributeName
+            && !IsInsideMarkupExpression(text, position))
+        {
+            return GetMarkupCompletions(filePath, text, markup, context);
+        }
+
         var csharpItems = _csharpCompletionService.GetCompletions(filePath, text, position);
         if (csharpItems.Count > 0)
         {
             return csharpItems;
         }
 
+        return Array.Empty<CsxamlCompletionItem>();
+    }
+
+    private IReadOnlyList<CsxamlCompletionItem> GetMarkupCompletions(
+        string filePath,
+        string text,
+        CsxamlMarkupScanResult markup,
+        CsxamlMarkupContext context)
+    {
         var workspace = _workspaceLoader.Load(filePath, text);
-        var markup = CsxamlMarkupScanner.Scan(text);
-        var context = CsxamlMarkupContextAnalyzer.Analyze(text, position);
         var currentNamespace = markup.NamespaceDirective?.NamespaceName ?? workspace.Project.DefaultNamespace;
 
         return context.Kind switch
@@ -289,5 +304,70 @@ public sealed class CsxamlCompletionService
     {
         return string.IsNullOrEmpty(prefix)
             || candidate.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsInsideMarkupExpression(string text, int position)
+    {
+        var braceDepth = 0;
+        var activeTag = false;
+        var inString = false;
+        var stringDelimiter = '\0';
+
+        for (var index = 0; index < position && index < text.Length; index++)
+        {
+            var current = text[index];
+            if (inString)
+            {
+                if (current == '\\')
+                {
+                    index++;
+                    continue;
+                }
+
+                if (current == stringDelimiter)
+                {
+                    inString = false;
+                }
+
+                continue;
+            }
+
+            if (current is '"' or '\'')
+            {
+                inString = true;
+                stringDelimiter = current;
+                continue;
+            }
+
+            if (current == '<' && braceDepth == 0)
+            {
+                activeTag = true;
+                continue;
+            }
+
+            if (!activeTag)
+            {
+                continue;
+            }
+
+            if (current == '{')
+            {
+                braceDepth++;
+                continue;
+            }
+
+            if (current == '}' && braceDepth > 0)
+            {
+                braceDepth--;
+                continue;
+            }
+
+            if (current == '>' && braceDepth == 0)
+            {
+                activeTag = false;
+            }
+        }
+
+        return activeTag && braceDepth > 0;
     }
 }

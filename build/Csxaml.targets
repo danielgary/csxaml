@@ -11,12 +11,15 @@
     <CsxamlInternalGeneratedNamespace Condition="'$(CsxamlInternalGeneratedNamespace)' == ''">$(CsxamlDefaultNamespace).__CsxamlGenerated</CsxamlInternalGeneratedNamespace>
     <CsxamlGeneratorMode Condition="'$(CsxamlGeneratorMode)' == '' and Exists('$(CsxamlGeneratorDll)')">packaged</CsxamlGeneratorMode>
     <CsxamlGeneratorMode Condition="'$(CsxamlGeneratorMode)' == '' and Exists('$(CsxamlGeneratorProject)')">project</CsxamlGeneratorMode>
+    <CsxamlGeneratorCommand Condition="'$(CsxamlGeneratorCommand)' == '' and '$(CsxamlGeneratorMode)' == 'project'">dotnet run --project &quot;$(CsxamlGeneratorProject)&quot; --</CsxamlGeneratorCommand>
+    <CsxamlGeneratorCommand Condition="'$(CsxamlGeneratorCommand)' == '' and '$(CsxamlGeneratorMode)' == 'packaged'">dotnet exec &quot;$(CsxamlGeneratorDll)&quot;</CsxamlGeneratorCommand>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlGeneratorMode)' == 'project'">
     <CsxamlGeneratorInput Include="$(CsxamlGeneratorProject)" />
     <CsxamlGeneratorInput
       Include="$(MSBuildThisFileDirectory)..\Csxaml.Generator\**\*.cs"
+      Condition="Exists('$(MSBuildThisFileDirectory)..\Csxaml.Generator')"
       Exclude="$(MSBuildThisFileDirectory)..\Csxaml.Generator\bin\**;$(MSBuildThisFileDirectory)..\Csxaml.Generator\obj\**" />
   </ItemGroup>
 
@@ -31,6 +34,9 @@
     <Error
       Condition="'$(CsxamlGeneratorMode)' == ''"
       Text="CSXAML generation is enabled, but no generator entry point was found. Either restore the packaged 'Csxaml' tool payload or set CsxamlGeneratorProject/CsxamlGeneratorDll explicitly." />
+    <Error
+      Condition="'$(CsxamlGeneratorCommand)' == ''"
+      Text="CSXAML generation is enabled, but no generator command could be resolved. Set CsxamlGeneratorProject/CsxamlGeneratorDll explicitly or reference the Csxaml package." />
   </Target>
 
   <Target
@@ -70,12 +76,7 @@
     Outputs="$(CsxamlStampFile)"
     Condition="'$(EnableCsxaml)' == 'true' and '@(CsxamlSource)' != ''">
     <Exec
-      Condition="'$(CsxamlGeneratorMode)' == 'project'"
-      Command="dotnet run --project &quot;$(CsxamlGeneratorProject)&quot; -- --out &quot;$(CsxamlGeneratedDirectory)&quot; --assembly-name &quot;$(AssemblyName)&quot; --default-namespace &quot;$(CsxamlDefaultNamespace)&quot; --generated-namespace &quot;$(CsxamlInternalGeneratedNamespace)&quot; --references-file &quot;$(CsxamlReferenceManifestFile)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
-      WorkingDirectory="$(MSBuildProjectDirectory)" />
-    <Exec
-      Condition="'$(CsxamlGeneratorMode)' == 'packaged'"
-      Command="dotnet exec &quot;$(CsxamlGeneratorDll)&quot; --out &quot;$(CsxamlGeneratedDirectory)&quot; --assembly-name &quot;$(AssemblyName)&quot; --default-namespace &quot;$(CsxamlDefaultNamespace)&quot; --generated-namespace &quot;$(CsxamlInternalGeneratedNamespace)&quot; --references-file &quot;$(CsxamlReferenceManifestFile)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
+      Command="$(CsxamlGeneratorCommand) --out &quot;$(CsxamlGeneratedDirectory)&quot; --assembly-name &quot;$(AssemblyName)&quot; --default-namespace &quot;$(CsxamlDefaultNamespace)&quot; --generated-namespace &quot;$(CsxamlInternalGeneratedNamespace)&quot; --references-file &quot;$(CsxamlReferenceManifestFile)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
       WorkingDirectory="$(MSBuildProjectDirectory)" />
     <Touch Files="$(CsxamlStampFile)" AlwaysCreate="true" />
   </Target>

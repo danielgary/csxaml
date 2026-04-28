@@ -34,7 +34,7 @@ Suggested status values:
 
 # Current Position
 
-The project has already established early groundwork in these areas:
+The project currently has implemented proof points in these areas:
 
 - build-time generation from `.csxaml`
 - runtime rendering for a small control set
@@ -67,6 +67,18 @@ The project has already established early groundwork in these areas:
 - proof that an ordinary C# test project can consume generated CSXAML components through normal `ProjectReference` usage without duplicate generator wiring
 - deterministic generated-file writing, stale-file pruning, and clean integration through the shared `obj` pipeline
 - source-first diagnostics for parser/validator failures, `#line`-mapped build errors from direct C# regions, deterministic source-map sidecars under `obj`, and wrapped runtime exception context
+- intentionally thin styling and theming through WinUI `Style`/resource values plus typed C# helpers rather than a CSXAML-owned styling DSL
+- file-local helper declarations, component-local helper code, and default slots for richer composition while retaining one component declaration per `.csxaml` file
+- explicit lifecycle/disposal behavior, post-unmount invalidation safety, and a narrow `IServiceProvider`/`inject` service boundary
+- hostless component testing through `Csxaml.Testing`, including semantic queries and click/text/checked interaction helpers
+- shared tooling semantics in `Csxaml.Tooling.Core`, surfaced through `Csxaml.LanguageServer`
+- Visual Studio 2026 / v18 extension packaging with semantic coloring, completion, diagnostics, formatting, and component go-to-definition
+- a local VS Code extension that combines TextMate grammar/snippets with the shared language server
+- author-facing docs for compatibility, feature support, external-control interop, diagnostics/debugging, lifecycle/async behavior, component testing, Visual Studio bootstrap, and VS Code local iteration
+- starter sample proof under `samples/Csxaml.Starter`
+- BenchmarkDotNet scaffold under `Csxaml.Benchmarks` for generator, metadata, runtime, and tooling scenarios
+- preview package metadata for `Csxaml.ControlMetadata`, `Csxaml.Runtime`, and `Csxaml.Testing`
+- author-facing docs for getting started, native props/events, performance/scale, and packaging/release process
 
 This roadmap starts from that point and moves toward a credible v1.
 
@@ -1002,6 +1014,14 @@ A coherent design still fails if typing, rerendering, or metadata processing bec
 - [x] benchmark runtime reconciliation and patching
 - [x] optimize known hot spots
 - [x] document v1 scale expectations
+- [x] benchmark tooling request paths
+
+## Notes
+
+- `Csxaml.Benchmarks` now builds and contains BenchmarkDotNet scenarios for generator throughput, metadata lookup, hostless runtime reconciliation, and tooling service latency.
+- Recorded `ShortRun` baselines on Windows ARM64 show generator throughput from `145.7 us` for one component to `91.6 ms` for 500 components, metadata lookup in tens of nanoseconds, and hostless keyed rerenders for 1000 items at about `435-436 us`.
+- The biggest measured hot spot was markup completion. A focused tooling change now short-circuits the C# completion/projection path for plain markup tag and attribute-name contexts, improving benchmarked tag completion from `90.3 ms` to `30.8 ms` and attribute completion from `66.9 ms` to `29.8 ms`.
+- `docs/performance-and-scale.md` now records the benchmark commands, measured baselines, and the accepted v1 scale envelope.
 
 ---
 
@@ -1039,6 +1059,7 @@ A production-ready v1 needs packaging, samples, templates, docs, and a clear sup
 - [x] publish finalized package boundaries and package names
 - [x] publish NuGet packaging plan
 - [x] add starter template or example app
+- [x] write repo overview and current-status README
 - [x] write syntax guide
 - [x] write native props/events guide
 - [x] write external control interop guide
@@ -1050,7 +1071,17 @@ A production-ready v1 needs packaging, samples, templates, docs, and a clear sup
 - [x] add GitHub Pages documentation workflow
 - [ ] enable GitHub Pages deployment in repository settings and record the live docs URL
 - [x] publish release process and versioning notes
+- [x] implement NuGet-delivered generator/build integration
+- [x] validate clean outside-repo package consumption
 - [ ] tag and announce v1 release
+
+## Notes
+
+- `docs/packaging-and-release.md` defines the v1 package boundaries, release checklist, versioning posture, and current preview package path.
+- `Csxaml.ControlMetadata`, `Csxaml.Runtime`, `Csxaml.Generator`, and `Csxaml.Testing` now have preview package metadata and can be packed locally.
+- `Csxaml.Generator` carries `buildTransitive` assets and a packaged `tools/net10.0/any` generator payload; repo builds can still override with `CsxamlGeneratorProject`.
+- A temporary clean package consumer under `artifacts/package-consumer-*` restored from `artifacts/packages`, built without repo-local project references, and produced generated files plus source maps under `obj\...\Csxaml`.
+- `samples/Csxaml.Starter` is the first small starter sample. It still uses repo-local project references, so it is a sample rather than a packaged `dotnet new` template.
 
 ---
 
@@ -1117,6 +1148,7 @@ Use this section to track recurring risks as the project evolves.
 - [ ] external control interop depends on broad implicit assembly scanning instead of a deterministic metadata path
 - [ ] helper-code support turns the parser into a quasi-general-purpose C# parser
 - [ ] component namespaces and external-control namespaces drift into separate mental models
+- [ ] generator/tooling files crossing the 300-line warning threshold make ownership boundaries easier to blur
 
 ## Runtime risks
 
@@ -1182,6 +1214,9 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-14: Milestone 11 editor diagnostics now honor the metadata-driven CSXAML coercions for brush, style, and thickness values inside projected C# documents. This closes a false-positive tooling gap where valid expressions such as `ArgbColor` backgrounds, `DeferredStyle` style values, and numeric thickness shorthands compiled and rendered correctly at runtime but still showed type-conversion squiggles in Visual Studio.
 - 2026-04-14: Milestone 11 bootstrap packaging now rewrites the generated VSIX manifest to declare `DotnetTargetVersions` as `net8.0;net10.0`, and a focused manifest test now guards that output. This closes a Visual Studio 18 extension-manager warning where the package appeared to support only `net8.0` even though the host can run on both `.NET 8` and `.NET 10`.
 - 2026-04-14: Repo-level restore configuration now includes `NuGet.org` again instead of only the local cache plus the Visual Studio offline feed. This closes a project-system regression where Visual Studio and ordinary repo restores could fail on newer `.NET 10` runtime-pack patch versions such as `10.0.5` even though command lines that manually appended `https://api.nuget.org/v3/index.json` succeeded.
+- 2026-04-23: Repo-level restore configuration now keeps `NuGet.org` as the only committed package source. The previous local package-cache and Visual Studio offline-source entries could make the Demo launch restore fail with `NU1301` on machines where those folders do not exist.
+- 2026-04-23: Demo and project-system x64 builds now keep reflected WinUI library projects architecture-neutral. This prevents the net10 generator from failing external-control or component-manifest discovery on ARM64 hosts that can compile x64 outputs but do not have an x64 .NET runtime installed.
+- 2026-04-23: The VS Code Demo launch configuration now builds and launches with the host machine's default .NET architecture instead of forcing `Platform=x64`. This keeps the ordinary F5 path working on ARM64 machines while still allowing explicit x64 command-line builds when needed.
 - 2026-04-14: Milestone 11 is now considered complete for the current Visual Studio 18 path. The shared tooling core, language server, and VSIX host now cover semantic coloring, completion, diagnostics, formatting, and component-definition navigation, and the repo now carries protocol-level plus VSIX-packaging regression coverage so the milestone closes on proof rather than screenshots.
 - 2026-04-14: Dependency injection is now being treated as part of the v1 runtime/testing story rather than an app-level workaround. The preferred direction is a narrow `IServiceProvider`-based model: service-aware host/component activation, explicit `inject Type Name;` declarations for components, cached per-instance service resolution, and no drift toward props-from-DI, per-component scopes, or a second framework-owned container.
 - 2026-04-14: Milestone 12 completed. Generator diagnostics now carry richer spans and suggestions, emitted components now produce deterministic `obj\<tfm>\Csxaml\Maps\*.map.json` sidecars plus narrow `#line` mappings for direct source-authored C# regions, representative build failures land back on `.csxaml`, runtime failures wrap with staged component/tag/member context, and the debugging workflow is documented in `docs/debugging-and-diagnostics.md`.
