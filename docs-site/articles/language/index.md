@@ -7,11 +7,14 @@ description: A reader-friendly overview of CSXAML syntax, components, state, ren
 
 CSXAML is a small component language that keeps UI structure close to XAML while keeping logic in ordinary C#.
 
+Use this page for the mental model. Use [concepts](concepts.md) as a glossary
+of the major moving parts and [syntax](syntax.md) as the copyable cheat sheet.
+
 A component file contains:
 
 - normal C# `using` directives
 - a normal C# namespace
-- one or more CSXAML component declarations
+- one CSXAML component declaration
 - optional `inject` and `State<T>` declarations
 - ordinary helper code
 - one final `render <Root />;` statement
@@ -32,4 +35,4 @@ component Element CounterButton(string Label) {
 }
 ```
 
-Read the [concepts](concepts.md) page first, then use the [syntax](syntax.md) page as a practical guide. The [language specification](specification.md) remains the formal contract.
+The [language specification](specification.md) remains the formal contract.

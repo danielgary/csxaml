@@ -36,5 +36,5 @@ For package-only validation, see the sample under `samples/PackageHello`.
 | --- | --- | --- |
 | `Csxaml` | App authors | Build integration and generator payload. |
 | `Csxaml.Runtime` | Generated components | Retained component runtime and WinUI projection support. |
-| `Csxaml.Testing` | Test authors | Hostless component test helpers, once public API review is complete. |
+| `Csxaml.Testing` | Test authors | Hostless component test helpers. |
 | `Csxaml.ControlMetadata` | Tooling and advanced integration | Shared metadata model for native and external controls. |

@@ -11,8 +11,9 @@ Basic shape:
 
 ```csharp
 using Csxaml.Testing;
+using MyApp.Components;
 
-using var render = CsxamlTestHost.Render(new TodoBoard());
+using var render = CsxamlTestHost.Render<TodoBoardComponent>();
 
 render.Click(render.FindByText("Select"));
 render.EnterText(render.FindByAutomationId("SelectedTodoTitle"), "Ship docs");

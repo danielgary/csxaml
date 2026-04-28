@@ -27,6 +27,40 @@ component Element Name(Type Prop, Type OtherProp) {
 
 The root render statement must use `render <Root />;`. Returning markup with `return` is not valid CSXAML syntax.
 
+## Common invalid syntax
+
+Use `render`, not `return`, for the final markup statement:
+
+```csharp
+// Invalid
+return <StackPanel />;
+
+// Valid
+render <StackPanel />;
+```
+
+Read a state value through `.Value`:
+
+```csharp
+State<int> Count = new State<int>(0);
+
+// Invalid or unintended
+<TextBlock Text={Count} />
+
+// Usually intended
+<TextBlock Text={Count.Value} />
+```
+
+Attached-property values that are not strings use C# expressions:
+
+```csharp
+// Invalid
+<TextBlock Grid.Row="1" Text="Title" />
+
+// Valid
+<TextBlock Grid.Row={1} Text="Title" />
+```
+
 ## Attributes
 
 String values can be written as literals:

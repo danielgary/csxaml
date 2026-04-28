@@ -11,8 +11,9 @@ Primary entry point:
 
 ```csharp
 using Csxaml.Testing;
+using MyApp.Components;
 
-using var render = CsxamlTestHost.Render(new TodoBoard());
+using var render = CsxamlTestHost.Render<TodoBoardComponent>();
 ```
 
 Primary capabilities:
@@ -24,3 +25,12 @@ Primary capabilities:
 - rerender explicitly when external state changes outside an interaction callback
 
 Prefer semantic queries over structural child indexes.
+
+## Most useful types
+
+| Type | Use it for |
+| --- | --- |
+| [CsxamlTestHost](xref:Csxaml.Testing.CsxamlTestHost) | Rendering a component without a live WinUI window. |
+| [CsxamlRenderResult](xref:Csxaml.Testing.CsxamlRenderResult) | Querying the rendered logical tree and invoking interactions. |
+
+Use <xref:Csxaml.Testing> for exact type and member documentation.

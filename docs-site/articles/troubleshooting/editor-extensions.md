@@ -5,24 +5,36 @@ description: How to diagnose CSXAML VS Code and Visual Studio editor startup and
 
 # Editor Extension Troubleshooting
 
-## VS Code has highlighting but no semantic features
+## Symptom: VS Code has highlighting but no semantic features
 
-Check:
+Likely causes:
 
-- the .NET 10 Desktop Runtime is installed
-- the packaged extension contains a `LanguageServer` folder
-- `csxaml.languageServer.path` is either unset or points to a valid server
-- the `CSXAML: Restart Language Server` command has been run after server rebuilds
+1. The .NET 10 Desktop Runtime is missing.
+2. The packaged extension does not contain a `LanguageServer` folder.
+3. `csxaml.languageServer.path` points to a missing server.
+4. The server was rebuilt but VS Code is still running the old process.
 
-## Visual Studio opens `.csxaml` without CSXAML features
+How to verify:
 
-Check:
+1. Open the CSXAML output channel.
+2. Confirm the server path exists.
+3. Run **CSXAML: Restart Language Server**.
+4. Leave `csxaml.languageServer.path` empty when validating the bundled server.
 
-- the extension is installed and enabled
-- the Visual Studio version is compatible with the current extension
-- the machine-wide .NET 10 runtime is installed
-- `%TEMP%\csxaml-visualstudio.log`
-- the Visual Studio activity log under `%LOCALAPPDATA%`
+## Symptom: Visual Studio opens `.csxaml` without CSXAML features
+
+Likely causes:
+
+1. The extension is not installed or enabled.
+2. The Visual Studio version is not compatible with the current extension.
+3. The machine-wide .NET 10 runtime is missing.
+4. The language server failed during startup.
+
+How to verify:
+
+1. Check `%TEMP%\csxaml-visualstudio.log`.
+2. Check the Visual Studio activity log under `%LOCALAPPDATA%`.
+3. Confirm the installed extension targets Visual Studio 2026 / version 18.
 
 For contributor testing, rerun:
 

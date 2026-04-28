@@ -1,9 +1,9 @@
 ---
-title: VS Code Extension
-description: Install, configure, package, and troubleshoot the CSXAML VS Code extension.
+title: Install VS Code Extension
+description: Install and verify the CSXAML VS Code extension.
 ---
 
-# VS Code Extension
+# Install VS Code Extension
 
 The VS Code extension contributes:
 
@@ -14,28 +14,35 @@ The VS Code extension contributes:
 - snippets
 - language-server client for richer editor behavior
 
-## Runtime prerequisites
+## Requirements
 
-The packaged extension targets Windows-hosted CSXAML authoring and expects the .NET 10 Desktop Runtime for the bundled framework-dependent language server.
+- Windows-hosted CSXAML authoring.
+- Visual Studio Code.
+- .NET 10 Desktop Runtime for the bundled framework-dependent language server.
+- A C# extension if you want richer C# coloring inside helper code and expression islands.
 
-For best C# coloring inside helper code and expression islands, use the extension alongside a C# extension.
+## Install
 
-## Packaged path
+Use the current preview VSIX from the project release or artifact you are
+validating, then run **Extensions: Install from VSIX...** in VS Code.
 
-From the repo root:
+For a repo-built VSIX, the packaged file is written under:
 
-```powershell
-powershell .\scripts\Package-VSCodeExtension.ps1
+```text
+artifacts\vscode\
 ```
 
-That packaging flow:
+See [Develop the VS Code Extension](visual-studio-code-development.md) when you
+need to build that VSIX from source.
 
-1. stages the extension under `artifacts/vscode-extension/staging`
-2. runs `npm ci`
-3. publishes `Csxaml.LanguageServer` into a bundled `LanguageServer\` folder
-4. creates a `.vsix` under `artifacts/vscode\`
+## Verify
 
-## Language server resolution
+1. Open a folder containing a `.csxaml` file.
+2. Confirm the language mode is `CSXAML`.
+3. Type `<But` inside a render body and confirm `Button` completion.
+4. Run **CSXAML: Restart Language Server** if semantic features do not appear after install.
+
+## Configuration
 
 The extension resolves the language server in this order:
 
@@ -45,11 +52,14 @@ The extension resolves the language server in this order:
 4. repo-local Debug language server during extension development
 5. repo-local Release language server during extension development
 
-Use `CSXAML: Restart Language Server` after rebuilding the server while iterating locally.
+Most app authors should leave `csxaml.languageServer.path` empty so the bundled
+server is used.
 
 ## Current limitations
 
 - code actions are intentionally limited to single-symbol suggestion replacements
 - broader refactoring and import-management fixes are not implemented yet
 
-See [Language Service Features](language-service-features.md) for the shared feature list.
+See [Language Service Features](language-service-features.md) for the shared
+feature list and [Editor Extension Troubleshooting](../troubleshooting/editor-extensions.md)
+for language-server startup issues.

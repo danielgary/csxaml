@@ -5,6 +5,10 @@ description: "Core CSXAML concepts: components, props, state, native controls, e
 
 # Concepts
 
+Use this page as a glossary while reading examples. For exact grammar and edge
+cases, use the [syntax cheat sheet](syntax.md) and the
+[language specification](specification.md).
+
 ## Components
 
 A CSXAML component is a generated C# component type with a declarative render body. Component parameters become typed props.

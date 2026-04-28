@@ -25,14 +25,40 @@ Assigning `Value` invalidates the component when the value changes:
 Name.Value = "Updated";
 ```
 
-For reference types, assigning the same reference is a no-op. If you deliberately mutate in place, call `Touch()`:
+For value types, the runtime uses the type's normal equality check. For
+reference types, assigning the exact same object reference is a no-op. In plain
+terms: if the state container can tell the value changed, it rerenders; if you
+mutate the same object in place, you must say so explicitly.
+
+`Count.Value++` is valid for simple value state:
+
+```csharp
+State<int> Count = new State<int>(0);
+
+render <Button
+    Content={$"Clicked {Count.Value} times"}
+    OnClick={() => Count.Value++} />;
+```
+
+For collections and other reference types, prefer assigning a new value:
+
+```csharp
+// Avoid: mutates the same list reference and does not rerender by itself.
+Items.Value.Add(newItem);
+
+// Better: assigns a new list reference and rerenders.
+Items.Value = Items.Value.Append(newItem).ToList();
+```
+
+If you deliberately mutate in place, call `Touch()`:
 
 ```csharp
 Items.Value.Add(newItem);
 Items.Touch();
 ```
 
-Prefer assigning a new collection when possible because it makes render causes easier to understand.
+`Touch()` is an escape hatch for controlled mutation. If a component appears to
+keep old UI after a list or object update, see [runtime troubleshooting](../troubleshooting/runtime-behavior.md).
 
 ## Events
 
