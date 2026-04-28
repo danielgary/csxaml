@@ -7,6 +7,10 @@ description: How CSXAML projects native WinUI controls, properties, events, and 
 
 Native control tags project to WinUI controls through metadata-driven validation and runtime adapters.
 
+> [!TIP]
+> For the exact supported control, property, event, and attached-property table,
+> see [Native Props and Events](../guides/native-props-and-events.md).
+
 Example:
 
 ```csharp

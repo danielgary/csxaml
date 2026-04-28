@@ -19,6 +19,23 @@ Important areas:
 
 Generated components depend on this package. App authors usually interact with it through the host surface and generated components rather than directly constructing node trees.
 
+## App-author boundary
+
+Use these directly in normal apps:
+
+- `CsxamlHost` to mount a root component
+- generated component classes and generated props records
+- `State<T>` inside `.csxaml` or handwritten component code
+- `CsxamlRuntimeException` when reporting runtime failures
+
+Do not build normal app behavior around these unless you are writing an
+advanced host or runtime extension:
+
+- `NativeElementNode` and `ComponentNode`
+- reconciliation classes
+- WinUI adapter classes
+- generated node-construction details
+
 ## Most useful types
 
 | Type | Use it for |

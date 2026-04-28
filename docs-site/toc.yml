@@ -9,6 +9,8 @@ items:
         href: articles/getting-started/why-csxaml.md
       - name: Prerequisites
         href: articles/getting-started/prerequisites.md
+      - name: Create a New App
+        href: articles/getting-started/create-new-app.md
       - name: Quick Start
         href: articles/getting-started/quick-start.md
   - name: Tutorials

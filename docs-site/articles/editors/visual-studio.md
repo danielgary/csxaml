@@ -46,3 +46,16 @@ In Visual Studio:
 7. Run format document.
 
 See [Editor Troubleshooting](../troubleshooting/editor-extensions.md) if the extension starts without CSXAML language features.
+
+## Expected failure modes
+
+If the machine-wide .NET 10 runtime is missing, Visual Studio may still open the
+file but CSXAML language features will not activate. Check
+`%TEMP%\csxaml-visualstudio.log` for startup text shaped like:
+
+```text
+Could not load Csxaml.LanguageServer
+```
+
+Install the runtime under `C:\Program Files\dotnet`, restart Visual Studio, and
+open the `.csxaml` file again.

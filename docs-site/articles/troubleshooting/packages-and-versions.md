@@ -9,6 +9,13 @@ Keep CSXAML packages on the same version line.
 
 ## Symptom: generation fails after changing package versions
 
+Common snippets:
+
+```text
+unknown attribute 'Text' on native control 'Button'
+Could not load file or assembly 'Csxaml.Runtime'
+```
+
 Likely causes:
 
 1. The generator package is from one version and runtime/testing/metadata packages are from another.
@@ -28,6 +35,13 @@ Fix:
 3. Restore and build again.
 
 ## Symptom: clean project restores but runtime startup fails
+
+Common snippets:
+
+```text
+NETSDK1045: The current .NET SDK does not support targeting .NET 10.0.
+Could not load file or assembly 'Csxaml.Runtime'
+```
 
 Likely causes:
 

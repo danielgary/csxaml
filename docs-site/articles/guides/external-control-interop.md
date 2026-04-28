@@ -43,3 +43,54 @@ Current boundaries:
 - no broad `DataContext` binding model
 - broader attached-property owner discovery is deferred
 - unsupported control APIs should fail with source-facing diagnostics
+
+## Failure examples
+
+Unknown external tag:
+
+```csharp
+using Widgets = MyApp.Controls;
+
+render <Widgets:PrivateStatusButton />;
+```
+
+Expected diagnostic shape:
+
+```text
+unsupported tag name 'Widgets:PrivateStatusButton'
+```
+
+Fix: make the control public, non-abstract, non-generic, `FrameworkElement`-
+derived, and constructible with a public parameterless constructor, or use a
+supported control.
+
+Unsupported property:
+
+```csharp
+render <Widgets:StatusButton BadgeCount={Count.Value} />;
+```
+
+Expected diagnostic shape:
+
+```text
+unknown attribute 'BadgeCount' on native control 'Widgets:StatusButton'
+```
+
+Fix: expose a supported writable property shape on the control, or keep that
+state inside the control instead of assigning it from CSXAML.
+
+Event arguments not projected:
+
+```csharp
+render <Widgets:StatusButton OnClick={(sender, args) => Save(args)} />;
+```
+
+Expected C# diagnostic shape after generation:
+
+```text
+error CS1593: Delegate 'Action' does not take 2 arguments
+```
+
+Fix: bind a no-argument handler and keep event-payload-specific work inside the
+external control or a C# adapter until richer event-argument projection is
+supported.

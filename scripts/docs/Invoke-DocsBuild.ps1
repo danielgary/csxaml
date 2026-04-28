@@ -2,7 +2,8 @@ param(
     [switch]$Serve,
     [switch]$SkipProjectBuild,
     [switch]$AllowWarnings,
-    [switch]$SkipLinkCheck
+    [switch]$SkipLinkCheck,
+    [switch]$SkipExternalLinkCheck
 )
 
 $ErrorActionPreference = "Stop"
@@ -78,8 +79,16 @@ try {
         throw "docfx build failed."
     }
 
+    if (-not $Serve) {
+        & .\scripts\docs\Test-DocsRenderedIncludes.ps1 -SiteRoot .\_site
+    }
+
     if (-not $Serve -and -not $SkipLinkCheck) {
         & .\scripts\docs\Test-DocsLinks.ps1 -SiteRoot .\_site
+    }
+
+    if (-not $Serve -and -not $SkipExternalLinkCheck) {
+        & .\scripts\docs\Test-DocsExternalLinks.ps1 -SiteRoot .\_site
     }
 }
 finally {

@@ -14,4 +14,19 @@ description: Which CSXAML package and namespace to use for each developer role.
 | `Csxaml.ControlMetadata` | Metadata/tooling authors | Shared control metadata model. |
 | `Csxaml.VisualStudio` | Visual Studio extension contributors | VS-specific host and contribution types. |
 
-Normal app authors should start with the `Csxaml` package and generally should not depend directly on generator, language-server, or control-metadata internals.
+Normal app authors should start with the `Csxaml` package and generally should
+not depend directly on generator, language-server, tooling-core, or
+control-metadata internals.
+
+Use direct package references like this:
+
+```xml
+<PackageReference Include="Csxaml" Version="0.1.0-preview.1" />
+```
+
+Avoid app references like this:
+
+```xml
+<PackageReference Include="Csxaml.Tooling.Core" Version="0.1.0-preview.1" />
+<PackageReference Include="Csxaml.ControlMetadata" Version="0.1.0-preview.1" />
+```

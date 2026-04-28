@@ -18,6 +18,11 @@ The metadata model describes:
 
 Generator, runtime, and tooling code use this shared model so validation, emission, editor completions, hover, and runtime projection stay consistent.
 
+Normal app authors should not construct or mutate metadata registries. Use
+ordinary package/project references and `using` directives; let the generator
+produce the metadata and runtime registration needed for supported native and
+external controls.
+
 ## Most useful types
 
 | Type | Use it for |

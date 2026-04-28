@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc" viewBox="0 0 680 300">
+  <title id="title">Quick Start rendered output</title>
+  <desc id="desc">A WinUI-style window showing the HelloCard component from the Quick Start.</desc>
+  <rect width="680" height="300" rx="10" fill="#f7f8fb"/>
+  <rect x="40" y="34" width="600" height="232" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <rect x="40" y="34" width="600" height="40" rx="8" fill="#eef2f7"/>
+  <text x="64" y="59" fill="#26313f" font-family="Segoe UI, Arial, sans-serif" font-size="14">CSXAML Quick Start</text>
+  <rect x="88" y="108" width="504" height="112" rx="8" fill="#f9fafb" stroke="#d7dee8"/>
+  <text x="116" y="143" fill="#111827" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="600">Hello from CSXAML</text>
+  <text x="116" y="170" fill="#4b5563" font-family="Segoe UI, Arial, sans-serif" font-size="14">HelloCardComponent rendered into RootPanel.</text>
+  <rect x="116" y="184" width="76" height="30" rx="4" fill="#0f766e"/>
+  <text x="139" y="204" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="14">Tap</text>
+</svg>

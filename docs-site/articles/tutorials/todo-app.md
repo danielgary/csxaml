@@ -23,6 +23,20 @@ The repo demo is the reference implementation for this tutorial:
 - [`TodoCard.csxaml`](https://github.com/danielgary/csxaml/blob/develop/Csxaml.Demo/Components/TodoCard.csxaml)
 - [`TodoEditor.csxaml`](https://github.com/danielgary/csxaml/blob/develop/Csxaml.Demo/Components/TodoEditor.csxaml)
 
+You can copy the tutorial code into a new app that has the `Csxaml` package, or
+compare it against `Csxaml.Demo` when you want to see the repository's richer
+demo implementation. The snippets below use `MyApp` namespaces so they can drop
+into a new project.
+
+Checkpoint map:
+
+1. `TodoCard` compiles and shows title, status, select, and toggle actions.
+2. `TodoEditor` compiles and exposes semantic automation IDs for tests.
+3. `TodoBoard` renders two keyed cards and an editor.
+4. Selecting a task updates the editor fields.
+5. Editing the selected title updates the selected card.
+6. A hostless test proves interaction, state update, and rerender.
+
 ## 1. Start with a WinUI project
 
 Use a WinUI app or class library that meets the [prerequisites](../getting-started/prerequisites.md). Add the `Csxaml` package and keep `Microsoft.WindowsAppSDK` referenced by the app project.
@@ -195,6 +209,20 @@ Expected result: the app shows two task cards on the left and an editor on the
 right. Selecting the second task updates the editor. Editing the title updates
 the selected card.
 
+![Rendered output: the Todo tutorial board with task cards and a selected task editor.](../../images/todo-tutorial-preview.svg)
+
+Final layout:
+
+```text
+Todo Board
++----------------------+------------------------------+
+| Task cards           | Selected task editor         |
+| - Write docs         | Title TextBox                |
+| - Build sample       | Notes TextBox                |
+|                      | Done CheckBox                |
++----------------------+------------------------------+
+```
+
 ## 6. Add keys to repeated children
 
 The `Key` attribute tells the runtime which child identity should be retained across rerenders:
@@ -217,14 +245,18 @@ using MyApp.Components;
 
 using var render = CsxamlTestHost.Render<TodoBoardComponent>();
 
-render.Click(render.FindByText("Select"));
+Assert.IsNotNull(render.FindByText("Write docs"));
+Assert.IsNull(render.TryFindByText("Updated title"));
+
 render.EnterText(render.FindByAutomationId("SelectedTodoTitle"), "Updated title");
 
 Assert.IsNotNull(render.TryFindByText("Updated title"));
+Assert.IsNull(render.TryFindByText("Write docs"));
 ```
 
 This test proves that user-like interactions flow through component events,
-update `State<T>`, rerender the logical tree, and expose the updated title.
+update `State<T>`, rerender the logical tree, remove the previous title, and
+expose the updated title.
 
 Use semantic queries such as automation id, automation name, text, and content whenever possible.
 

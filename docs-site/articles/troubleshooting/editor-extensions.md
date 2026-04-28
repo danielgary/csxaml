@@ -7,6 +7,13 @@ description: How to diagnose CSXAML VS Code and Visual Studio editor startup and
 
 ## Symptom: VS Code has highlighting but no semantic features
 
+Common snippets:
+
+```text
+Could not load Csxaml.LanguageServer
+Failed to start CSXAML language server
+```
+
 Likely causes:
 
 1. The .NET 10 Desktop Runtime is missing.
@@ -22,6 +29,13 @@ How to verify:
 4. Leave `csxaml.languageServer.path` empty when validating the bundled server.
 
 ## Symptom: Visual Studio opens `.csxaml` without CSXAML features
+
+Common snippets:
+
+```text
+Could not load Csxaml.LanguageServer
+The CSXAML language server exited before initialization
+```
 
 Likely causes:
 

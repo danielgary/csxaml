@@ -7,6 +7,10 @@ description: How CSXAML packages and namespaces are organized for app authors, t
 
 The API reference is generated from XML documentation comments during the docs build. Do not edit generated API pages by hand.
 
+Normal app authors usually need the `Csxaml` package, generated component
+types, `CsxamlHost`, `State<T>`, and `Csxaml.Testing`. The presence of a type in
+the generated reference does not make it an app-authoring API.
+
 Start here to choose the right surface:
 
 - [Packages and Namespaces](packages-and-namespaces.md)
@@ -32,6 +36,11 @@ Generated reference entry points:
 - [ComponentInstance](xref:Csxaml.Runtime.ComponentInstance)
 - [CsxamlTestHost](xref:Csxaml.Testing.CsxamlTestHost)
 - [CsxamlRenderResult](xref:Csxaml.Testing.CsxamlRenderResult)
+
+Most app authors should not directly use node models, reconciliation internals,
+control metadata registries, generator types, or tooling services. Reach for
+those only when building an editor, metadata integration, custom host, or test
+utility.
 
 ## Most tooling authors need
 

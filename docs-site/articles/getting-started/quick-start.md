@@ -8,6 +8,11 @@ description: Install CSXAML and create a first generated WinUI component.
 This quick start assumes an existing WinUI app. By the end, the app window
 will render a generated CSXAML component.
 
+> [!IMPORTANT]
+> Before you start, make sure the WinUI app already builds and launches without
+> CSXAML. If you are starting from nothing, follow
+> [Create a New App](create-new-app.md) first.
+
 ## 1. Install the package
 
 Add the author-facing package:
@@ -107,6 +112,8 @@ Run the WinUI app from Visual Studio or your normal project launch command.
 
 Expected result: the app window shows a `StackPanel` with the title
 `Hello from CSXAML` and a `Tap` button.
+
+![Rendered output: the Quick Start window showing Hello from CSXAML and a Tap button.](../../images/quick-start-preview.svg)
 
 ## 7. Common checks
 

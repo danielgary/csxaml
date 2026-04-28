@@ -49,9 +49,10 @@ Typical project shape:
 public package path. Treat other Windows TFMs as deliberate validation work
 rather than the documented baseline.
 
-You can create the WinUI project from Visual Studio templates, an existing app,
-or a starter project. CSXAML does not require a special WinUI template; it only
-requires the package reference and `.csxaml` files included in the project.
+You can create the WinUI project from Visual Studio templates or start from an
+existing app. CSXAML does not require a special WinUI template; it only requires
+the package reference and `.csxaml` files included in the project. For a
+step-by-step blank-app path, see [Create a New App](create-new-app.md).
 
 ## Verify the environment
 
