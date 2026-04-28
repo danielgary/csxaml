@@ -20,6 +20,8 @@ component Element CounterButton(string Label, int Count, Action OnClick) {
 }
 ```
 
+![Rendered output: a WinUI-style app window with one counter button rendered by CSXAML.](images/homepage-counter-preview.svg)
+
 The generated component is a normal C# type that renders through the CSXAML
 runtime host or from another generated component.
 

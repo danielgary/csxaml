@@ -26,6 +26,10 @@ Primary capabilities:
 
 Prefer semantic queries over structural child indexes.
 
+Use this package from test projects. App runtime code should not depend on
+`Csxaml.Testing`; it renders logical trees for verification rather than mounting
+WinUI UI.
+
 ## Most useful types
 
 | Type | Use it for |

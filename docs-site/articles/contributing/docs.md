@@ -30,10 +30,21 @@ The script:
 3. builds XML-doc-enabled API projects in Release
 4. runs `docfx metadata --noRestore`
 5. runs `docfx build`
-6. checks built-site local links under `_site`
+6. checks that the spec and supported-feature includes rendered into built HTML
+7. checks built-site local links under `_site`
+8. reports external-link failures without failing the build
 
 Generated API YAML is written under `obj\docfx`. Static site output is written
 under `_site`. Neither path should be committed.
+
+## GitHub Pages publishing
+
+The docs workflow runs for pull requests and pushes to `develop` and `master`.
+Those builds validate the site and upload the `_site` artifact for inspection.
+
+GitHub Pages deployment only runs for pushes to `master`. A successful `develop`
+docs build proves the site can build, but it does not publish or update the
+public Pages site.
 
 ## Preview locally
 
@@ -64,6 +75,15 @@ failure:
 .\scripts\docs\Invoke-DocsBuild.ps1 -SkipLinkCheck
 ```
 
+## Build without external link reporting
+
+External links are checked in report-only mode because public sites can fail
+transiently. Skip that network check when working offline:
+
+```powershell
+.\scripts\docs\Invoke-DocsBuild.ps1 -SkipExternalLinkCheck
+```
+
 ## Add a page
 
 1. Add the Markdown page under `docs-site/articles`.
@@ -82,6 +102,7 @@ Before a docs change is done, check:
 4. Does the page link to the next task a reader is likely to need?
 5. Are supported, preview, experimental, and deferred behaviors labeled honestly?
 6. Did `Invoke-DocsBuild.ps1` pass without DocFX warnings or broken local links?
+7. Did the external-link report look intentional?
 
 ## API docs
 

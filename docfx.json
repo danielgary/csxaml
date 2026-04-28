@@ -44,12 +44,12 @@
   ],
   "build": {
     "content": [
-      {
-        "src": "docs-site",
-        "files": [
+        {
+          "src": "docs-site",
+          "files": [
           "**/*.{md,yml}"
-        ]
-      },
+          ]
+        },
       {
         "src": ".",
         "files": [
@@ -69,6 +69,14 @@
           "**/*.yml"
         ],
         "dest": "api/tooling"
+      }
+    ],
+    "resource": [
+      {
+        "src": "docs-site",
+        "files": [
+          "images/**"
+        ]
       }
     ],
     "output": "_site",

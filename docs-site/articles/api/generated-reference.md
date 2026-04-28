@@ -7,6 +7,11 @@ description: Entry points into the XML-generated CSXAML API reference.
 
 The generated API reference is rebuilt from XML documentation comments during the docs build.
 
+Generated pages include public types used by generated code, test helpers,
+metadata generation, editor integrations, and Visual Studio extension plumbing.
+Choose APIs by role; do not add app dependencies just because a generated page
+exists.
+
 Use these entry points:
 
 - <xref:Csxaml.ControlMetadata>

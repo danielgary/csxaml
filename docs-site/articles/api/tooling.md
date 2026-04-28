@@ -21,6 +21,10 @@ Major services:
 
 Tooling APIs are intended for editor and language-server hosts. They should stay aligned with the language spec and the generator's parser/validation behavior.
 
+Normal app projects should not reference `Csxaml.Tooling.Core`. It is for
+editors, analyzers, language-server hosts, and contributor tooling that needs to
+inspect `.csxaml` source.
+
 ## Most useful services
 
 | Type | Use it for |

@@ -28,3 +28,45 @@ Outside the promise:
 - unreleased editor experiments
 
 If an implementation detail is useful enough for external developers, document it and add tests before treating it as supported behavior.
+
+## Stable source example
+
+This source shape is inside the documented compatibility promise:
+
+```csharp
+component Element CounterButton(string Label) {
+    State<int> Count = new State<int>(0);
+
+    render <Button
+        Content={$"{Label}: {Count.Value}"}
+        OnClick={() => Count.Value++} />;
+}
+```
+
+The component declaration, typed prop, `State<T>` declaration, native `Button`
+tag, `Content` property, and `OnClick` event are the supported surface.
+
+## Unstable generated-detail example
+
+Generated files under `obj` are useful for debugging, but normal app code
+should not depend on their private layout:
+
+```text
+obj\Debug\net10.0-windows10.0.19041.0\Csxaml\Generated\CounterButton.g.cs
+```
+
+Do not build app behavior around generated private method names, temporary
+locals, or node-construction ordering unless that behavior is documented as a
+public contract.
+
+## Package alignment example
+
+Keep author-facing and test-facing packages on the same release line:
+
+```xml
+<PackageReference Include="Csxaml" Version="0.1.0-preview.1" />
+<PackageReference Include="Csxaml.Testing" Version="0.1.0-preview.1" />
+```
+
+Mixing a newer generator package with an older runtime or testing package is not
+part of the compatibility promise.

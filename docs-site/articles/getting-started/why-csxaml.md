@@ -40,6 +40,26 @@ Use handwritten C# when the UI is highly dynamic, generated from data in ways
 that would make markup harder to understand, or when you need APIs outside the
 current supported CSXAML surface.
 
+## Concrete fit examples
+
+Good fit: a task-board card editor with typed props, a few local state values,
+explicit button/text events, and generated output you want to debug when a build
+or runtime diagnostic points back to source.
+
+```csharp
+component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
+    render <StackPanel Spacing={8}>
+        <TextBlock Text={Title} />
+        <CheckBox IsChecked={IsDone} OnCheckedChanged={_ => OnToggle()} />
+    </StackPanel>;
+}
+```
+
+Bad fit: an existing page built around XAML `DataTemplate` resources,
+`DataContext` inheritance, designer-owned layout, and mature binding patterns.
+Keep that page in XAML unless there is a specific component slice that benefits
+from typed CSXAML props and explicit event flow.
+
 ## Current boundary
 
 CSXAML is still preview technology. Before depending on a feature, check the

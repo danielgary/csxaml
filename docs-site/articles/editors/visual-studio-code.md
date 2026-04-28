@@ -42,6 +42,20 @@ need to build that VSIX from source.
 3. Type `<But` inside a render body and confirm `Button` completion.
 4. Run **CSXAML: Restart Language Server** if semantic features do not appear after install.
 
+## Expected failure modes
+
+If the .NET 10 Desktop Runtime is missing, syntax highlighting may still work
+because it comes from the TextMate grammar, but completion, hover, diagnostics,
+formatting, and go-to-definition will not start. The output channel should show
+a language-server startup failure such as:
+
+```text
+Could not load Csxaml.LanguageServer
+```
+
+Install the runtime, restart VS Code, and leave `csxaml.languageServer.path`
+empty while validating the bundled server.
+
 ## Configuration
 
 The extension resolves the language server in this order:

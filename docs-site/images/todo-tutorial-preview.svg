@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc" viewBox="0 0 760 420">
+  <title id="title">Todo tutorial rendered output</title>
+  <desc id="desc">A two-column Todo Board with task cards on the left and a selected task editor on the right.</desc>
+  <rect width="760" height="420" rx="10" fill="#f7f8fb"/>
+  <rect x="34" y="28" width="692" height="360" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <rect x="34" y="28" width="692" height="42" rx="8" fill="#eef2f7"/>
+  <text x="58" y="55" fill="#26313f" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600">Todo Board</text>
+  <rect x="58" y="96" width="262" height="248" rx="6" fill="#f9fafb" stroke="#d7dee8"/>
+  <text x="78" y="124" fill="#111827" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600">Tasks</text>
+  <rect x="78" y="142" width="222" height="76" rx="5" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="96" y="169" fill="#111827" font-family="Segoe UI, Arial, sans-serif" font-size="15">Write docs</text>
+  <text x="96" y="194" fill="#2563eb" font-family="Segoe UI, Arial, sans-serif" font-size="13">Selected</text>
+  <rect x="78" y="232" width="222" height="76" rx="5" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="96" y="259" fill="#111827" font-family="Segoe UI, Arial, sans-serif" font-size="15">Build sample</text>
+  <text x="96" y="284" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="13">Open</text>
+  <rect x="354" y="96" width="330" height="248" rx="6" fill="#f9fafb" stroke="#d7dee8"/>
+  <text x="378" y="124" fill="#111827" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600">Selected task</text>
+  <rect x="378" y="148" width="280" height="34" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="394" y="170" fill="#111827" font-family="Segoe UI, Arial, sans-serif" font-size="14">Write docs</text>
+  <rect x="378" y="198" width="280" height="74" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="394" y="225" fill="#4b5563" font-family="Segoe UI, Arial, sans-serif" font-size="14">Create the public docs site.</text>
+  <rect x="378" y="294" width="18" height="18" rx="3" fill="#2563eb"/>
+  <path d="M382 303 L386 307 L393 299" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="408" y="309" fill="#111827" font-family="Segoe UI, Arial, sans-serif" font-size="14">Done</text>
+</svg>

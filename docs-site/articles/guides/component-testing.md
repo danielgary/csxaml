@@ -15,9 +15,14 @@ using MyApp.Components;
 
 using var render = CsxamlTestHost.Render<TodoBoardComponent>();
 
-render.Click(render.FindByText("Select"));
+Assert.IsNotNull(render.FindByText("Write docs"));
+Assert.IsNull(render.TryFindByText("Updated title"));
+
 render.EnterText(render.FindByAutomationId("SelectedTodoTitle"), "Ship docs");
 render.SetChecked(render.FindByAutomationId("SelectedTodoDone"), true);
+
+Assert.IsNotNull(render.TryFindByText("Ship docs"));
+Assert.IsNull(render.TryFindByText("Write docs"));
 ```
 
 Preferred query surface:
@@ -36,3 +41,7 @@ Interactions:
 - `SetChecked(node, value)`
 
 When the interaction invokes a component event, the render result updates automatically through the coordinator. If a test changes external state without an interaction callback, call `Rerender()`.
+
+The important pattern is to assert the initial tree first, perform one
+interaction, then assert the new tree. That keeps tests tied to user-visible
+behavior instead of generated implementation details.

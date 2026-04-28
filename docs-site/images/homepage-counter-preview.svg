@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc" viewBox="0 0 680 280">
+  <title id="title">Rendered CounterButton component</title>
+  <desc id="desc">A WinUI-style app window with one CSXAML-rendered counter button.</desc>
+  <rect width="680" height="280" rx="10" fill="#f7f8fb"/>
+  <rect x="34" y="30" width="612" height="220" rx="8" fill="#ffffff" stroke="#ccd3df"/>
+  <rect x="34" y="30" width="612" height="38" rx="8" fill="#e9eef7"/>
+  <circle cx="58" cy="49" r="5" fill="#d35d5d"/>
+  <circle cx="78" cy="49" r="5" fill="#d6ad3a"/>
+  <circle cx="98" cy="49" r="5" fill="#4baf74"/>
+  <text x="126" y="54" fill="#26313f" font-family="Segoe UI, Arial, sans-serif" font-size="14">CSXAML preview app</text>
+  <rect x="118" y="106" width="444" height="90" rx="8" fill="#f3f7fb" stroke="#d7deea"/>
+  <text x="144" y="137" fill="#1f2937" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Generated component output</text>
+  <rect x="144" y="154" width="160" height="36" rx="4" fill="#2563eb"/>
+  <text x="169" y="177" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="15">Clicks: 3</text>
+  <text x="324" y="177" fill="#4b5563" font-family="Segoe UI, Arial, sans-serif" font-size="14">Rendered through CsxamlHost</text>
+</svg>
