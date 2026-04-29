@@ -30,7 +30,7 @@ This maintained revision log starts with the final pre-1.0 tightening pass. Earl
 | --- | --- | --- |
 | `draft-v1-prepin-alignment` | 2026-04-15 | Closed the last known source/implementation drift around attached-property owner visibility and dotted tag admission: generator, tooling, demos, fixtures, and repo docs now follow the spec's ordinary-import/type-alias owner-resolution model, and tooling/parser tag scanning now consistently admits dotted tag forms. |
 | `draft-v1-prepin-final` | 2026-04-15 | Final pre-1.0 contract tightening pass: added a maintained revision log; clarified file-local helper support, `using static`, balanced-island lexical requirements, render detection examples, slot placement, controlled-input adapter expectations, duplicate-key failure phase, and runtime failure/disposal wording. |
-| `draft-v1-state-equality` | 2026-04-15 | Changed `State<T>` invalidation from always-dirty-on-assignment to reference-equality (reference types) and default-equality (value types) suppression; added explicit `Touch()` method as the rerender escape hatch for controlled-mutation patterns; updated §10.2.1, added §10.2.1.1, and updated §10.4 accordingly. |
+| `draft-v1-state-equality` | 2026-04-15 | Changed `State<T>` invalidation from always-dirty-on-assignment to reference-equality (reference types) and default-equality (value types) suppression; added explicit `Touch()` method as the rerender escape hatch for controlled-mutation patterns; updated Â§10.2.1, added Â§10.2.1.1, and updated Â§10.4 accordingly. |
 
 ### Decision Log
 
@@ -218,7 +218,7 @@ For v1, CSXAML SHOULD support an explicit, unsurprising file-level namespace/imp
 
 The preferred source forms are:
 
-```csharp
+```csxaml
 using MyApp.Shared.Components;
 using CommunityToolkit.WinUI.Controls;
 using Fluent = CommunityToolkit.WinUI.Controls;
@@ -378,7 +378,7 @@ Ordinary C# `return` remains valid inside opaque helper code and C# expression i
 
 Attribute string literals use double quotes:
 
-```xml
+```csxaml
 <TextBlock Text="Hello" />
 ```
 
@@ -386,7 +386,7 @@ Outside C# expression islands, CSXAML SHOULD keep string literal syntax intentio
 
 If a richer C# string form is needed, it SHOULD be written inside an expression island:
 
-```xml
+```csxaml
 <TextBlock Text={$"Count: {count}"} />
 ```
 
@@ -570,7 +570,7 @@ A practical v1 rule is:
 
 For example, this is valid:
 
-```csharp
+```csxaml
 component Element TodoBoard {
     var title = "Todo";
     render <TextBlock Text={title} />;
@@ -579,7 +579,7 @@ component Element TodoBoard {
 
 This is invalid:
 
-```csharp
+```csxaml
 component Element TodoBoard {
     return <TextBlock Text="Todo" />;
 }
@@ -587,7 +587,7 @@ component Element TodoBoard {
 
 This is also invalid:
 
-```csharp
+```csxaml
 component Element TodoBoard {
     render Title;
 }
@@ -624,7 +624,7 @@ Recovery SHOULD prefer surfacing multiple local diagnostics over abandoning the 
 
 A component declaration has this shape:
 
-```csharp
+```csxaml
 component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
     render <StackPanel>
         <TextBlock Text={Title} />
@@ -663,7 +663,7 @@ CSXAML MAY declare required component-scoped services using explicit `inject` de
 
 For example:
 
-```csharp
+```csxaml
 component Element TodoBoard {
     inject ITodoService todoService;
     inject ILogger<TodoBoard> logger;
@@ -838,7 +838,7 @@ This exists so authors can:
 
 For example:
 
-```csharp
+```csxaml
 component Element TodoBoard {
     State<List<TodoItemModel>> Items = ...;
 
@@ -855,7 +855,7 @@ This helper code SHOULD remain ordinary C# and SHOULD NOT require a second state
 
 Each component body MUST end with exactly one outermost render statement of the form:
 
-```csharp
+```csxaml
 render <Root />;
 ```
 
@@ -894,7 +894,7 @@ Diagnostics SHOULD point to the duplicate declaration span in the `.csxaml` file
 
 State declarations use explicit C#-typed state:
 
-```csharp
+```csxaml
 State<int> Count = new State<int>(0);
 State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(CreateSeedItems());
 ```
@@ -925,7 +925,7 @@ The equality rule is:
 
 Implementations MUST NOT use `Equals` or `IEquatable<T>` for reference-type comparison. The contract for reference types is identity, not semantic equality. This avoids surprising no-rerender behavior for `record` types and other reference types that override `Equals` with value-based semantics, and it keeps the equality check cheap and predictable.
 
-Authors who need to signal a rerender despite equality MUST use the explicit `Touch()` method described in §10.2.1.1.
+Authors who need to signal a rerender despite equality MUST use the explicit `Touch()` method described in Â§10.2.1.1.
 
 In-place mutation of an object or collection currently stored inside a `State<T>` does not automatically invalidate the component, and reassigning the same reference back to `Value` no longer signals invalidation by itself. Authors who mutate in place MUST call `Touch()` to trigger rerender.
 
@@ -933,13 +933,13 @@ In-place mutation of an object or collection currently stored inside a `State<T>
 
 `State<T>` exposes a `Touch()` method that marks the owning component dirty without changing the stored value.
 
-`Touch()` exists for the explicit case where an author has mutated the contents of a reference held by `Value` in place and wants to signal a rerender without replacement, or where an author wants to force a rerender despite the equality rule defined in §10.2.1.
+`Touch()` exists for the explicit case where an author has mutated the contents of a reference held by `Value` in place and wants to signal a rerender without replacement, or where an author wants to force a rerender despite the equality rule defined in Â§10.2.1.
 
-`Touch()` MUST mark the component dirty unconditionally. It follows the same scheduling and batching rules as ordinary `Value` assignments (§10.2.2).
+`Touch()` MUST mark the component dirty unconditionally. It follows the same scheduling and batching rules as ordinary `Value` assignments (Â§10.2.2).
 
-Authors SHOULD prefer replacement over mutation-plus-`Touch()` where practical, because replacement keeps data flow assignment-driven and easier to trace per §10.4. `Touch()` is the documented escape hatch when replacement is impractical, not a first-choice pattern.
+Authors SHOULD prefer replacement over mutation-plus-`Touch()` where practical, because replacement keeps data flow assignment-driven and easier to trace per Â§10.4. `Touch()` is the documented escape hatch when replacement is impractical, not a first-choice pattern.
 
-Calling `Touch()` on a state field belonging to an unmounted component MUST follow the same rule as a post-unmount `Value` write per §10.2.4: the call MUST NOT resurrect or rerender the disposed component instance.
+Calling `Touch()` on a state field belonging to an unmounted component MUST follow the same rule as a post-unmount `Value` write per Â§10.2.4: the call MUST NOT resurrect or rerender the disposed component instance.
 
 ### 10.2.2 Scheduling and Batching
 
@@ -971,7 +971,7 @@ The type argument in the field declaration and the constructor call MUST refer t
 
 This rule keeps the syntax boring and predictable:
 
-```csharp
+```csxaml
 State<int> Count = new State<int>(0);      // valid
 State<int> Count = new State<long>(0);     // invalid
 ```
@@ -986,11 +986,11 @@ Authors MAY replace a value with a new object, or mutate a local object or colle
 
 The language contract is assignment-driven, not collection-strategy-driven.
 
-Authors who mutate in place and then reassign the same reference MUST use `Touch()` (§10.2.1.1) to trigger rerender. Reassigning the same reference no longer signals invalidation by itself under the equality rule in §10.2.1.
+Authors who mutate in place and then reassign the same reference MUST use `Touch()` (Â§10.2.1.1) to trigger rerender. Reassigning the same reference no longer signals invalidation by itself under the equality rule in Â§10.2.1.
 
 That means this style is preferred:
 
-```csharp
+```csxaml
 OnToggle={() => Items.Value = Items.Value.Select(...).ToList()}
 ```
 
@@ -1072,7 +1072,7 @@ Resolution SHOULD be exact and deterministic across local components, referenced
 
 Self-closing syntax is allowed:
 
-```xml
+```csxaml
 <Button Content="Save" OnClick={Save} />
 ```
 
@@ -1080,7 +1080,7 @@ Self-closing syntax is allowed:
 
 Elements with children use open and close tags:
 
-```xml
+```csxaml
 <Border Background={Theme.CardBrush}>
     <TextBlock Text="Hello" />
 </Border>
@@ -1140,7 +1140,7 @@ Attribute values intentionally have only two surface forms:
 
 There are no bare unquoted values like:
 
-```xml
+```csxaml
 <TextBlock Text=Hello />
 ```
 
@@ -1150,7 +1150,7 @@ This restriction is deliberate. It improves parseability, formatting consistency
 
 String literals are best for obvious string values:
 
-```xml
+```csxaml
 <TextBlock Text="Done" />
 <Button Content="Toggle" />
 ```
@@ -1161,7 +1161,7 @@ For example, `Text="Title"` renders the exact string `Title`. It does not look u
 
 When the author intends a string-valued variable, property, method call, or interpolation, the expression form MUST be used instead:
 
-```xml
+```csxaml
 <TextBlock Text={Title} />
 ```
 
@@ -1171,7 +1171,7 @@ Tooling SHOULD flag likely quoted-identifier mistakes when metadata expects a st
 
 Expression values are required whenever the value is not a simple string literal or when the metadata requires a typed value:
 
-```xml
+```csxaml
 <TextBlock FontSize={18} />
 <StackPanel Orientation={global::Microsoft.UI.Xaml.Controls.Orientation.Horizontal} />
 <Button OnClick={() => Count.Value++} />
@@ -1183,7 +1183,7 @@ Duplicate attributes on the same element are invalid.
 
 Examples:
 
-```xml
+```csxaml
 <Button Content="A" Content="B" />
 <TodoCard Title="A" Title="B" />
 ```
@@ -1259,7 +1259,7 @@ The parser quality bar SHOULD be high enough that embedded C# usually feels copy
 
 Conditional rendering uses C# conditions:
 
-```csharp
+```csxaml
 if (IsDone) {
     <TextBlock Text="Done" />
 }
@@ -1271,7 +1271,7 @@ The body yields zero or more child nodes.
 
 Repeated rendering uses a constrained C#-shaped loop:
 
-```csharp
+```csxaml
 foreach (var item in Items.Value) {
     <TodoCard Key={item.Id} Title={item.Title} IsDone={item.IsDone} OnToggle={...} />
 }
@@ -1463,7 +1463,7 @@ The language SHOULD prefer this rule:
 
 Examples:
 
-```xml
+```csxaml
 <TextBlock Text="Done" />
 <TextBlock FontSize={18} />
 <StackPanel Spacing={12} />
@@ -1537,7 +1537,7 @@ For interactive inputs, the normative v1 pattern is controlled input:
 
 For example:
 
-```csharp
+```csxaml
 State<string> Name = new State<string>("Draft");
 
 render <TextBox
@@ -1627,7 +1627,7 @@ The last successfully committed logical tree remains the managed reconciliation 
 
 Component usage reads like markup but maps to strong typed props:
 
-```xml
+```csxaml
 <TodoCard
     Key={item.Id}
     Title={item.Title}
@@ -1947,7 +1947,7 @@ Known gaps relative to the intended v1 experience:
 
 This is representative of the language direction the project is aiming for:
 
-```csharp
+```csxaml
 component Element TodoBoard {
     inject ITodoService todoService;
 

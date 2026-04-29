@@ -30,7 +30,7 @@ If an async continuation runs after a component has unmounted, it must not resur
 Use ordinary async methods and explicit state. Keep stale-result handling visible
 in the component instead of assuming the runtime cancels the work for you:
 
-```csharp
+```csxaml
 component Element TodoLoader {
     inject ITodoService TodoService;
 

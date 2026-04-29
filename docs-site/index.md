@@ -10,7 +10,7 @@ CSXAML is an experimental source-generated language for building WinUI apps with
 Use it when you want component-shaped WinUI views where structure stays readable,
 props and state are typed C#, and generated code remains inspectable.
 
-```csharp
+```csxaml
 using Microsoft.UI.Xaml.Controls;
 
 namespace MyApp.Components;

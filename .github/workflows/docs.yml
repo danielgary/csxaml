@@ -32,6 +32,13 @@ jobs:
             8.0.x
             10.0.x
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+
       - name: Build DocFX site
         shell: pwsh
         run: ./scripts/docs/Invoke-DocsBuild.ps1

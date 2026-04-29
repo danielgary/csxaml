@@ -39,7 +39,7 @@ TodoBoard.csxaml(12,13): unsupported tag name 'Textblock'
 Fix the tag spelling or import the namespace that makes the control/component
 visible:
 
-```csharp
+```csxaml
 <TextBlock Text={Title} />
 ```
 
@@ -51,7 +51,7 @@ TodoBoard.csxaml(18,21): unknown attribute 'OnClicked' on native control 'Button
 
 Use the supported event name:
 
-```csharp
+```csxaml
 <Button Content="Save" OnClick={Save} />
 ```
 

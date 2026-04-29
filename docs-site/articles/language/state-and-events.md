@@ -9,13 +9,13 @@ description: How state invalidation and event handlers work in CSXAML components
 
 State is explicit:
 
-```csharp
+```csxaml
 State<string> Name = new State<string>("Draft");
 ```
 
 Read and write the current value through `Value`:
 
-```csharp
+```csxaml
 <TextBlock Text={Name.Value} />
 ```
 
@@ -32,7 +32,7 @@ mutate the same object in place, you must say so explicitly.
 
 `Count.Value++` is valid for simple value state:
 
-```csharp
+```csxaml
 State<int> Count = new State<int>(0);
 
 render <Button
@@ -64,7 +64,7 @@ keep old UI after a list or object update, see [runtime troubleshooting](../trou
 
 CSXAML events are C# delegates:
 
-```csharp
+```csxaml
 void Save()
 {
     // Save work here.
@@ -75,7 +75,7 @@ render <Button Content="Save" OnClick={Save} />;
 
 Inline lambdas are also supported:
 
-```csharp
+```csxaml
 <Button Content="Increment" OnClick={() => Count.Value++} />
 ```
 
@@ -83,7 +83,7 @@ Inline lambdas are also supported:
 
 Controlled input keeps state ownership in the component:
 
-```csharp
+```csxaml
 State<string> Name = new State<string>("Draft");
 
 render <TextBox

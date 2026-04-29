@@ -59,7 +59,7 @@ public sealed record TodoItemModel(
 
 Create `TodoCard.csxaml`:
 
-```csharp
+```csxaml
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -91,7 +91,7 @@ status, select action, and toggle action.
 
 Create `TodoEditor.csxaml`:
 
-```csharp
+```csxaml
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 
@@ -134,7 +134,7 @@ the same fields easy to query in tests.
 
 Create `TodoBoard.csxaml`:
 
-```csharp
+```csxaml
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using MyApp;
@@ -227,7 +227,7 @@ Todo Board
 
 The `Key` attribute tells the runtime which child identity should be retained across rerenders:
 
-```csharp
+```csxaml
 <TodoCard Key={item.Id} ... />
 ```
 

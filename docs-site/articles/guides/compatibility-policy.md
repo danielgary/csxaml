@@ -33,7 +33,7 @@ If an implementation detail is useful enough for external developers, document i
 
 This source shape is inside the documented compatibility promise:
 
-```csharp
+```csxaml
 component Element CounterButton(string Label) {
     State<int> Count = new State<int>(0);
 

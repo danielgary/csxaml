@@ -7,7 +7,7 @@ description: How CSXAML binds native WinUI properties, events, attached properti
 
 Native property values can be literals or C# expressions:
 
-```csharp
+```csxaml
 <TextBlock Text="Static" />
 <TextBlock Text={Title} />
 ```
@@ -30,14 +30,14 @@ flows:
 
 Events use normalized CSXAML names:
 
-```csharp
+```csxaml
 <Button Content="Save" OnClick={Save} />
 <Button Content="Refresh" OnClick={() => Reload()} />
 ```
 
 Controlled input is explicit:
 
-```csharp
+```csxaml
 State<string> Name = new State<string>("Draft");
 
 render <TextBox
@@ -55,7 +55,7 @@ Supported projected events include:
 
 Attached properties use dotted syntax:
 
-```csharp
+```csxaml
 <TextBlock Grid.Row={0} AutomationProperties.Name="Title" Text="Todo Board" />
 ```
 
@@ -70,7 +70,7 @@ Supported attached properties:
 
 Event values must be C# expressions, not string method names:
 
-```csharp
+```csxaml
 // Invalid
 <Button Content="Save" OnClick="Save" />
 
@@ -81,7 +81,7 @@ Event values must be C# expressions, not string method names:
 Grid row and column attached properties are only valid where the current
 supported metadata can resolve the `Grid` parent relationship:
 
-```csharp
+```csxaml
 // Invalid
 render <StackPanel>
     <TextBlock Grid.Row={0} Text="Title" />

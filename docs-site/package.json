@@ -1,0 +1,13 @@
+{
+  "name": "csxaml-docs-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "highlight:csxaml": "node ../scripts/docs/Highlight-DocsCsxamlCode.mjs --site-root ../_site",
+    "check:csxaml-highlight": "node ../scripts/docs/Highlight-DocsCsxamlCode.mjs --site-root ../_site --check"
+  },
+  "devDependencies": {
+    "cheerio": "^1.1.2",
+    "shiki": "^3.13.0"
+  }
+}

@@ -33,7 +33,7 @@ callback.
 
 Use stable `Key` values for repeated component children:
 
-```csharp
+```csxaml
 <TodoCard Key={item.Id} ... />
 ```
 

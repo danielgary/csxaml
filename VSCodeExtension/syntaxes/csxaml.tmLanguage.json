@@ -193,8 +193,8 @@
       ]
     },
     "helperCode": {
-      "begin": "^(?=\\s*\\S)(?!\\s*(?:render\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_]))",
-      "end": "(?=^\\s*(?:render\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_])|\\z)",
+      "begin": "^(?=\\s*\\S)(?!\\s*(?:component\\b|render\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_]))",
+      "end": "(?=^\\s*(?:component\\b|render\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_])|\\z)",
       "patterns": [
         {
           "include": "source.cs"

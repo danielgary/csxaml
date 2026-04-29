@@ -31,7 +31,7 @@ Keep the Windows App SDK package in the app project:
 
 Create `Components/HelloCard.csxaml`:
 
-```csharp
+```csxaml
 using Microsoft.UI.Xaml.Controls;
 
 namespace MyApp.Components;

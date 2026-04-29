@@ -21,7 +21,7 @@ A component file contains:
 
 Example:
 
-```csharp
+```csxaml
 using Microsoft.UI.Xaml.Controls;
 
 namespace MyApp.Components;
