@@ -24,7 +24,7 @@ Benchmark automation lives in the repo scripts and artifact baselines. Treat ben
 
 Use stable keys when child order can change:
 
-```csharp
+```csxaml
 foreach (var item in Items.Value) {
     <TodoCard
         Key={item.Id}
@@ -56,7 +56,7 @@ Items.Touch();
 
 This is fine for small or moderate visible lists:
 
-```csharp
+```csxaml
 foreach (var item in Items.Value) {
     <TodoCard Key={item.Id} Title={item.Title} IsDone={item.IsDone} />
 }
@@ -66,7 +66,7 @@ Do not use that shape as a substitute for virtualization with thousands of
 visible rows. Put very large scrolling surfaces behind a WinUI control or
 external control that owns virtualization, then pass the data into that control:
 
-```csharp
+```csxaml
 render <VirtualizedTodoList ItemsSource={Items.Value} />;
 ```
 

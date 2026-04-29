@@ -48,6 +48,10 @@
           "src": "docs-site",
           "files": [
           "**/*.{md,yml}"
+          ],
+          "exclude": [
+            "node_modules/**",
+            "templates/**"
           ]
         },
       {
@@ -82,7 +86,8 @@
     "output": "_site",
     "template": [
       "default",
-      "modern"
+      "modern",
+      "docs-site/templates/csxaml"
     ],
     "globalMetadata": {
       "_appName": "CSXAML",

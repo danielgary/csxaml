@@ -7,7 +7,7 @@ description: Practical syntax guide for CSXAML component files.
 
 ## File shape
 
-```csharp
+```csxaml
 using Microsoft.UI.Xaml.Controls;
 
 namespace MyApp.Components;
@@ -19,7 +19,7 @@ component Element HelloCard(string Title) {
 
 ## Component declaration
 
-```csharp
+```csxaml
 component Element Name(Type Prop, Type OtherProp) {
     render <Root />;
 }
@@ -31,7 +31,7 @@ The root render statement must use `render <Root />;`. Returning markup with `re
 
 Use `render`, not `return`, for the final markup statement:
 
-```csharp
+```csxaml
 // Invalid
 return <StackPanel />;
 
@@ -41,7 +41,7 @@ render <StackPanel />;
 
 Read a state value through `.Value`:
 
-```csharp
+```csxaml
 State<int> Count = new State<int>(0);
 
 // Invalid or unintended
@@ -53,7 +53,7 @@ State<int> Count = new State<int>(0);
 
 Attached-property values that are not strings use C# expressions:
 
-```csharp
+```csxaml
 // Invalid
 <TextBlock Grid.Row="1" Text="Title" />
 
@@ -65,13 +65,13 @@ Attached-property values that are not strings use C# expressions:
 
 String values can be written as literals:
 
-```csharp
+```csxaml
 <TextBlock Text="Hello" />
 ```
 
 C# expressions are wrapped in braces:
 
-```csharp
+```csxaml
 <TextBlock Text={Title} />
 ```
 
@@ -79,7 +79,7 @@ C# expressions are wrapped in braces:
 
 Native and component tags can contain children:
 
-```csharp
+```csxaml
 <StackPanel>
     <TextBlock Text="Title" />
     <Button Content="Save" />
@@ -90,7 +90,7 @@ Native and component tags can contain children:
 
 `if` and `foreach` are supported inside markup children:
 
-```csharp
+```csxaml
 if (Items.Value.Count == 0) {
     <TextBlock Text="Nothing yet" />
 }
@@ -104,7 +104,7 @@ foreach (var item in Items.Value) {
 
 File-level using aliases can qualify external controls:
 
-```csharp
+```csxaml
 using WinUi = Microsoft.UI.Xaml.Controls;
 
 render <WinUi:InfoBar IsOpen={true} Title="Ready" />;

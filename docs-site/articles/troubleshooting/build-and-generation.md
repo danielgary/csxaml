@@ -63,7 +63,7 @@ Likely causes:
 
 How to verify:
 
-```csharp
+```csxaml
 using WinUi = Microsoft.UI.Xaml.Controls;
 
 render <WinUi:InfoBar IsOpen={true} Title="Ready" />;

@@ -9,7 +9,7 @@ CSXAML discovers supported external controls from referenced assemblies and uses
 
 Package-provided WinUI control example:
 
-```csharp
+```csxaml
 using WinUi = Microsoft.UI.Xaml.Controls;
 
 component Element Notice {
@@ -22,7 +22,7 @@ component Element Notice {
 
 Solution-local control example:
 
-```csharp
+```csxaml
 using Widgets = MyApp.Controls;
 
 component Element AvatarButton(Action OnClick) {
@@ -48,7 +48,7 @@ Current boundaries:
 
 Unknown external tag:
 
-```csharp
+```csxaml
 using Widgets = MyApp.Controls;
 
 render <Widgets:PrivateStatusButton />;
@@ -66,7 +66,7 @@ supported control.
 
 Unsupported property:
 
-```csharp
+```csxaml
 render <Widgets:StatusButton BadgeCount={Count.Value} />;
 ```
 
@@ -81,7 +81,7 @@ state inside the control instead of assigning it from CSXAML.
 
 Event arguments not projected:
 
-```csharp
+```csxaml
 render <Widgets:StatusButton OnClick={(sender, args) => Save(args)} />;
 ```
 

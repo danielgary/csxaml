@@ -13,7 +13,7 @@ Native control tags project to WinUI controls through metadata-driven validation
 
 Example:
 
-```csharp
+```csxaml
 render <StackPanel Spacing={8}>
     <TextBlock Text="Title" />
     <Button Content="Save" OnClick={Save} />
@@ -24,7 +24,7 @@ render <StackPanel Spacing={8}>
 
 Native properties can use literals or C# expressions:
 
-```csharp
+```csxaml
 <TextBlock Text={Title} FontSize={24} />
 ```
 
@@ -36,7 +36,7 @@ Event names use the normalized CSXAML event shape, such as `OnClick`, `OnTextCha
 
 Attached properties use dotted owner syntax:
 
-```csharp
+```csxaml
 <TextBlock Grid.Row={0} AutomationProperties.Name="Title" Text="Todo Board" />
 ```
 

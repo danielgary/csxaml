@@ -35,7 +35,7 @@ component plus `Component`, such as `TodoCardComponent`.
 
 Props are public inputs. They are declared in the component parameter list:
 
-```csharp
+```csxaml
 component Element TodoCard(string Title, bool IsDone) {
     render <TextBlock Text={Title} />;
 }
@@ -53,7 +53,7 @@ It is not an ordinary C# `return` statement.
 
 An expression island is C# code inside markup braces:
 
-```csharp
+```csxaml
 <TextBlock Text={$"Hello, {Name}"} />
 ```
 
@@ -64,7 +64,7 @@ services, and helper code.
 
 `State<T>` represents component-owned mutable UI state. Assigning `Value` invalidates the component when the value changes.
 
-```csharp
+```csxaml
 State<int> Count = new State<int>(0);
 ```
 
@@ -92,7 +92,7 @@ type instead of a CSXAML component.
 
 A component element is a markup tag that resolves to another CSXAML component:
 
-```csharp
+```csxaml
 <TodoCard Title={item.Title} IsDone={item.IsDone} />
 ```
 
@@ -105,7 +105,7 @@ An attached property is assigned with its owner-qualified name, such as
 
 Events are assigned with C# delegates:
 
-```csharp
+```csxaml
 <Button Content="Save" OnClick={Save} />
 ```
 

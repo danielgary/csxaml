@@ -9,7 +9,7 @@ CSXAML components are generated C# component classes.
 
 The component parameter list defines the public prop surface:
 
-```csharp
+```csxaml
 component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
     render <Button Content={Title} OnClick={OnToggle} />;
 }
@@ -29,7 +29,7 @@ Component helper code runs as ordinary generated C#. Keep helper methods small a
 
 Use component tags by importing the namespace or placing the components in the same namespace:
 
-```csharp
+```csxaml
 <TodoCard
     Title={item.Title}
     IsDone={item.IsDone}
@@ -40,7 +40,7 @@ Use component tags by importing the namespace or placing the components in the s
 
 Use `Key` for repeated component children when identity matters:
 
-```csharp
+```csxaml
 foreach (var item in Items.Value) {
     <TodoCard Key={item.Id} Title={item.Title} />
 }

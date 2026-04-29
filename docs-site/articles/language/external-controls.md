@@ -7,7 +7,7 @@ description: How referenced WinUI and custom controls are consumed from CSXAML.
 
 External controls are discovered from referenced assemblies and used through normal C# imports and aliases.
 
-```csharp
+```csxaml
 using WinUi = Microsoft.UI.Xaml.Controls;
 
 namespace MyApp.Components;

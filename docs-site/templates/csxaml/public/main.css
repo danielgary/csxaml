@@ -1,0 +1,26 @@
+.csxaml-shiki {
+  margin: 1rem 0;
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  line-height: 1.45;
+}
+
+.csxaml-shiki code {
+  display: block;
+  min-width: max-content;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+}
+
+html[data-bs-theme="dark"] .csxaml-shiki,
+html[data-bs-theme="dark"] .csxaml-shiki code,
+html[data-bs-theme="dark"] .csxaml-shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}

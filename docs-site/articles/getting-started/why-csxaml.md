@@ -46,7 +46,7 @@ Good fit: a task-board card editor with typed props, a few local state values,
 explicit button/text events, and generated output you want to debug when a build
 or runtime diagnostic points back to source.
 
-```csharp
+```csxaml
 component Element TodoCard(string Title, bool IsDone, Action OnToggle) {
     render <StackPanel Spacing={8}>
         <TextBlock Text={Title} />

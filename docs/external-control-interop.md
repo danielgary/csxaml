@@ -4,7 +4,7 @@ CSXAML v1 is intentionally trying to feel like ordinary C# plus ordinary WinUI, 
 
 That means external controls from project references and NuGet packages come in through normal file-level `using` directives:
 
-```csharp
+```csxaml
 using CommunityToolkit.WinUI.Controls;
 using Widgets = MyCompany.Widgets;
 
