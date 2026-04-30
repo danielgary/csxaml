@@ -177,11 +177,29 @@ The measured stress envelope includes:
 
 These scenarios are useful for bounding behavior. They are not the recommended everyday authoring target for large enterprise list surfaces.
 
+## List Authoring Decisions
+
+| Scenario | Recommended shape |
+| --- | --- |
+| 5 to 100 visible component rows | CSXAML `foreach` with stable keys |
+| hundreds of simple retained rows | CSXAML `foreach` can be acceptable when measured |
+| thousands of rows | native virtualized control |
+| data-template-heavy item surface | XAML `DataTemplate` or native control interop |
+| dynamic list with editing controls | measure retained identity and focus behavior |
+
+Retained reconciliation is not virtualization. Stable keys help CSXAML preserve
+identity for children that are rendered, reordered, inserted, or removed.
+Virtualization avoids creating off-screen item containers. A `foreach` block
+still produces one visible retained subtree per item supplied to the render.
+
 ## Outside the V1 Scale Story
 
 CSXAML v1 is not a replacement for WinUI virtualization primitives.
 
-For large scrolling data surfaces, authors should still expect to use native virtualization-aware controls and future dedicated interop/design work rather than plain `foreach`.
+For large scrolling data surfaces, authors should still expect to use native virtualization-aware controls and dedicated interop/design work rather than plain `foreach`.
+Those native controls often bring their own XAML `DataTemplate`, resource, and
+`DataContext` expectations; keep that machinery in XAML resources or inside the
+native control until CSXAML has an explicit template design.
 
 This milestone does not claim parity with:
 

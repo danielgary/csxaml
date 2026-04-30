@@ -434,10 +434,10 @@ Prove the milestone in a real CSXAML authoring experience.
 
 ### Recommended file changes
 
-- update `Csxaml.Demo/Models/TodoItemModel.cs` to include `Notes`
-- update `Csxaml.Demo/Components/TodoBoard.csxaml`
-- optionally add `Csxaml.Demo/Components/TodoEditor.csxaml`
-- update `Csxaml.Demo/Support/TodoColors.cs` only if the new editor needs extra palette values
+- update `samples/Csxaml.TodoApp/Models/TodoItemModel.cs` to include `Notes`
+- update `samples/Csxaml.TodoApp/Components/TodoBoard.csxaml`
+- optionally add `samples/Csxaml.TodoApp/Components/TodoEditor.csxaml`
+- update `samples/Csxaml.TodoApp/Support/TodoColors.cs` only if the new editor needs extra palette values
 
 ### Required state in the demo
 
@@ -516,10 +516,12 @@ Run these at minimum before calling the milestone done.
 dotnet test Csxaml.ControlMetadata.Generator.Tests\Csxaml.ControlMetadata.Generator.Tests.csproj
 dotnet test Csxaml.Generator.Tests\Csxaml.Generator.Tests.csproj
 dotnet test Csxaml.Runtime.Tests\Csxaml.Runtime.Tests.csproj
-dotnet build Csxaml.Demo\Csxaml.Demo.csproj -p:Platform=x64
+dotnet build samples\Csxaml.TodoApp\Csxaml.TodoApp.csproj
 ```
 
-If the environment allows it, also launch the demo through the VS Code `Csxaml.Demo (x64)` profile and perform the manual checks listed above.
+If the environment allows it, also launch the demo through the VS Code
+`Sample: Todo App (Generated App)` profile and perform the manual checks listed
+above.
 
 ---
 

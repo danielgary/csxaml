@@ -14,7 +14,7 @@ Normative language in this document uses `MUST`, `SHOULD`, and `MAY`.
 
 Sections 1 through 21 define the draft v1 language contract.
 
-Sections 22 through 24 are explicitly non-normative and record current prototype coverage, an illustrative example, and project-level closing guidance only.
+Sections 22 through 25 are explicitly non-normative and record current prototype coverage, planned post-v1 direction, an illustrative example, and project-level closing guidance only.
 
 When this document mentions current implementation behavior, that text is descriptive unless the same rule is also stated normatively in the language sections above.
 
@@ -28,6 +28,17 @@ This maintained revision log starts with the final pre-1.0 tightening pass. Earl
 
 | Revision | Date | Summary |
 | --- | --- | --- |
+| `draft-v1-phase11-highlighting-fixtures` | 2026-04-30 | Added the Phase 11 highlighting alignment contract: the VS Code TextMate grammar remains the source of truth for syntax coloring, DocFX consumes that grammar through Shiki, snippets and grammar fixtures cover new syntax, and semantic tokens cover generated roots, refs, property content, and attached-property examples where applicable. |
+| `draft-v1-phase10-virtualization-guidance` | 2026-04-30 | Added the Phase 10 list-scale guidance contract: `foreach` creates repeated retained child nodes, does not imply virtualization, and is paired with docs/tooling guidance that points large scrolling surfaces toward native virtualized controls or external wrappers. |
+| `draft-v1-phase09-resources-templates` | 2026-04-30 | Added the Phase 09 resource/template interop guidance contract: generated app mode may own a limited generated `ResourceDictionary` for merged dictionaries, while XAML dictionaries remain the recommended surface for deep templates, theme resources, `StaticResource`, `ThemeResource`, `Binding`, and `DataContext`-heavy controls. |
+| `draft-v1-phase08-attached-properties` | 2026-04-30 | Added the experimental Phase 08 attached-property breadth contract: built-in metadata/runtime/tooling now cover `Canvas`, `RelativePanel`, `ToolTipService`, `VariableSizedWrapGrid`, and expanded `AutomationProperties` entries, with owner-specific runtime clearing and renderable layout-owner controls. External attached-property owner discovery remains deferred. |
+| `draft-v1-phase07-generated-app-mode` | 2026-04-30 | Added the experimental Phase 07 generated application mode contract: `CsxamlApplicationMode=Generated`, `component Application`, generated WinUI entry point ownership, limited `component ResourceDictionary`, startup-window activation, service handoff, and conflict diagnostics for XAML app roots. |
+| `draft-v1-phase06-generated-page-window` | 2026-04-30 | Added the experimental Phase 06 generated `Page` and `Window` root contract: `component Page` and `component Window` generate real WinUI shell types backed by retained CSXAML body components, with limited window title/size/backdrop properties. `Application` and `ResourceDictionary` roots remain Phase 07 work. |
+| `draft-v1-phase05-property-content` | 2026-04-29 | Added the experimental Phase 05 property-content and named-slot syntax contract: dotted child elements bind native property content or component named slot content, named `Slot` outlets are metadata, and invalid placement/collision rules are explicit. |
+| `draft-v1-phase04-content-metadata` | 2026-04-29 | Added the experimental Phase 04 content-property metadata status: external-control metadata records default content-property names, content shape, type information, and discovery source, and runtime child projection uses that metadata. |
+| `draft-v1-phase03-element-refs` | 2026-04-29 | Added the experimental Phase 03 element-reference status: native `Ref={...}` attributes update public `ElementRef<T>` handles, clear on removal/disposal, and remain outside the v1 promise. |
+| `draft-v1-phase02-typed-events` | 2026-04-29 | Added the experimental Phase 02 typed event-argument projection status: common WinUI event args and supported external `EventHandler<TEventArgs>` events project as senderless `Action<TEventArgs>` handlers while remaining outside the v1 promise. |
+| `draft-v1-postv1-feature-plan` | 2026-04-29 | Recorded the planned post-v1 feature track as non-normative direction: typed event-argument projection, explicit element refs, content-property/property-content expansion, generated app/window/page/resource roots, resource/template guidance, virtualization guidance, and highlighting alignment. |
 | `draft-v1-prepin-alignment` | 2026-04-15 | Closed the last known source/implementation drift around attached-property owner visibility and dotted tag admission: generator, tooling, demos, fixtures, and repo docs now follow the spec's ordinary-import/type-alias owner-resolution model, and tooling/parser tag scanning now consistently admits dotted tag forms. |
 | `draft-v1-prepin-final` | 2026-04-15 | Final pre-1.0 contract tightening pass: added a maintained revision log; clarified file-local helper support, `using static`, balanced-island lexical requirements, render detection examples, slot placement, controlled-input adapter expectations, duplicate-key failure phase, and runtime failure/disposal wording. |
 | `draft-v1-state-equality` | 2026-04-15 | Changed `State<T>` invalidation from always-dirty-on-assignment to reference-equality (reference types) and default-equality (value types) suppression; added explicit `Touch()` method as the rerender escape hatch for controlled-mutation patterns; updated Â§10.2.1, added Â§10.2.1.1, and updated Â§10.4 accordingly. |
@@ -440,12 +451,18 @@ component-helper-code ::= csharp-helper-code
 markup-node           ::= element-node
 
 element-node          ::= "<" tag-name attribute* "/>"
-                        | "<" tag-name attribute* ">" child-node* "</" tag-name ">"
+                        | "<" tag-name attribute* ">" element-child* "</" tag-name ">"
+
+element-child         ::= child-node
+                        | property-content-node
 
 child-node            ::= markup-node
                         | slot-outlet
                         | if-block
                         | foreach-block
+
+property-content-node ::= "<" property-content-name ">" child-node* "</" property-content-name ">"
+                        | "<" property-content-name "/>"
 
 slot-outlet           ::= "<" "Slot" attribute* "/>"
                         | "<" "Slot" attribute* ">" child-node* "</" "Slot" ">"
@@ -468,7 +485,8 @@ Where:
 - `csharp-type` is C# type syntax
 - `csharp-helper-code` is component-local ordinary C# declarations/statements before the final render statement
 - `csharp-island` is opaque C# source text captured by balanced-delimiter scanning
-- `tag-name` and `attribute-name` support the current v1 forms `identifier`, `identifier ":" identifier`, and `identifier "." identifier`
+- `tag-name` and `attribute-name` support the current v1 forms `identifier`, `identifier ":" identifier`, and `identifier "." identifier`; property-content names additionally allow the owner portion to be an alias-qualified tag such as `Widgets:ControlExample.Example`
+- `property-content-name` is a dotted child element name whose owner portion matches the containing element source tag or resolved component tag
 - bare `Slot` is a reserved child-content outlet inside a component definition; prefixed tags such as `Widgets:Slot` remain ordinary tags
 
 ---
@@ -1112,8 +1130,25 @@ In v1:
 - a `Slot` outlet MUST NOT appear inside `foreach` because repeated slot expansion semantics are undefined in v1
 - `Slot` attributes are invalid
 - `Slot` child nodes are invalid
-- `Slot Name="..."` MUST fail with a clear "named slots are not supported yet" diagnostic
 - a root-level `<Slot />` is invalid because components still produce one root node rather than fragments
+
+The current experimental property-content slice also supports named slot
+outlets with `Slot Name="..."`.
+
+Named slot rules:
+
+- a component MAY declare zero or more named slot outlets
+- named slot outlet names are case-sensitive
+- duplicate named slot outlet names are invalid
+- a named slot outlet MAY appear directly under markup nodes or inside `if`
+  blocks within the single rendered root subtree
+- a named slot outlet MUST NOT appear inside `foreach`
+- named slot fallback content is not defined; child nodes inside `Slot` remain
+  invalid
+- call-site named slot content uses the same property-content syntax as native
+  property content, such as `<Card.Header> ... </Card.Header>`
+- named slot content is transported separately from default child content and
+  props
 
 ### 12.4.1 Default Slot Transport Semantics
 
@@ -1126,6 +1161,41 @@ Caller child order MUST be preserved.
 If no caller child content is supplied, the default slot renders nothing.
 
 CSXAML v1 does not define fallback content inside `Slot` itself. Any child nodes nested inside `<Slot> ... </Slot>` remain invalid until a later version specifies fallback semantics.
+
+### 12.4.2 Property Content And Named Slot Content
+
+Property-content elements are dotted child elements directly under a containing
+element:
+
+```csxaml
+<Button>
+    <Button.Flyout>
+        <Flyout />
+    </Button.Flyout>
+</Button>
+```
+
+They are not native or component elements. They assign children to a named
+target on the containing element.
+
+Rules:
+
+- property-content elements cannot be the render root
+- the owner portion MUST match the containing element source tag, or a resolved
+  component tag name when the containing element is a component
+- property-content elements cannot have attributes, `Key`, attached
+  properties, events, or `Ref`
+- assigning the same target through both an attribute and property content is
+  invalid unless metadata explicitly defines merge behavior
+- duplicate property-content elements for the same target are invalid
+- single-value native property content accepts at most one child
+- collection native property content accepts multiple children
+- default slot content remains ordinary child content
+- named component slot content is property content whose target matches a named
+  slot outlet on the component definition
+
+Property content stays separate from ordinary child content in parsing,
+validation, emission, runtime transport, and tooling.
 
 ---
 
@@ -1285,6 +1355,13 @@ The current core form intentionally restricts `foreach` to:
 
 This restriction preserves readability and simplifies parsing.
 
+`foreach` creates one repeated CSXAML child subtree for each item in the
+collection expression. It participates in normal retained reconciliation, and
+stable `Key` values preserve identity for rendered children when order changes.
+It does not virtualize, recycle, or skip off-screen children. Authors SHOULD use
+native virtualization-aware controls or external wrappers for very large
+scrolling item surfaces.
+
 ### 15.3 Why No Arbitrary C# Statements
 
 Inside markup child positions, the language currently allows:
@@ -1326,6 +1403,8 @@ Metadata answers questions such as:
 - what properties are exposed?
 - what events are exposed?
 - what child-content shape is allowed?
+- which default content property receives child elements, when one exists?
+- where the content metadata came from?
 - what value-kind hint should apply?
 
 ### 16.1.1 External Control Metadata
@@ -1343,6 +1422,10 @@ For each supported external control, metadata SHOULD capture at least:
 - supported properties
 - supported events
 - child-content shape
+- default content property name, when one exists
+- content property CLR type and collection item type, when known
+- content metadata source, such as `[ContentProperty]`, built-in metadata, or
+  convention
 - value-kind hints
 
 ### 16.1.2 DependencyProperty and Local-Value Semantics
@@ -1466,6 +1549,7 @@ Examples:
 ```csxaml
 <TextBlock Text="Done" />
 <TextBlock FontSize={18} />
+<TextBlock Text={Description} TextWrapping={TextWrapping.Wrap} />
 <StackPanel Spacing={12} />
 <StackPanel Orientation={global::Microsoft.UI.Xaml.Controls.Orientation.Horizontal} />
 ```
@@ -1571,9 +1655,26 @@ These remain either direct WinUI interop concerns or future design work. The lan
 
 ### 16.6.5 Imperative Element Handles
 
-Imperative element handles or `ref`-style access are important future design areas for interop with focus management, scrolling APIs, animations, and other imperative WinUI features.
+Phase 03 implements experimental native element refs for imperative interop.
+Authors declare an `ElementRef<TElement>` value in ordinary component C# and
+assign it with the reserved native `Ref={...}` attribute.
 
-They are not part of the normative v1 language surface yet and SHOULD be treated as explicit future work rather than assumed ambient capability.
+```csxaml
+ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
+
+render <TextBox Ref={SearchBox} />;
+```
+
+The runtime sets the ref when the native element is projected, keeps it pointed
+at the retained element across compatible rerenders, updates it when the element
+is replaced, and clears it when the element leaves the rendered tree or the root
+renderer is disposed.
+
+`Ref` is valid only on native elements in the current experimental slice. It is
+not a component-ref feature, does not implement `x:Name` symbolic lookup, and
+does not trigger rerender.
+
+This behavior is not part of the normative v1 language surface yet.
 
 ### 16.7 Retained-Mode Reconciliation and Performance Boundary
 
@@ -1645,7 +1746,8 @@ For component elements:
 - injected services are not part of the markup prop surface and MUST NOT be accepted as attributes
 - child content is invalid unless the callee declares a default slot outlet
 - when child content is allowed, it is transported separately from the public props record
-- named slots are intentionally deferred; v1 supports one default slot only
+- named slots are experimental property-content behavior outside the v1
+  compatibility promise; v1 still guarantees one default slot shape only
 
 ### 17.3 Type Safety
 
@@ -1822,7 +1924,8 @@ Implementations SHOULD maintain a conformance suite that covers at least:
 - `using static` support for ordinary C# lookup without participation in tag resolution
 - nested generics, lambdas, interpolated strings, and raw strings inside C# islands
 - ambiguous tag and import resolution
-- slot misuse, slot-under-`foreach` rejection, and named-slot rejection
+- slot misuse, slot-under-`foreach` rejection, duplicate named-slot rejection,
+  unknown named-slot content rejection, and property-content diagnostics
 - duplicate sibling key rejection, including deterministic runtime failure for dynamic cases
 - `Key` forwarding prohibition and keyed matching behavior
 - attached-property owner resolution
@@ -1908,11 +2011,13 @@ Implemented today:
 - metadata-driven native property and event validation
 - metadata-driven common layout property support for the current curated controls
 - metadata-driven `Style` support for built-in controls and the current supported external-control slice
-- owner-qualified attached-property syntax for the built-in slice
+- owner-qualified attached-property syntax for the built-in slice, including
+  `Grid`, `Canvas`, `RelativePanel`, `ToolTipService`,
+  `VariableSizedWrapGrid`, and the practical `AutomationProperties` set
 - ordinary file-level namespace imports, aliases, and `using static` directives carried through generation and tooling; static imports participate only in ordinary C# lookup, not tag resolution
 - generated generic native prop and event bags
 - generated generic attached-property bags
-- runtime adapters for `Border`, `Button`, `Grid`, `ScrollViewer`, `StackPanel`, `TextBlock`, `TextBox`, and `CheckBox`
+- runtime adapters for `AutoSuggestBox`, `Border`, `Button`, `CheckBox`, `Frame`, `Grid`, `ListView`, `ScrollViewer`, `Slider`, `StackPanel`, `TextBlock`, and `TextBox`
 - reusable style helpers that stay as ordinary expression values in hostless logical-tree rendering and resolve during WinUI projection
 - `Key`-driven identity for repeated rendering
 - attached-property carry-through from component usages to rendered native roots
@@ -1924,18 +2029,26 @@ Implemented today:
 - proof that ordinary C# test projects can consume generated CSXAML components through normal project references
 - basic retained-component lifecycle semantics including first mount, retained rerender, unmount disposal, post-unmount invalidation no-op behavior, and event-subscription rebinding on retained native elements
 - controlled-input runtime support for the current built-in `TextBox` and `CheckBox` event/value surface, including no-op reapply suppression and `TextBox` selection/focus preservation for ordinary controlled updates
+- experimental typed event-argument projection for the documented common WinUI event set and supported external `EventHandler<TEventArgs>` events
+- experimental `ElementRef<T>` handles through `Ref={...}` on native elements, with deterministic runtime clearing on removal and disposal
+- experimental external-control default content-property metadata, including
+  `[ContentProperty]`, inherited content attributes, supported content
+  conventions, and metadata-driven runtime child projection
 - default-slot validation including duplicate-slot rejection, root-slot rejection, attribute/child-content rejection, and `foreach`-slot rejection
 - deterministic duplicate-key rejection for sibling native elements during projection and sibling component elements during component reconciliation
 
 Known gaps relative to the intended v1 experience:
 
 - whole-file comment support needs further hardening beyond the helper-code and boundary scanners
-- external control namespace syntax, referenced-assembly discovery, and generated runtime registration are implemented for the current supported slice; [docs/external-control-interop.md](docs/external-control-interop.md) describes that slice and its current limitations, while broader external control shape coverage is still in progress
+- external control namespace syntax, referenced-assembly discovery, generated runtime registration, and experimental default content-property metadata are implemented for the current supported slice; [docs/external-control-interop.md](docs/external-control-interop.md) describes that slice and its current limitations, while broader external control shape coverage is still in progress
 - the v1 styling story is intentionally thin and currently stops at reusable values plus WinUI `Style` support; richer styling constructs remain future work
-- external attached-property owner discovery beyond the current loaded metadata slice is not yet implemented
+- external attached-property owner discovery beyond the current loaded metadata
+  slice is not yet implemented
 - IME composition hardening for controlled text input is not yet complete across every WinUI input path
 - controls, templates, and libraries that assume ambient `DataContext`, deep templating, or virtualization remain interop boundaries rather than first-class v1 CSXAML abstractions
-- named slots, slot fallback content, and fragment-root slot pass-through are intentionally deferred
+- stable-v1 named slots, slot fallback content, and fragment-root slot
+  pass-through are intentionally deferred; named slots currently exist only as
+  experimental property-content behavior
 - dedicated source-level lifecycle hooks and per-instance cancellation syntax are not yet finished
 - parser/validator diagnostics, direct source-authored build failures, deterministic source-map sidecars under `obj`, and staged runtime exception context are now implemented for the current slice; fuller debugger integration and broader IDE coverage are still ahead
 - formatting support is not yet defined end to end
@@ -1943,7 +2056,316 @@ Known gaps relative to the intended v1 experience:
 
 ---
 
-## 23. Example
+## 23. Planned Post-V1 Feature Track
+
+This section is non-normative. It records the next planned feature direction so
+the roadmap, docs, and implementation packages stay aligned. Nothing in this
+section is part of the current draft-v1 compatibility promise until the
+corresponding implementation, tests, and supported-feature documentation land.
+
+### 23.1 Typed Event-Argument Projection
+
+Phase 02 implements an experimental metadata-defined, senderless typed delegate
+shape for common WinUI event args.
+
+The intended authoring shape is:
+
+```csxaml
+<ListView OnSelectionChanged={args => Select(args.AddedItems)} />
+<TextBox OnKeyDown={args => SubmitOnEnter(args)} />
+<Frame OnNavigated={args => TrackPage(args.SourcePageType)} />
+```
+
+The event name remains the normalized `OnEventName` form. The handler receives
+the event args value, not the sender. Sender access should come from explicit
+element refs when authors need the element.
+
+This projection remains metadata-defined. Implementations should not infer
+payload shape from event names alone. External controls with ordinary
+`EventHandler<TEventArgs>` style events may project senderless
+`Action<TEventArgs>` handlers, but value-normalized events still require
+metadata or an explicit adapter that defines that normalization.
+
+This is experimental current behavior, not part of the current draft-v1
+compatibility promise.
+
+### 23.2 Explicit Element Refs
+
+Phase 03 implements experimental explicit typed element refs. Imperative interop
+should prefer these refs over `x:Name`-style symbolic targeting.
+
+The intended authoring shape is:
+
+```csxaml
+ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
+
+render <TextBox Ref={SearchBox} />;
+```
+
+Refs are explicit runtime handles for focus, scrolling, animation targets, and
+native interop. They do not trigger rerender. They are assigned when the native
+element is projected, remain stable across retained rerenders, and clear when
+the element leaves the tree or the root is disposed.
+
+This is experimental current behavior, not part of the current draft-v1
+compatibility promise.
+
+### 23.3 Content Properties, Property Content, And Named Slots
+
+Phase 04 implements experimental default content-property metadata for supported
+external controls. Phase 05 builds on that by implementing experimental
+property-content syntax and component named slots.
+
+Metadata records the default property name, content kind, property type,
+collection item type, and discovery source. The current discovery order prefers
+inherited `Microsoft.UI.Xaml.Markup.ContentPropertyAttribute` metadata over
+conventions such as `Panel.Children`, `ContentControl.Content`, `Border.Child`,
+`ScrollViewer.Content`, public `Children`, public `Child`, and public
+`Content`.
+
+That experimental metadata supports natural default child content such as:
+
+```csxaml
+<Gallery:ControlExample>
+    <Button Content="Run" />
+</Gallery:ControlExample>
+```
+
+when `ControlExample` declares `[ContentProperty(Name = "Example")]` and
+`Example` is a supported single `UIElement` or `object` property. Supported
+collection content is currently limited to `UIElementCollection`-style child
+collections. Unsupported content-property types fail with diagnostics that name
+the content property.
+
+The property-content syntax is the XAML-familiar child element form:
+
+```csxaml
+<Button Content="Open">
+    <Button.Flyout>
+        <Flyout />
+    </Button.Flyout>
+</Button>
+```
+
+The same syntax is used for component named slots:
+
+```csxaml
+<ControlExample>
+    <ControlExample.Example>
+        <Button Content="Run" />
+    </ControlExample.Example>
+</ControlExample>
+```
+
+This direction preserves the current default-slot behavior. Property content
+stays separate from ordinary child elements in the syntax tree, validation,
+emission, and runtime model.
+
+The default content-property metadata, property-content syntax, and component
+named slots described above are experimental current behavior and are not part
+of the current draft-v1 compatibility promise. Template authoring, fallback slot
+content, and arbitrary object graph projection remain future work.
+
+### 23.4 Generated App, Window, Page, And Resource Roots
+
+Experimental generated root support now includes generated app mode. A new
+CSXAML app can opt in to removing the default WinUI shell source files:
+
+- `App.xaml`
+- `App.xaml.cs`
+- `MainWindow.xaml`
+- `MainWindow.xaml.cs`
+
+The source shape extends the existing declaration family:
+
+```csxaml
+component Window MainWindow {
+    Title = "CSXAML Starter";
+    Width = 960;
+    Height = 640;
+
+    render <HomePage />;
+}
+
+component Page HomePage {
+    render <Grid />;
+}
+```
+
+The supported root kinds in the experimental root model are:
+
+- `component Element`
+- `component Page`
+- `component Window`
+- `component Application`
+- `component ResourceDictionary`
+
+`Page` and `Window` roots MUST generate real WinUI shell types. The generated
+shell owns a retained CSXAML body component and mounts that body into
+`Page.Content` or `Window.Content`. The shell type itself MUST NOT inherit from
+`ComponentInstance`. `Page` roots also emit a hidden generated `.xaml`
+companion and call `InitializeComponent()` so native WinUI
+`Frame.Navigate(typeof(PageType))` can activate the generated page through the
+normal XAML metadata path.
+
+`Window` roots support only these root property declarations in this phase:
+
+- `Title = expression;`
+- `Width = expression;`
+- `Height = expression;`
+- `Backdrop = "Mica";`, `Backdrop = "Acrylic";`, `Backdrop = "None";`, or a
+  direct `SystemBackdrop` expression
+
+`Width` and `Height` MUST be assigned together. Unsupported root properties,
+parameters on non-`Element` roots, and slot outlets inside `Page` or `Window`
+roots are diagnostics.
+
+Inside CSXAML markup, a generated `Page` tag currently renders the retained
+page body component. The generated page CLR type is still a normal WinUI `Page`
+for direct C# construction and native `Frame.Navigate(typeof(PageType))`
+scenarios.
+
+Generated app mode uses the explicit MSBuild property
+`<CsxamlApplicationMode>Generated</CsxamlApplicationMode>`.
+
+`Hybrid` is the default for existing projects. `Generated` mode requires
+exactly one `component Application`, generates the WinUI entry point, emits a
+hidden intermediate `App.xaml` for WinUI default control resources, and MUST
+fail clearly if a source `App.xaml` `ApplicationDefinition` is still present.
+
+The generated app source shape is:
+
+```csxaml
+component Application App {
+    startup MainWindow;
+    resources AppResources;
+}
+
+component ResourceDictionary AppResources {
+    render <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <XamlControlsResources />
+        </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>;
+}
+```
+
+`component Application` supports:
+
+- `startup WindowType;`
+- optional `resources ResourceDictionaryType;`
+- ordinary helper code, including an optional `ConfigureServices()` method
+
+The generated `Application` creates services by calling `ConfigureServices()`,
+constructs the startup window with those services, retains the startup window,
+and activates it. Advanced activation modes, packaging manifest authoring,
+background tasks, and broad app lifecycle syntax remain outside this slice.
+
+`component ResourceDictionary` currently supports merged dictionaries.
+`XamlControlsResources` is recognized as the default WinUI controls dictionary;
+generated apps load it through the hidden intermediate `App.xaml`, and
+default-only generated resource dictionaries are not instantiated at runtime.
+Keyed resources, styles, templates, theme dictionaries, and deep resource
+authoring remain separate design work.
+
+This app-shell support is not a promise to abstract every WinUI activation,
+packaging, or lifecycle scenario. Advanced app lifecycle policy should remain
+ordinary C# or hybrid WinUI shell code until deliberately designed.
+
+### 23.5 Resource And Template Posture
+
+Generated `ResourceDictionary` roots currently cover app-owned merged
+dictionaries in generated CSXAML apps. A generated `Application` may name that
+dictionary with `resources ResourceDictionaryType;`; non-default merged
+dictionaries are applied to `Application.Resources` after the hidden generated
+`App.xaml` has loaded WinUI defaults.
+
+Deep WinUI resource and template machinery remains a separate design area.
+XAML dictionaries should remain valid for advanced styles, theme resources,
+`DataTemplate`, `ControlTemplate`, and `DataContext`-heavy controls.
+
+CSXAML should not imply `StaticResource`, `ThemeResource`, `Binding`, or
+ambient `DataContext` semantics until those semantics are explicitly designed,
+implemented, tested, and documented.
+
+Plain C# expressions that return WinUI objects are ordinary values:
+`Style={AppStyles.PrimaryButtonStyle}` assigns a style value, but it does not
+become a `StaticResource` lookup, a `ThemeResource` subscription, or a binding
+expression. If an app needs those WinUI semantics, it should keep that resource
+or template in XAML and consume it through normal WinUI resource machinery.
+
+Property-content syntax is not a template language. It may assign
+metadata-backed native property content, but it must not be treated as a hidden
+way to author `DataTemplate`, `ControlTemplate`, implicit style, or
+`DataContext` behavior.
+
+### 23.6 Broader Attached-Property Metadata
+
+Experimental attached-property expansion remains metadata-driven and preserves
+the current owner lookup rule based on ordinary imports and explicit type
+aliases.
+
+The current expanded built-in owner set includes:
+
+- `Canvas.Left`, `Canvas.Top`, and `Canvas.ZIndex`
+- `RelativePanel.AlignLeftWithPanel`, `RelativePanel.AlignTopWithPanel`,
+  `RelativePanel.RightOf`, and `RelativePanel.Below`
+- `ToolTipService.ToolTip`
+- `VariableSizedWrapGrid.ColumnSpan` and `VariableSizedWrapGrid.RowSpan`
+- `AutomationProperties.AutomationId`, `Name`, `HelpText`, `ItemStatus`,
+  `ItemType`, and `LabeledBy`
+
+`Canvas`, `RelativePanel`, and `VariableSizedWrapGrid` are also part of the
+experimental built-in renderable control set so the corresponding parent
+restrictions are usable in source.
+
+Runtime application stays split by owner-specific applicators. Each supported
+owner is cleared before the current render's attached-property values are
+applied, so removed attached-property attributes do not leave stale WinUI
+state on retained native elements.
+
+### 23.7 List Virtualization Guidance
+
+Phase 10 guidance states that `foreach` is repeated child rendering, not
+virtualization. This is now reflected in the performance docs, language docs,
+supported-feature matrix, and tooling hover for the `foreach` keyword.
+
+The authoring guidance is:
+
+- use `foreach` with stable keys for small and moderate visible lists
+- measure large retained child trees before relying on them
+- use native virtualized controls or external control wrappers for very large
+  scrolling surfaces
+- keep template-heavy item surfaces in native WinUI interop until a dedicated
+  CSXAML abstraction exists
+- treat 1000-item benchmark lanes as retained-tree stress bounds, not
+  recommendations for everyday app list design
+
+### 23.8 Highlighting And Fixture Alignment
+
+Phase 11 keeps syntax highlighting aligned with the same CSXAML grammar and
+language surface. The VS Code TextMate grammar remains the authoritative
+syntax-coloring grammar where practical, and the DocFX Shiki post-build path
+loads that same grammar for `csxaml` Markdown fences.
+
+The aligned fixture set now covers:
+
+- generated `Application`, `Window`, `Page`, and `ResourceDictionary` roots
+- `startup` and `resources` declarations
+- native `Ref` attributes
+- property-content and named-slot syntax
+- typed event-argument examples
+- broader attached-property examples
+- resource dictionary examples
+
+`samples/Csxaml.FeatureGallery` includes an app-hosted `SampleCodePresenter`
+with a small documented fallback classifier. A future hardened presenter should
+consume the TextMate grammar when practical and continue deferring language
+authority to the grammar and shared tooling stack.
+
+---
+
+## 24. Example
 
 This is representative of the language direction the project is aiming for:
 
@@ -1984,7 +2406,7 @@ This example captures the intended balance:
 
 ---
 
-## 24. Final Constraint
+## 25. Final Constraint
 
 If a future version of CSXAML becomes harder to parse, harder to explain to a C# + XAML developer, or more surprising to diagnose, that should be treated as a regression in language quality even if the feature technically works.
 

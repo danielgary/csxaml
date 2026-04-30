@@ -36,10 +36,23 @@ internal sealed class MetadataSourceEmitter
         writer.WriteLine($"{Quote(control.ClrTypeName)},");
         writer.WriteLine(control.BaseTypeName is null ? "null," : $"{Quote(control.BaseTypeName)},");
         writer.WriteLine($"ControlChildKind.{control.ChildKind},");
+        EmitContentMetadata(writer, control.Content);
         EmitProperties(writer, control.Properties);
         EmitEvents(writer, control.Events);
         writer.PopIndent();
         writer.WriteLine("),");
+    }
+
+    private static void EmitContentMetadata(IndentedSourceWriter writer, ControlContentMetadata content)
+    {
+        writer.WriteLine("new ControlContentMetadata(");
+        writer.PushIndent();
+        writer.WriteLine($"{QuoteOrNull(content.DefaultPropertyName)},");
+        writer.WriteLine($"ControlContentKind.{content.Kind},");
+        writer.WriteLine($"{QuoteOrNull(content.PropertyTypeName)},");
+        writer.WriteLine($"{QuoteOrNull(content.ItemTypeName)},");
+        writer.WriteLine($"ControlContentSource.{content.Source}),");
+        writer.PopIndent();
     }
 
     private static void EmitEvents(IndentedSourceWriter writer, IReadOnlyList<EventMetadata> events)

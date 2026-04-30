@@ -11,7 +11,8 @@ Important diagnostics surfaces:
 
 - parser diagnostics for invalid CSXAML syntax
 - validation diagnostics for unknown tags, props, events, and attached properties
-- generated C# `#line` mappings for source-authored helper code
+- generated C# `#line` mappings for source-authored helper code and expression
+  attributes such as `Ref={...}`
 - source-map sidecars under `obj`
 - runtime exception context that names component, tag, member, and stage when available
 
@@ -75,3 +76,6 @@ obj\Debug\net10.0-windows10.0.19041.0\Csxaml\Maps\TodoBoard.map.json
 A map identifies the source file, generated file, component, and regions such
 as tag, property, helper-code, and control-flow blocks. Use it when a compiler
 or runtime message still names generated C#.
+
+Runtime ref type mismatches are wrapped with the `ref assignment` stage and the
+`Ref` member name when source information is available.

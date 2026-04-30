@@ -10,7 +10,7 @@ public sealed class CsxamlLanguageServerDefinitionRegressionTests
     [TestMethod]
     public async Task Protocol_resolves_framework_state_definitions_in_component_helper_code()
     {
-        var filePath = Path.Combine(RepoRoot, "Csxaml.Demo", "Components", "TodoBoard.csxaml");
+        var filePath = Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components", "TodoBoard.csxaml");
         var text = File.ReadAllText(filePath);
         var documentUri = new Uri(filePath).AbsoluteUri;
         var stateOffset = text.IndexOf("State<List<TodoItemModel>>", StringComparison.Ordinal) + 1;
@@ -49,7 +49,7 @@ public sealed class CsxamlLanguageServerDefinitionRegressionTests
     [TestMethod]
     public async Task Protocol_serves_helper_return_type_semantic_tokens_for_todo_board()
     {
-        var filePath = Path.Combine(RepoRoot, "Csxaml.Demo", "Components", "TodoBoard.csxaml");
+        var filePath = Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components", "TodoBoard.csxaml");
         var text = File.ReadAllText(filePath);
         var documentUri = new Uri(filePath).AbsoluteUri;
         var returnTypeOffset = text.IndexOf("TodoItemModel SelectedItem", StringComparison.Ordinal);

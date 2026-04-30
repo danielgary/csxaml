@@ -1,0 +1,15 @@
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Csxaml.Samples.TodoApp;
+
+component Application App {
+    startup MainWindow;
+    resources AppResources;
+
+    private static IServiceProvider ConfigureServices()
+    {
+        return new ServiceCollection()
+            .AddSingleton<ITodoService, InMemoryTodoService>()
+            .BuildServiceProvider();
+    }
+}

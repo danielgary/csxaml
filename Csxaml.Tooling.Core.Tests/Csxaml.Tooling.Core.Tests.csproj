@@ -14,7 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\\Csxaml.Tooling.Core\\Csxaml.Tooling.Core.csproj" />
     <ProjectReference Include="..\\Csxaml.LanguageServer\\Csxaml.LanguageServer.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\\Csxaml.Demo\\Csxaml.Demo.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="..\samples\Csxaml.TodoApp\Csxaml.TodoApp.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 </Project>

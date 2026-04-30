@@ -1,0 +1,5 @@
+namespace Csxaml.ProjectSystem.Consumer;
+
+component Application App {
+    startup ShellWindow;
+}

@@ -8,6 +8,10 @@ internal static class AttachedPropertyApplicator
     {
         GridAttachedPropertyApplicator.Clear(element);
         AutomationPropertiesAttachedPropertyApplicator.Clear(element);
+        CanvasAttachedPropertyApplicator.Clear(element);
+        RelativePanelAttachedPropertyApplicator.Clear(element);
+        ToolTipServiceAttachedPropertyApplicator.Clear(element);
+        VariableSizedWrapGridAttachedPropertyApplicator.Clear(element);
 
         foreach (var property in node.AttachedProperties)
         {
@@ -22,8 +26,20 @@ internal static class AttachedPropertyApplicator
             case "AutomationProperties":
                 AutomationPropertiesAttachedPropertyApplicator.Apply(element, property);
                 break;
+            case "Canvas":
+                CanvasAttachedPropertyApplicator.Apply(element, property);
+                break;
             case "Grid":
                 GridAttachedPropertyApplicator.Apply(element, property);
+                break;
+            case "RelativePanel":
+                RelativePanelAttachedPropertyApplicator.Apply(element, property);
+                break;
+            case "ToolTipService":
+                ToolTipServiceAttachedPropertyApplicator.Apply(element, property);
+                break;
+            case "VariableSizedWrapGrid":
+                VariableSizedWrapGridAttachedPropertyApplicator.Apply(element, property);
                 break;
             default:
                 throw CsxamlRuntimeExceptionBuilder.Wrap(

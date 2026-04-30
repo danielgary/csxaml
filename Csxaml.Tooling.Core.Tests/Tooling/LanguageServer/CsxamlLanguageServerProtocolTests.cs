@@ -11,11 +11,11 @@ public sealed class CsxamlLanguageServerProtocolTests
     public async Task Protocol_smoke_path_serves_completion_definition_and_semantic_tokens()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
             using Microsoft.UI.Xaml.Automation;
 
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
             State<string> SelectedId = new State<string>("todo-1");
@@ -73,7 +73,7 @@ public sealed class CsxamlLanguageServerProtocolTests
         var definition = definitionResponse.GetProperty("result")[0];
         StringAssert.EndsWith(
             definition.GetProperty("uri").GetString(),
-            "/Csxaml.Demo/Components/TodoCard.csxaml");
+            "/samples/Csxaml.TodoApp/Components/TodoCard.csxaml");
 
         var tokenResponse = await client.SendRequestAsync(
             "textDocument/semanticTokens/full",
@@ -100,7 +100,7 @@ public sealed class CsxamlLanguageServerProtocolTests
     {
         const string text =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <Button Text= />;
@@ -108,7 +108,7 @@ public sealed class CsxamlLanguageServerProtocolTests
             """;
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             text);
 
         await using var client = await StartClientAsync();
@@ -133,9 +133,9 @@ public sealed class CsxamlLanguageServerProtocolTests
         }
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe {
                 State<string> SelectedId = new State<string>("todo-1");

@@ -28,6 +28,45 @@ public sealed class ScrollViewerControlAdapterTests
         });
     }
 
+    [TestMethod]
+    public void Render_ScrollViewer_AppliesScrollModeProperties()
+    {
+        WinUiTestEnvironment.Run(() =>
+        {
+            var renderer = new WinUiNodeRenderer();
+
+            var scrollViewer = (ScrollViewer)renderer.RenderProjectedRoot(
+                new NativeElementNode(
+                    "ScrollViewer",
+                    null,
+                    [
+                        new NativePropertyValue(
+                            "HorizontalScrollBarVisibility",
+                            ScrollBarVisibility.Disabled,
+                            ValueKindHint.Enum),
+                        new NativePropertyValue(
+                            "HorizontalScrollMode",
+                            ScrollMode.Disabled,
+                            ValueKindHint.Enum),
+                        new NativePropertyValue(
+                            "VerticalScrollBarVisibility",
+                            ScrollBarVisibility.Auto,
+                            ValueKindHint.Enum),
+                        new NativePropertyValue(
+                            "VerticalScrollMode",
+                            ScrollMode.Auto,
+                            ValueKindHint.Enum)
+                    ],
+                    Array.Empty<NativeEventValue>(),
+                    Array.Empty<Node>()));
+
+            Assert.AreEqual(ScrollBarVisibility.Disabled, scrollViewer.HorizontalScrollBarVisibility);
+            Assert.AreEqual(ScrollMode.Disabled, scrollViewer.HorizontalScrollMode);
+            Assert.AreEqual(ScrollBarVisibility.Auto, scrollViewer.VerticalScrollBarVisibility);
+            Assert.AreEqual(ScrollMode.Auto, scrollViewer.VerticalScrollMode);
+        });
+    }
+
     private static NativeElementNode CreateScrollViewer(string text)
     {
         return new NativeElementNode(

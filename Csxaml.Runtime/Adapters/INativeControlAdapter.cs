@@ -14,4 +14,8 @@ internal interface INativeControlAdapter
         NativeEventBindingStore bindingStore);
 
     void SetChildren(object element, IReadOnlyList<object> children);
+
+    void SetPropertyContent(
+        object element,
+        IReadOnlyDictionary<string, IReadOnlyList<object>> propertyContent);
 }

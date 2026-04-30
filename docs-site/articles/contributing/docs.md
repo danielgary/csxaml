@@ -7,6 +7,11 @@ description: How to build, preview, validate, and update the CSXAML DocFX docume
 
 The documentation site is built with DocFX and published with GitHub Pages.
 
+The full docs build also runs a Node-based CSXAML code highlighter. It loads
+the VS Code TextMate grammar from `VSCodeExtension/syntaxes`, so docs and editor
+highlighting stay aligned. Install Node.js 20.18.1 or newer and make sure `npm`
+is available on `PATH` before running `Invoke-DocsBuild.ps1`.
+
 ## Restore tools
 
 ```powershell
@@ -26,13 +31,16 @@ From the repo root:
 The script:
 
 1. restores local .NET tools
-2. restores API-bearing projects with failed local package sources ignored
-3. builds XML-doc-enabled API projects in Release
-4. runs `docfx metadata --noRestore`
-5. runs `docfx build`
-6. checks that the spec and supported-feature includes rendered into built HTML
-7. checks built-site local links under `_site`
-8. reports external-link failures without failing the build
+2. runs `npm ci` for the docs-site highlighter package
+3. restores API-bearing projects with failed local package sources ignored
+4. builds XML-doc-enabled API projects in Release
+5. runs `docfx metadata --noRestore`
+6. runs `docfx build`
+7. applies CSXAML syntax highlighting to built code fences
+8. checks that CSXAML code fences, the spec include, and the supported-feature
+   include rendered into built HTML
+9. checks built-site local links under `_site`
+10. reports external-link failures without failing the build
 
 Generated API YAML is written under `obj\docfx`. Static site output is written
 under `_site`. Neither path should be committed.

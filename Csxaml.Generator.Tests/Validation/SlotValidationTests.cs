@@ -75,7 +75,7 @@ public sealed class SlotValidationTests
     }
 
     [TestMethod]
-    public void Validate_NamedSlot_ThrowsDiagnostic()
+    public void Validate_NamedSlot_AllowsNamedSlotDeclaration()
     {
         var component = GeneratorTestHarness.Parse(
             "TodoCard.csxaml",
@@ -87,10 +87,52 @@ public sealed class SlotValidationTests
             }
             """);
 
+        var compilation = GeneratorTestHarness.Validate(component);
+        var metadata = compilation.Components.GetAll().Single(component => component.Name == "TodoCard").Metadata;
+
+        Assert.IsFalse(metadata.SupportsDefaultSlot);
+        Assert.AreEqual("Header", metadata.NamedSlots.Single().Name);
+    }
+
+    [TestMethod]
+    public void Validate_DuplicateNamedSlots_ThrowsDiagnostic()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoCard.csxaml",
+            """
+            component Element TodoCard {
+                render <Border>
+                    <Slot Name="Header" />
+                    <Slot Name="Header" />
+                </Border>;
+            }
+            """);
+
         var error = Assert.ThrowsExactly<DiagnosticException>(
             () => GeneratorTestHarness.Validate(component));
 
-        StringAssert.Contains(error.Message, "named slots are not supported yet");
+        StringAssert.Contains(error.Message, "more than one named slot 'Header'");
+    }
+
+    [TestMethod]
+    public void Validate_NamedSlotInsideForeach_ThrowsDiagnostic()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "TodoCard.csxaml",
+            """
+            component Element TodoCard {
+                render <Border>
+                    foreach (var item in Items) {
+                        <Slot Name="Header" />
+                    }
+                </Border>;
+            }
+            """);
+
+        var error = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Validate(component));
+
+        StringAssert.Contains(error.Message, "named slot 'Header' cannot appear inside foreach");
     }
 
     [TestMethod]
@@ -109,7 +151,7 @@ public sealed class SlotValidationTests
         var error = Assert.ThrowsExactly<DiagnosticException>(
             () => GeneratorTestHarness.Validate(component));
 
-        StringAssert.Contains(error.Message, "default slot does not support attributes");
+        StringAssert.Contains(error.Message, "slot does not support attributes other than Name");
     }
 
     [TestMethod]
@@ -130,7 +172,7 @@ public sealed class SlotValidationTests
         var error = Assert.ThrowsExactly<DiagnosticException>(
             () => GeneratorTestHarness.Validate(component));
 
-        StringAssert.Contains(error.Message, "default slot does not support child content");
+        StringAssert.Contains(error.Message, "slot does not support child content");
     }
 
     [TestMethod]

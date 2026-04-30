@@ -8,7 +8,7 @@ namespace Csxaml.Tooling.Core.Completion;
 /// <summary>
 /// Provides CSXAML and embedded C# completion items.
 /// </summary>
-public sealed class CsxamlCompletionService
+public sealed partial class CsxamlCompletionService
 {
     private readonly CsxamlCSharpCompletionService _csharpCompletionService = new();
     private readonly CsxamlTagSymbolResolver _tagResolver = new();
@@ -29,7 +29,7 @@ public sealed class CsxamlCompletionService
         var markup = CsxamlMarkupScanner.Scan(text);
         var context = CsxamlMarkupContextAnalyzer.Analyze(text, position);
         if (context.Kind is CsxamlMarkupContextKind.TagName or CsxamlMarkupContextKind.AttributeName
-            && !IsInsideMarkupExpression(text, position))
+            && !CsxamlMarkupExpressionDetector.IsInsideExpression(text, position))
         {
             return GetMarkupCompletions(filePath, text, markup, context);
         }
@@ -68,13 +68,22 @@ public sealed class CsxamlCompletionService
     {
         var items = new List<CsxamlCompletionItem>();
         var prefix = context.PrefixText;
+        if (context.PropertyContentOwner is not null)
+        {
+            return CompletePropertyContentTags(
+                context,
+                usingDirectives,
+                currentNamespace,
+                workspace);
+        }
+
         if (context.Qualifier is null)
         {
             items.AddRange(
                 ControlMetadataRegistry.Controls
                     .Where(control => MatchesPrefix(control.TagName, prefix))
                     .Select(
-                        control => CreateTagItem(
+                        control => CsxamlMarkupCompletionItemFactory.CreateTagItem(
                             control.TagName,
                             "WinUI control",
                             control.ChildKind != ControlChildKind.None)));
@@ -91,7 +100,7 @@ public sealed class CsxamlCompletionService
                         .Where(component => component.Metadata.NamespaceName == namespaceName)
                         .Where(component => MatchesPrefix(component.Metadata.Name, prefix))
                         .Select(
-                            component => CreateTagItem(
+                            component => CsxamlMarkupCompletionItemFactory.CreateTagItem(
                                 component.Metadata.Name,
                                 $"Component from {component.Metadata.NamespaceName}",
                                 component.Metadata.SupportsDefaultSlot)));
@@ -101,7 +110,7 @@ public sealed class CsxamlCompletionService
                         .Where(control => GetNamespace(control.ClrTypeName) == namespaceName)
                         .Where(control => MatchesPrefix(GetName(control.ClrTypeName), prefix))
                         .Select(
-                            control => CreateTagItem(
+                            control => CsxamlMarkupCompletionItemFactory.CreateTagItem(
                                 GetName(control.ClrTypeName),
                                 $"External control from {namespaceName}",
                                 control.ChildKind != ControlChildKind.None)));
@@ -122,7 +131,7 @@ public sealed class CsxamlCompletionService
                     .Where(component => component.Metadata.NamespaceName == namespaceName)
                     .Where(component => MatchesPrefix(component.Metadata.Name, prefix))
                     .Select(
-                        component => CreateTagItem(
+                            component => CsxamlMarkupCompletionItemFactory.CreateTagItem(
                             $"{context.Qualifier}:{component.Metadata.Name}",
                             $"Component from {namespaceName}",
                             component.Metadata.SupportsDefaultSlot)));
@@ -132,7 +141,7 @@ public sealed class CsxamlCompletionService
                     .Where(control => GetNamespace(control.ClrTypeName) == namespaceName)
                     .Where(control => MatchesPrefix(GetName(control.ClrTypeName), prefix))
                     .Select(
-                        control => CreateTagItem(
+                            control => CsxamlMarkupCompletionItemFactory.CreateTagItem(
                             $"{context.Qualifier}:{GetName(control.ClrTypeName)}",
                             $"External control from {namespaceName}",
                             control.ChildKind != ControlChildKind.None)));
@@ -157,7 +166,7 @@ public sealed class CsxamlCompletionService
         duplicateSet.Remove(context.PrefixText);
 
         var items = new List<CsxamlCompletionItem>();
-        if (MatchesPrefix("Key", context.PrefixText))
+        if (!duplicateSet.Contains("Key") && MatchesPrefix("Key", context.PrefixText))
         {
             items.Add(
                 new CsxamlCompletionItem(
@@ -173,20 +182,25 @@ public sealed class CsxamlCompletionService
             AttachedPropertyMetadataRegistry.Properties
                 .Where(property => !duplicateSet.Contains(property.QualifiedName))
                 .Where(property => MatchesPrefix(property.QualifiedName, context.PrefixText))
-                .Select(CreateAttachedPropertyItem));
+                .Select(CsxamlMarkupCompletionItemFactory.CreateAttachedPropertyItem));
 
         if (resolvedTag.Control is not null)
         {
+            if (!duplicateSet.Contains("Ref") && MatchesPrefix("Ref", context.PrefixText))
+            {
+                items.Add(CsxamlMarkupCompletionItemFactory.CreateRefItem(resolvedTag.Control));
+            }
+
             items.AddRange(
                 resolvedTag.Control.Properties
                     .Where(property => !duplicateSet.Contains(property.Name))
                     .Where(property => MatchesPrefix(property.Name, context.PrefixText))
-                    .Select(CreatePropertyItem));
+                    .Select(CsxamlMarkupCompletionItemFactory.CreatePropertyItem));
             items.AddRange(
                 resolvedTag.Control.Events
                     .Where(@event => !duplicateSet.Contains(@event.ExposedName))
                     .Where(@event => MatchesPrefix(@event.ExposedName, context.PrefixText))
-                    .Select(CreateEventItem));
+                    .Select(CsxamlMarkupCompletionItemFactory.CreateEventItem));
         }
 
         if (resolvedTag.Component is not null)
@@ -195,82 +209,10 @@ public sealed class CsxamlCompletionService
                 resolvedTag.Component.Metadata.Parameters
                     .Where(parameter => !duplicateSet.Contains(parameter.Name))
                     .Where(parameter => MatchesPrefix(parameter.Name, context.PrefixText))
-                    .Select(CreateComponentParameterItem));
+                    .Select(CsxamlMarkupCompletionItemFactory.CreateComponentParameterItem));
         }
 
         return Order(items);
-    }
-
-    private static CsxamlCompletionItem CreateTagItem(
-        string label,
-        string detail,
-        bool canHaveChildren)
-    {
-        return new CsxamlCompletionItem(
-            label,
-            CsxamlCompletionItemKind.Class,
-            detail,
-            canHaveChildren
-                ? $"{label}>$0</{label}>"
-                : $"{label} />",
-            $"1-{label}",
-            IsSnippet: true);
-    }
-
-    private static CsxamlCompletionItem CreateAttachedPropertyItem(AttachedPropertyMetadata property)
-    {
-        var snippet = property.ValueKindHint == ValueKindHint.String
-            ? $"{property.QualifiedName}=\"${{1}}\""
-            : $"{property.QualifiedName}={{${{1}}}}";
-        var detail = property.RequiredParentTagName is null
-            ? property.ClrTypeName
-            : $"{property.ClrTypeName} (children of <{property.RequiredParentTagName}>)";
-        return new CsxamlCompletionItem(
-            property.QualifiedName,
-            CsxamlCompletionItemKind.Property,
-            detail,
-            snippet,
-            $"1a-{property.QualifiedName}",
-            IsSnippet: true);
-    }
-
-    private static CsxamlCompletionItem CreatePropertyItem(PropertyMetadata property)
-    {
-        var snippet = property.ValueKindHint == ValueKindHint.String
-            ? $"{property.Name}=\"${{1}}\""
-            : $"{property.Name}={{${{1}}}}";
-        return new CsxamlCompletionItem(
-            property.Name,
-            CsxamlCompletionItemKind.Property,
-            property.ClrTypeName,
-            snippet,
-            $"2-{property.Name}",
-            IsSnippet: true);
-    }
-
-    private static CsxamlCompletionItem CreateEventItem(EventMetadata @event)
-    {
-        return new CsxamlCompletionItem(
-            @event.ExposedName,
-            CsxamlCompletionItemKind.Event,
-            @event.HandlerTypeName,
-            $"{@event.ExposedName}={{${{1}}}}",
-            $"3-{@event.ExposedName}",
-            IsSnippet: true);
-    }
-
-    private static CsxamlCompletionItem CreateComponentParameterItem(ComponentParameterMetadata parameter)
-    {
-        var snippet = IsStringType(parameter.TypeName)
-            ? $"{parameter.Name}=\"${{1}}\""
-            : $"{parameter.Name}={{${{1}}}}";
-        return new CsxamlCompletionItem(
-            parameter.Name,
-            CsxamlCompletionItemKind.Parameter,
-            parameter.TypeName,
-            snippet,
-            $"4-{parameter.Name}",
-            IsSnippet: true);
     }
 
     private static IReadOnlyList<CsxamlCompletionItem> Order(IEnumerable<CsxamlCompletionItem> items)
@@ -294,80 +236,10 @@ public sealed class CsxamlCompletionService
         return separatorIndex < 0 ? clrTypeName : clrTypeName[(separatorIndex + 1)..];
     }
 
-    private static bool IsStringType(string typeName)
-    {
-        return string.Equals(typeName, "string", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(typeName, "System.String", StringComparison.Ordinal);
-    }
-
     private static bool MatchesPrefix(string candidate, string prefix)
     {
         return string.IsNullOrEmpty(prefix)
             || candidate.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsInsideMarkupExpression(string text, int position)
-    {
-        var braceDepth = 0;
-        var activeTag = false;
-        var inString = false;
-        var stringDelimiter = '\0';
-
-        for (var index = 0; index < position && index < text.Length; index++)
-        {
-            var current = text[index];
-            if (inString)
-            {
-                if (current == '\\')
-                {
-                    index++;
-                    continue;
-                }
-
-                if (current == stringDelimiter)
-                {
-                    inString = false;
-                }
-
-                continue;
-            }
-
-            if (current is '"' or '\'')
-            {
-                inString = true;
-                stringDelimiter = current;
-                continue;
-            }
-
-            if (current == '<' && braceDepth == 0)
-            {
-                activeTag = true;
-                continue;
-            }
-
-            if (!activeTag)
-            {
-                continue;
-            }
-
-            if (current == '{')
-            {
-                braceDepth++;
-                continue;
-            }
-
-            if (current == '}' && braceDepth > 0)
-            {
-                braceDepth--;
-                continue;
-            }
-
-            if (current == '>' && braceDepth == 0)
-            {
-                activeTag = false;
-            }
-        }
-
-        return activeTag && braceDepth > 0;
-    }
 }

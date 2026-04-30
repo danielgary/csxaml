@@ -7,6 +7,8 @@ public abstract class ComponentInstance
 {
     private readonly ChildComponentStore _childComponents = new();
     private IReadOnlyList<Node> _childContent = Array.Empty<Node>();
+    private IReadOnlyDictionary<string, IReadOnlyList<Node>> _namedSlotContent =
+        new Dictionary<string, IReadOnlyList<Node>>(StringComparer.Ordinal);
     private bool _isDisposed;
     private bool _isMounted;
     private IServiceProvider? _services;
@@ -63,6 +65,12 @@ public abstract class ComponentInstance
     internal void SetChildContent(IReadOnlyList<Node> childContent)
     {
         _childContent = childContent;
+    }
+
+    internal void SetNamedSlotContent(
+        IReadOnlyDictionary<string, IReadOnlyList<Node>> namedSlotContent)
+    {
+        _namedSlotContent = namedSlotContent;
     }
 
     internal void Initialize(ComponentContext context)
@@ -141,6 +149,18 @@ public abstract class ComponentInstance
     protected void ValidateStateWrite()
     {
         _stateWriteValidator?.Invoke();
+    }
+
+    /// <summary>
+    /// Gets named slot content passed to the component by its parent.
+    /// </summary>
+    /// <param name="name">The slot name.</param>
+    /// <returns>The content assigned to the slot, or an empty list.</returns>
+    protected IReadOnlyList<Node> GetNamedSlotContent(string name)
+    {
+        return _namedSlotContent.TryGetValue(name, out var content)
+            ? content
+            : Array.Empty<Node>();
     }
 
     /// <summary>

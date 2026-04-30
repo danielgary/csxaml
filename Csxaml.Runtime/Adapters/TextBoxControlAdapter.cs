@@ -15,6 +15,7 @@ internal sealed class TextBoxControlAdapter : ControlAdapter<TextBox>
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
+        CommonElementEventBinder.Apply(control, node, bindingStore);
         NativeElementReader.TryGetEventHandler<Action<string>>(node, "OnTextChanged", out var onTextChanged);
         bindingStore.Rebind(
             "OnTextChanged",
@@ -23,7 +24,8 @@ internal sealed class TextBoxControlAdapter : ControlAdapter<TextBox>
             {
                 TextChangedEventHandler typedHandler = (_, _) =>
                 {
-                    GetState(control).Dispatch(control.Text ?? string.Empty, handler);
+                    NativeEventDispatchScope.Invoke(
+                        () => GetState(control).Dispatch(control.Text ?? string.Empty, handler));
                 };
 
                 control.TextChanged += typedHandler;

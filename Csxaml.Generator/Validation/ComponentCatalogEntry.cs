@@ -18,4 +18,8 @@ internal sealed record ComponentCatalogEntry(
     public string? PropsTypeName => Metadata.PropsTypeName;
 
     public bool SupportsDefaultSlot => Metadata.SupportsDefaultSlot;
+
+    public IReadOnlyList<Csxaml.ControlMetadata.ComponentSlotMetadata> NamedSlots => Metadata.NamedSlots;
+
+    public Csxaml.ControlMetadata.ComponentKind Kind => Metadata.Kind;
 }

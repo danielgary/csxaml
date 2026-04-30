@@ -45,20 +45,34 @@ The project currently has implemented proof points in these areas:
 - Todo demo proving component semantics
 - shared control metadata and metadata generation for curated WinUI controls
 - generic native prop and event emission with metadata-driven validation
-- runtime control adapters for `Border`, `Button`, `StackPanel`, and `TextBlock`
+- runtime control adapters for `AutoSuggestBox`, `Border`, `Button`,
+  `CheckBox`, `Frame`, `Grid`, `ListView`, `ScrollViewer`, `Slider`,
+  `StackPanel`, `TextBlock`, and `TextBox`
+- explicit `TextBlock.TextWrapping` support for text-heavy generated WinUI
+  surfaces
+- `ScrollViewer` scroll-mode and scroll-bar visibility support for finite-width
+  text surfaces and native horizontal gesture interop
 - Todo demo styling through CSXAML props for done/not-done state
 - metadata, generator, and runtime regression coverage for the Milestone 3 path
 - controlled `TextBox` and `CheckBox` support through metadata-driven validation and runtime adapters
 - projected `OnTextChanged` and `OnCheckedChanged` events with C# delegate handlers
+- experimental senderless typed event-argument projection for common WinUI
+  loaded, key, pointer, selection, value, item-click, autosuggest, and frame
+  navigation events
 - Todo Editor demo proving controlled input state flow through CSXAML
 - runtime coverage for controlled input suppression, native input reuse, and editor interaction flows
+- Slider `ValueChanged` state updates coalesce native-event rerenders and defer
+  controlled value projection during pointer drags
 - retained native reconciliation for keyed and unkeyed native trees
 - in-place `StackPanel` child patching to preserve retained native controls during reorder and sibling churn
 - `TextBox` caret and selection restoration during controlled value patches
 - file-level `using` directives and alias-qualified tag parsing for external controls and attached-property owners
 - referenced-assembly external control discovery plus generated runtime registration for supported external controls
-- demo proof for one package-provided external control (`InfoBar`) and one solution-local custom control (`StatusButton`)
+- external-control proof for imported WinUI controls plus one solution-local custom control (`StatusButton`)
 - regression coverage for external control import resolution, metadata generation, validation, emitted registration, and demo-tree authoring
+- experimental external-control content-property metadata for default child
+  content, including `[ContentProperty]`, inherited content attributes,
+  supported conventions, and metadata-driven runtime child projection
 - shared repo-level CSXAML build assets with project opt-in instead of handwritten per-project generation targets
 - deterministic component namespace behavior through explicit file namespaces or a project-default fallback
 - deterministic internal generated namespaces for project-level support files such as manifests and external-control registration
@@ -76,7 +90,9 @@ The project currently has implemented proof points in these areas:
 - a local VS Code extension that combines TextMate grammar/snippets with the shared language server
 - DocFX docs render `csxaml` code fences with the same TextMate grammar used by the VS Code extension
 - author-facing docs for compatibility, feature support, external-control interop, diagnostics/debugging, lifecycle/async behavior, component testing, Visual Studio bootstrap, and VS Code local iteration
-- starter sample proof under `samples/Csxaml.Starter`
+- consolidated sample proof under `samples/Csxaml.ExistingWinUI`,
+  `samples/Csxaml.HelloWorld`, `samples/Csxaml.TodoApp`, and
+  `samples/Csxaml.FeatureGallery`
 - BenchmarkDotNet scaffold under `Csxaml.Benchmarks` for generator, metadata, runtime, and tooling scenarios
 - preview package metadata for `Csxaml.ControlMetadata`, `Csxaml.Runtime`, and `Csxaml.Testing`
 - author-facing docs for getting started, native props/events, performance/scale, and packaging/release process
@@ -125,6 +141,7 @@ CSXAML v1 is ready when all of the following are true:
 - Milestone 13 - Stabilization, compatibility, and test hardening
 - Milestone 14 - Performance and large-app hardening
 - Milestone 15 - Packaging, templates, docs, and v1 release
+- Post-v1 feature track - WinUI interop and app-shell breadth
 
 ---
 
@@ -1082,7 +1099,160 @@ A production-ready v1 needs packaging, samples, templates, docs, and a clear sup
 - `Csxaml.ControlMetadata`, `Csxaml.Runtime`, `Csxaml.Generator`, and `Csxaml.Testing` now have preview package metadata and can be packed locally.
 - `Csxaml.Generator` carries `buildTransitive` assets and a packaged `tools/net10.0/any` generator payload; repo builds can still override with `CsxamlGeneratorProject`.
 - A temporary clean package consumer under `artifacts/package-consumer-*` restored from `artifacts/packages`, built without repo-local project references, and produced generated files plus source maps under `obj\...\Csxaml`.
-- `samples/Csxaml.Starter` is the first small starter sample. It still uses repo-local project references, so it is a sample rather than a packaged `dotnet new` template.
+- The launchable repo-local samples are consolidated under `samples/`:
+  `Csxaml.ExistingWinUI` for the v1-safe existing-shell path,
+  `Csxaml.HelloWorld` for the minimal generated-app path,
+  `Csxaml.TodoApp` for the advanced Todo app, and
+  `Csxaml.FeatureGallery` for the experimental feature gallery.
+
+---
+
+# Post-V1 Feature Track - WinUI Interop and App-Shell Breadth
+
+**Status:** [ ]
+
+## Purpose
+
+Broaden CSXAML from a component/runtime slice into a more complete WinUI
+authoring experience while preserving the framework's core feel: explicit C#,
+metadata-driven validation, predictable generated code, and WinUI-familiar
+names.
+
+## Why it matters
+
+The v1 surface proves the component model, retained runtime, project-system
+integration, external-control import model, docs, packages, and tooling. The
+next developer-experience gap is that real WinUI apps still hit boundaries
+quickly:
+
+- common event args need a typed surface; Phase 02 now covers the agreed common
+  set experimentally
+- imperative focus/scroll/animation interop now has experimental explicit
+  element refs for native controls
+- external controls with content properties are awkward
+- named property content and named slots are deferred
+- attached-property coverage now includes the planned built-in layout, tooltip,
+  and automation owner set, while external owner discovery remains deferred
+- new apps still need `App.xaml`, but generated `Page` and `Window` roots now
+  cover the first shell-boilerplate slice experimentally
+- resource/template guidance now explicitly explains generated app resources
+  and when to keep XAML dictionaries
+- list-scale docs and tooling now distinguish `foreach` retained rendering from
+  native virtualization
+- syntax-highlighting fixtures now cover the post-v1 syntax surface; no
+  app-hosted sample presenter exists in this repo yet
+
+## Planning decisions
+
+- Roadmap phase labels use the execution package numbering under
+  `plans/FEATURE_PLAN/`.
+- This work is a post-v1 feature track, not an expansion of the current v1
+  promise.
+- The generated-app project mode name is `CsxamlApplicationMode=Generated`
+  unless implementation work uncovers a blocker.
+- Until implementation lands for a phase, feature-matrix rows should use
+  `Not in v1` with notes that describe the planned post-v1 direction.
+- When a phase does land, public docs should mark it as experimental unless it
+  is deliberately pulled into the v1 compatibility promise.
+
+## Representative examples
+
+Typed event args:
+
+```csxaml
+<ListView OnSelectionChanged={args => Select(args.AddedItems)} />
+<TextBox OnKeyDown={args => SubmitOnEnter(args)} />
+```
+
+Element refs:
+
+```csxaml
+ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
+
+render <TextBox Ref={SearchBox} />;
+```
+
+Property content and named slots:
+
+```csxaml
+<Button Content="Open">
+    <Button.Flyout>
+        <Flyout />
+    </Button.Flyout>
+</Button>
+```
+
+Generated app roots:
+
+```csxaml
+component Application App {
+    startup MainWindow;
+    resources AppResources;
+}
+
+component Window MainWindow {
+    render <HomePage />;
+}
+```
+
+## Exit criteria
+
+- typed event-argument projection works for the agreed common WinUI event set
+- `ElementRef<T>` supports focus, scrolling, animation targets, and native
+  interop with deterministic cleanup
+- external-control content-property metadata drives validation and runtime
+  child projection
+- property-content syntax supports native property content and component named
+  slots
+- generated `Page` and `Window` roots host retained CSXAML bodies and generated
+  application mode can replace the default WinUI app/window shell files
+- attached-property metadata covers the agreed layout, tooltip, and automation
+  owner set
+- generated application mode builds and runs without source `App.xaml`,
+  `App.xaml.cs`, `MainWindow.xaml`, or `MainWindow.xaml.cs`
+- generated `ResourceDictionary` roots cover app-owned resources while deep
+  template/resource work remains explicitly bounded
+- list virtualization guidance is present in docs and tooling
+- syntax highlighting, snippets, semantic tokens, docs examples, and sample
+  presenters stay aligned with the new syntax
+- `LANGUAGE-SPEC.md`, this roadmap, `docs/supported-feature-matrix.md`, DocFX
+  docs, README, samples, templates, and `FEATURE_PLAN.md` agree on status
+
+## Checklist
+
+- [x] Phase 01 - align status surfaces and feature contract
+- [x] Phase 02 - typed event-argument projection
+- [x] Phase 03 - element references
+- [x] Phase 04 - content-property metadata discovery
+- [x] Phase 05 - property-content syntax and named slots
+- [x] Phase 06 - generated page and window root foundation
+- [x] Phase 07 - full generated application mode
+- [x] Phase 08 - broader attached-property metadata
+- [x] Phase 09 - resource and template guidance
+- [x] Phase 10 - list virtualization guidance
+- [x] Phase 11 - CSXAML highlighting in sample presenters and fixtures
+
+## Execution packages
+
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_01.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_02.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_03.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_04.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_05.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_06.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_07.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_08.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_09.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_10.md`
+- `plans/FEATURE_PLAN/EXECUTION_PACKAGE_PHASE_11.md`
+
+## Notes
+
+- Phase 01 is documentation and planning alignment only. It does not implement
+  runtime, generator, parser, metadata, or tooling behavior.
+- Implementation phases must keep `LANGUAGE-SPEC.md`, this roadmap,
+  `docs/supported-feature-matrix.md`, DocFX docs, samples/templates, and
+  `FEATURE_PLAN.md` synchronized in the same change.
 
 ---
 
@@ -1187,6 +1357,137 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - Add dated notes here as architecture or tooling decisions evolve.
 - Record when milestones are split or re-scoped.
 - Record which milestones are considered blockers for v1.
+- 2026-04-29: Completed Phase 01 status alignment for the post-v1 track. The
+  feature plan links to execution packages, the language spec records the
+  planned direction as non-normative, the supported-feature matrix marks the
+  new areas `Not in v1`, DocFX docs expose a planned-features page, and starter
+  docs/samples clarify that generated app roots are future work.
+- 2026-04-29: Completed Phase 02 typed event-argument projection as
+  experimental behavior outside the v1 promise. Built-in metadata/runtime now
+  cover senderless common WinUI event args for loaded, key, pointer, selection,
+  value, item-click, autosuggest, and frame navigation events; external
+  `EventHandler<TEventArgs>` events project as `Action<TEventArgs>` without
+  shadowing curated built-in command events such as `OnClick`.
+- 2026-04-29: Completed Phase 03 element references as experimental behavior
+  outside the v1 promise. `ElementRef<T>` is now a public runtime handle,
+  native `Ref={...}` emits a dedicated ref node value, renderer projection sets
+  refs after native projection and clears them on replacement, removal, and root
+  disposal, and tooling surfaces completion, hover, semantic tokens, and C#
+  diagnostics for ref expressions. Component refs and `x:Name` symbolic lookup
+  remain intentionally unsupported.
+- 2026-04-29: Completed Phase 04 content-property metadata discovery as
+  experimental behavior outside the v1 promise. Control metadata now carries a
+  default content-property record with kind, property type, item type, and
+  discovery source; external metadata generation prefers inherited
+  `[ContentProperty]` attributes over conventions; validation reports the
+  content property name for single-child and unsupported-type failures; and the
+  runtime external child setter uses metadata instead of assuming `Child` or
+  `Content`. Property-content syntax and named slots remain Phase 05.
+- 2026-04-30: Completed Phase 05 property-content syntax and named slots as
+  experimental behavior outside the v1 promise. The compiler now parses,
+  validates, emits, and source-maps `<Owner.Property>` child elements; the
+  runtime transports and retains native property content and component named
+  slot content separately from default children; and tooling covers completion,
+  hover, formatting, semantic tokens, and named-slot go-to-definition. Template
+  authoring, fallback slot content, root-level property content, and unsupported
+  native property targets remain deferred.
+- 2026-04-30: Completed Phase 06 generated page and window root foundation as
+  experimental behavior outside the v1 promise. `component Page` and
+  `component Window` now generate real WinUI shell types backed by retained
+  CSXAML body components, `Window` supports limited title/size/backdrop root
+  declarations, generated pages emit hidden XAML companions for native
+  `Frame.Navigate(typeof(PageType))` activation, `CsxamlRootHost` mounts
+  generated roots into `Page.Content` or `Window.Content`, and project-system
+  fixtures prove generated root types compile and appear in manifests.
+  Generated `Application`, generated entry
+  point ownership, generated `ResourceDictionary`, and
+  `CsxamlApplicationMode=Generated` remain Phase 07 work.
+- 2026-04-30: Completed Phase 07 generated application mode as experimental
+  behavior outside the v1 promise. `CsxamlApplicationMode=Generated` now passes
+  through MSBuild to the generator, rejects `App.xaml` `ApplicationDefinition`
+  conflicts, requires exactly one `component Application`, emits a WinUI entry
+  point, creates and activates the configured startup window, passes optional
+  services into generated roots, and supports limited
+  `component ResourceDictionary` merged dictionaries. The generated app build
+  emits a hidden intermediate `App.xaml` so WinUI default control resources load
+  through the normal XAML compiler path. The `samples/Csxaml.TodoApp` fixture
+  builds without source `App.xaml`, `App.xaml.cs`,
+  `MainWindow.xaml`, or `MainWindow.xaml.cs`; advanced activation, packaging,
+  keyed resources, and deep templates remain deferred.
+- 2026-04-30: Completed Phase 08 broader attached-property metadata as
+  experimental behavior outside the v1 promise. Built-in metadata now covers
+  `Canvas`, `RelativePanel`, `ToolTipService`,
+  `VariableSizedWrapGrid`, and expanded `AutomationProperties` entries; the
+  matching layout controls are renderable; runtime application and clearing are
+  split by owner-specific applicators; tooling completion, hover, semantic
+  tokens, and quick-fix suggestions see the broader surface. External
+  attached-property owner discovery remains deferred.
+- 2026-04-30: Completed Phase 09 resource/template guidance. The docs now
+  include a first-class resources and templates guide, link it from the DocFX
+  TOC, explain generated app resources without requiring source `App.xaml`, and
+  keep XAML dictionaries as the recommended surface for deep WinUI templates,
+  theme resources, `StaticResource`, `ThemeResource`, `Binding`, and
+  `DataContext`-heavy controls.
+- 2026-04-30: Completed Phase 10 list virtualization guidance. The language
+  spec, performance docs, supported-feature matrix, tutorial examples, and
+  tooling hover now state that `foreach` renders retained child subtrees and is
+  not virtualization. Large scrolling item surfaces remain native
+  virtualization or external-control interop territory until a dedicated
+  CSXAML abstraction exists.
+- 2026-04-30: Completed Phase 11 CSXAML highlighting fixture alignment. The VS
+  Code TextMate grammar now keeps generated roots, `startup`/`resources`,
+  property-content tags, refs, and attached-property examples out of the helper
+  C# fallback; grammar/snippet fixtures cover the new syntax; semantic-token
+  tests cover generated-root keywords; and docs state that future app-hosted
+  sample presenters should consume the grammar or a deliberately small fallback
+  classifier. `samples/Csxaml.FeatureGallery` now includes an app-hosted
+  `SampleCodePresenter` with that deliberately small fallback classifier.
+- 2026-04-30: Consolidated demo/sample projects under `samples/`. The
+  launchable sample set is now `samples/Csxaml.ExistingWinUI` for the
+  existing WinUI shell + `CsxamlHost` path, `samples/Csxaml.HelloWorld` for
+  the minimal generated `App.csxaml` path, `samples/Csxaml.TodoApp` for
+  the advanced generated Todo app, and `samples/Csxaml.FeatureGallery` for the
+  broad experimental feature surface. The project-reference fixtures moved under
+  `samples/Csxaml.ProjectSystem.Components` and
+  `samples/Csxaml.ProjectSystem.Consumer`, stale root demo projects were
+  removed, and VS Code launch/tasks now target the sample apps directly.
+- 2026-04-30: Fixed generated application startup for WinUI controls that need
+  default app resources. Generated mode now writes a hidden intermediate
+  `App.xaml`, rejects source `App.xaml` conflicts, and skips runtime
+  instantiation for default-only `XamlControlsResources` dictionaries. Focused
+  smoke validation confirmed `samples/Csxaml.HelloWorld` and
+  `samples/Csxaml.TodoApp` stay running after launch.
+- 2026-04-30: Recreated the Todo demo inside `samples/Csxaml.TodoApp` so generated
+  application mode now proves a realistic app path instead of a hello-world
+  shell. `App.csxaml` owns startup, app resources, and service registration;
+  `MainWindow.csxaml` and `HomePage.csxaml` host the board; and the fixture
+  exercises injected services, state, controlled inputs, keyed lists, attached
+  automation properties, external `StatusButton` interop, and a generated-app
+  proof panel without source `App.xaml`, `App.xaml.cs`, `MainWindow.xaml`, or
+  `MainWindow.xaml.cs`.
+- 2026-04-30: Added `samples/Csxaml.FeatureGallery`, a generated app focused on
+  the experimental post-v1 feature surface. It covers named slots, property
+  content, external `[ContentProperty]` controls, `ElementRef<T>`, typed common
+  WinUI events, expanded attached-property owners, generated resource guidance,
+  native virtualization guidance, and app-hosted CSXAML code presentation with
+  WinUI Fluent resources and controls, translucent cards, reveal-style hover
+  states, animated card lift, Mica window backdrop, native button hover motion,
+  and package-provided `InfoBar` interop. VS Code launch/tasks and
+  project-system configuration tests now include the sample.
+- 2026-04-30: Fixed generated `Page` root activation through native WinUI frame
+  navigation. Page roots now emit hidden generated `.xaml` companions, generated
+  page constructors call `InitializeComponent()` before mounting the retained
+  CSXAML body, and MSBuild includes those companions as hidden WinUI `Page`
+  items. The project-system consumer fixture is now a generated CSXAML app as
+  well, so generated `Application`, `Window`, and `Page` roots are validated
+  together through an ordinary project-reference build.
+- 2026-04-30: Hardened the Feature Gallery refs/events interaction path. Slider
+  `ValueChanged` state updates now avoid redundant sample invalidations, runtime
+  native event handlers are scoped and avoid rebinding unchanged delegates,
+  slider pointer drags defer controlled value projection until release, and
+  `ScrollViewer` now exposes scroll mode/bar visibility so the gallery disables
+  horizontal scrolling for wrapping and native horizontal gestures.
+- 2026-04-29: Began Phase 01 of the post-v1 WinUI interop and app-shell breadth track. This pass records planned direction only, not shipped behavior: typed event-argument projection, explicit `ElementRef<T>` handles, content-property/property-content expansion, generated `Application`/`Window`/`Page`/`ResourceDictionary` roots with `CsxamlApplicationMode=Generated`, broader attached-property metadata, resource/template guidance, virtualization guidance, and highlighting alignment. The work is tracked through `FEATURE_PLAN.md` and execution packages under `plans/FEATURE_PLAN/`.
 - 2026-04-10: Milestone 3 core implementation completed. Metadata-driven native props/events, generic native node emission, runtime control adapters, and Todo demo red/green styling are all in place. Remaining demo launch/build friction is being treated as project-system maturity work under Milestone 10.
 - 2026-04-10: Added a draft language specification focused on C# compatibility, XAML familiarity, parseability, and developer experience. This is real progress toward Milestone 15, but it does not close the broader documentation and release-preparation work.
 - 2026-04-10: Added a `VSCodeExtension` scaffold for CSXAML syntax highlighting. It uses a hybrid TextMate grammar with XML/XAML-style markup scopes and embedded C# regions. This helps experimentation and editor usability, but it does not replace the Milestone 11 Visual Studio tooling goals.
@@ -1242,7 +1543,7 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-23: Documentation audit aligned the repo root `README.md` with the implementation and roadmap status as they stood at the start of that pass: Milestones 1-13 complete, Milestone 14 not yet started, and Milestone 15 in progress. The component testing guide counted toward Milestone 15, while packaging, package boundaries, templates, standalone native props/events docs, release process, and performance benchmarks were still open v1 work.
 - 2026-04-23: Current verification on Windows ARM64 with .NET SDK 10.0.203 passed with `dotnet test .\Csxaml.sln --no-restore -m:1`: 199 passed, 17 skipped, 216 total. A parallel solution test pass first exposed a Visual Studio VSIX packaging/file-lock race around `extension.vsixmanifest`, so sequential solution testing remains the reliable command until that build-path race is understood or eliminated.
 - 2026-04-23: Codebase hygiene audit found a small set of generator/tooling files at or just above the repository's 300-line warning threshold, especially `ComponentEmitter.cs`, `ChildNodeEmitter.cs`, and `MarkupTagResolver.cs`. They were not v1 feature blockers, but they were flagged for responsibility-based splits before more behavior landed there.
-- 2026-04-23: Began executing the Milestone 14/15 plan. Added `Csxaml.Benchmarks` with BenchmarkDotNet scenarios for generator, metadata, runtime reconciliation, and tooling service paths; added the starter sample under `samples/Csxaml.Starter`; wrote getting-started, native props/events, performance/scale, and packaging/release docs; and added versioned package metadata for `Csxaml.ControlMetadata`, `Csxaml.Runtime`, and `Csxaml.Testing`. The remaining release blockers at that point were full benchmark baselines, measured optimization decisions, the NuGet-delivered generator/build package, clean outside-repo package-consumption validation, and the final v1 tag/announcement.
+- 2026-04-23: Began executing the Milestone 14/15 plan. Added `Csxaml.Benchmarks` with BenchmarkDotNet scenarios for generator, metadata, runtime reconciliation, and tooling service paths; added the initial starter sample that later consolidated into `samples/Csxaml.ExistingWinUI`; wrote getting-started, native props/events, performance/scale, and packaging/release docs; and added versioned package metadata for `Csxaml.ControlMetadata`, `Csxaml.Runtime`, and `Csxaml.Testing`. The remaining release blockers at that point were full benchmark baselines, measured optimization decisions, the NuGet-delivered generator/build package, clean outside-repo package-consumption validation, and the final v1 tag/announcement.
 - 2026-04-23: Completed the preview NuGet build-integration slice for Milestone 15. `Csxaml.Generator` now packs `buildTransitive` MSBuild assets plus a `tools/net10.0/any` generator payload, while repo-local builds keep the `CsxamlGeneratorProject` override. A clean temporary package consumer restored from `artifacts/packages`, built without repo-local project references, and verified generated `.g.cs` plus source-map output under `obj\...\Csxaml`. At that point, the remaining v1 blockers were full benchmark baselines, measured optimization decisions, the then-open starter onboarding gap beyond the sample app, and the final v1 tag/announcement.
 - 2026-04-23: Completed the Milestone 14 performance pass. BenchmarkDotNet `ShortRun` baselines are now recorded for generator, metadata, runtime reconciliation, and tooling; the clearest hot spot was tooling completion, and a measured markup-first completion fast path reduced tag completion from `90.3 ms` to `30.8 ms` and attribute completion from `66.9 ms` to `29.8 ms` in the benchmark workspace. Full solution verification still passed afterward with `dotnet test .\Csxaml.sln --no-restore -m:1`.
 - 2026-04-23: Completed a release-truth pass across the README, roadmap, support matrix, packaging docs, getting-started guide, and release notes. The repo now uses one shared release-posture vocabulary, calls out the current release watch items explicitly, and keeps deferred areas such as named slots, broader attached-property owner discovery, richer event-argument projection, virtualization, and `DataContext`-heavy interop firmly outside the v1 promise.

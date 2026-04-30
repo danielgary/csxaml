@@ -7,13 +7,14 @@ internal static class GeneratorOptionsParser
         if (args.Length == 0)
         {
             throw new InvalidOperationException(
-                "Usage: Csxaml.Generator --out <output-directory> --assembly-name <assembly-name> --default-namespace <namespace> --generated-namespace <namespace> [--references-file <path>] <input1.csxaml> <input2.csxaml> ...");
+                "Usage: Csxaml.Generator --out <output-directory> --assembly-name <assembly-name> --default-namespace <namespace> --generated-namespace <namespace> [--application-mode Hybrid|Generated] [--references-file <path>] <input1.csxaml> <input2.csxaml> ...");
         }
 
         string? outputDirectory = null;
         string? assemblyName = null;
         string? defaultNamespace = null;
         string? generatedNamespace = null;
+        var applicationMode = CsxamlApplicationMode.Hybrid;
         string? referencesFilePath = null;
 
         var inputFiles = new List<string>();
@@ -51,6 +52,10 @@ internal static class GeneratorOptionsParser
                     generatedNamespace = value;
                     break;
 
+                case "--application-mode":
+                    applicationMode = ParseApplicationMode(value);
+                    break;
+
                 case "--references-file":
                     referencesFilePath = value;
                     break;
@@ -77,8 +82,20 @@ internal static class GeneratorOptionsParser
             assemblyName!,
             defaultNamespace!,
             generatedNamespace!,
+            applicationMode,
             ReferenceListFileReader.Read(referencesFilePath),
             inputFiles);
+    }
+
+    private static CsxamlApplicationMode ParseApplicationMode(string value)
+    {
+        return value switch
+        {
+            "Hybrid" => CsxamlApplicationMode.Hybrid,
+            "Generated" => CsxamlApplicationMode.Generated,
+            _ => throw new InvalidOperationException(
+                $"Invalid CsxamlApplicationMode '{value}'. Expected 'Hybrid' or 'Generated'.")
+        };
     }
 
     private static void ValidateRequiredOption(string optionName, string? value)

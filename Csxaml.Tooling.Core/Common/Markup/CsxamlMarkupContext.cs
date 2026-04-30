@@ -8,9 +8,11 @@ namespace Csxaml.Tooling.Core.Markup;
 /// <param name="Qualifier">The namespace or alias qualifier for a tag name, when present.</param>
 /// <param name="TagName">The current tag name when completing attributes.</param>
 /// <param name="ExistingAttributeNames">Attribute names already present on the current tag.</param>
+/// <param name="PropertyContentOwner">The owner tag when completing a property-content name.</param>
 public sealed record CsxamlMarkupContext(
     CsxamlMarkupContextKind Kind,
     string PrefixText,
     string? Qualifier,
     string? TagName,
-    IReadOnlyList<string> ExistingAttributeNames);
+    IReadOnlyList<string> ExistingAttributeNames,
+    string? PropertyContentOwner = null);

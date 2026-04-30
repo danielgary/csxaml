@@ -1,6 +1,6 @@
 namespace Csxaml.Generator;
 
-internal sealed class Parser
+internal sealed partial class Parser
 {
     public CsxamlFileDefinition Parse(SourceDocument source)
     {
@@ -26,13 +26,19 @@ internal sealed class Parser
         const string invalidDeclaration = "invalid component declaration";
         const string missingRenderStatement = "missing final render statement in component body";
         var start = context.ReadIdentifier("component", invalidDeclaration).Span.Start;
-        context.ReadIdentifier("Element", invalidDeclaration);
+        var kind = ParseComponentKind(context, invalidDeclaration);
         var componentName = context.ReadIdentifier(invalidDeclaration);
         var parameters = ParseParameters(context);
         context.ReadSymbol("{", invalidDeclaration);
+        if (kind == ComponentKind.Application)
+        {
+            return ParseApplicationDefinition(context, start, componentName, parameters);
+        }
+
         var injectFields = new List<InjectFieldDefinition>();
         var stateFields = new List<StateFieldDefinition>();
         ParsePrologueMembers(context, injectFields, stateFields);
+        var rootProperties = ParseRootProperties(context, kind);
         var helperCode = new ComponentHelperCodeParser(context.Source).Parse(context);
         MisplacedComponentPrologueDetector.Validate(context.Source, helperCode);
         context.ReadIdentifier("render", missingRenderStatement);
@@ -51,15 +57,34 @@ internal sealed class Parser
         var closeBrace = context.ReadSymbol("}", invalidDeclaration);
 
         return new ComponentDefinition(
+            kind,
             componentName.Text,
             parameters,
             injectFields,
             stateFields,
+            rootProperties,
+            null,
             helperCode,
             root,
             SupportsDefaultSlot(root),
+            FindNamedSlots(root),
             new TextSpan(start, closeBrace.Span.End - start));
     }
+
+    private static ComponentKind ParseComponentKind(ParserContext context, string message)
+    {
+        var token = context.ReadIdentifier(message);
+        return token.Text switch
+        {
+            "Element" => ComponentKind.Element,
+            "Page" => ComponentKind.Page,
+            "Window" => ComponentKind.Window,
+            "Application" => ComponentKind.Application,
+            "ResourceDictionary" => ComponentKind.ResourceDictionary,
+            _ => throw context.CreateException(token.Span, message)
+        };
+    }
+
 
     private static IReadOnlyList<ComponentParameter> ParseParameters(ParserContext context)
     {
@@ -255,19 +280,4 @@ internal sealed class Parser
         return context.Source.Text[start..lastToken!.Value.Span.End].Trim();
     }
 
-    private static bool SupportsDefaultSlot(ChildNode node)
-    {
-        if (node is SlotOutletNode)
-        {
-            return true;
-        }
-
-        return node switch
-        {
-            MarkupNode markup => markup.Children.Any(SupportsDefaultSlot),
-            IfBlockNode ifBlock => ifBlock.Children.Any(SupportsDefaultSlot),
-            ForEachBlockNode forEachBlock => forEachBlock.Children.Any(SupportsDefaultSlot),
-            _ => false
-        };
-    }
 }

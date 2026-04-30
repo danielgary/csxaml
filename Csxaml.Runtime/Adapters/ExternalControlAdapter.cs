@@ -39,11 +39,15 @@ internal sealed class ExternalControlAdapter : INativeControlAdapter
         {
             foreach (var eventBinder in _eventBinders)
             {
-                NativeElementReader.TryGetEventHandler<Action>(node, eventBinder.ExposedName, out var handler);
+                NativeElementReader.TryGetEventHandler(
+                    node,
+                    eventBinder.ExposedName,
+                    eventBinder.HandlerType,
+                    out var handler);
                 bindingStore.Rebind(
                     eventBinder.ExposedName,
                     handler,
-                    action => eventBinder.Bind(element, action));
+                    boundHandler => eventBinder.Bind(element, boundHandler));
             }
         }
         catch (Exception exception)
@@ -102,5 +106,26 @@ internal sealed class ExternalControlAdapter : INativeControlAdapter
         }
 
         _childSetter.Set(frameworkElement, uiChildren);
+    }
+
+    public void SetPropertyContent(
+        object element,
+        IReadOnlyDictionary<string, IReadOnlyList<object>> propertyContent)
+    {
+        try
+        {
+            foreach (var entry in propertyContent)
+            {
+                NativePropertyContentSetter.Set(element, entry.Key, entry.Value);
+            }
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "external property-content assignment",
+                sourceInfo: null,
+                detail: TagName);
+        }
     }
 }

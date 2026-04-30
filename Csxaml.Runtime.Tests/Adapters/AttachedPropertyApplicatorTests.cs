@@ -26,6 +26,16 @@ public sealed class AttachedPropertyApplicatorTests
             Assert.AreEqual(3, Grid.GetColumnSpan(secondTextBlock));
             Assert.AreEqual("Second Editor", AutomationProperties.GetName(secondTextBlock));
             Assert.AreEqual("SelectedTodoTitle", AutomationProperties.GetAutomationId(secondTextBlock));
+
+            var thirdGrid = (Grid)renderer.RenderProjectedRoot(CreateGridWithoutAttachedProperties());
+            var thirdTextBlock = (TextBlock)thirdGrid.Children[0];
+
+            Assert.AreSame(secondGrid, thirdGrid);
+            Assert.AreSame(secondTextBlock, thirdTextBlock);
+            Assert.AreEqual(0, Grid.GetRow(thirdTextBlock));
+            Assert.AreEqual(1, Grid.GetColumnSpan(thirdTextBlock));
+            Assert.AreEqual(string.Empty, AutomationProperties.GetName(thirdTextBlock));
+            Assert.AreEqual(string.Empty, AutomationProperties.GetAutomationId(thirdTextBlock));
         });
     }
 
@@ -55,4 +65,24 @@ public sealed class AttachedPropertyApplicatorTests
                     Array.Empty<Node>())
             ]);
     }
+
+    private static NativeElementNode CreateGridWithoutAttachedProperties()
+    {
+        return new NativeElementNode(
+            "Grid",
+            null,
+            Array.Empty<NativePropertyValue>(),
+            Array.Empty<NativeAttachedPropertyValue>(),
+            Array.Empty<NativeEventValue>(),
+            [
+                new NativeElementNode(
+                    "TextBlock",
+                    "editor-title",
+                    [new NativePropertyValue("Text", "Title", ValueKindHint.String)],
+                    Array.Empty<NativeAttachedPropertyValue>(),
+                    Array.Empty<NativeEventValue>(),
+                    Array.Empty<Node>())
+            ]);
+    }
+
 }

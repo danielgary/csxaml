@@ -30,6 +30,9 @@ runtime host or from another generated component.
 - [Quick Start](articles/getting-started/quick-start.md): install the package, render a first component, and see the app result.
 - [Why CSXAML?](articles/getting-started/why-csxaml.md): compare CSXAML with XAML/code-behind and handwritten C# UI.
 - [Todo tutorial](articles/tutorials/todo-app.md): learn props, state, events, native controls, and testing in one flow.
+- `samples/Csxaml.FeatureGallery`: explore generated roots, named slots, refs,
+  typed events, attached properties, code presentation, and list-scale guidance
+  in a generated app backed by WinUI Fluent resources and controls.
 - [Language overview](articles/language/index.md): understand the component model before reading the full spec.
 - [Editor extensions](articles/editors/index.md): set up VS Code or Visual Studio authoring.
 - [API reference](articles/api/index.md): find runtime, testing, tooling, and metadata APIs.
@@ -55,5 +58,6 @@ details.
 The short version: components, props, local state, native control binding,
 conditional/repeated markup, default slots, root hosting, testing helpers, and
 the documented external-control slice are the supported path. Named slots,
-virtualization, broad `DataContext` interop, and dedicated source-level
-lifecycle syntax are intentionally outside the current v1 surface.
+first-class CSXAML virtualization abstractions, broad `DataContext` interop, and
+dedicated source-level lifecycle syntax are intentionally outside the current v1
+surface.

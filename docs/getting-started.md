@@ -77,7 +77,7 @@ The repo root imports `build/Csxaml.props` and `build/Csxaml.targets` through `D
 
 Add a `.csxaml` file, for example `Components/Counter.csxaml`:
 
-```csharp
+```csxaml
 namespace MyApp;
 
 component Element Counter {
@@ -99,6 +99,14 @@ Create a normal WinUI host surface, such as a named panel in `MainWindow.xaml`:
 ```xml
 <StackPanel x:Name="ComponentHost" />
 ```
+
+This is the current supported host shape. Generated CSXAML app roots that can
+replace source `App.xaml`, `App.xaml.cs`, `MainWindow.xaml`, and
+`MainWindow.xaml.cs` now exist experimentally. In generated mode, use
+`component Application` plus `component ResourceDictionary` for the app shell
+and resources instead of editing source `App.xaml`; the build emits a hidden
+intermediate `App.xaml` for WinUI default resources. Keep deep templates and
+theme resources in XAML dictionaries.
 
 Then render the generated component from code-behind:
 
@@ -133,10 +141,13 @@ Build the app project:
 dotnet build .\MyApp\MyApp.csproj
 ```
 
-The repo demo is the current working reference app:
+The repo samples are the current working reference apps:
 
 ```powershell
-dotnet build .\Csxaml.Demo\Csxaml.Demo.csproj
+dotnet build .\samples\Csxaml.ExistingWinUI\Csxaml.ExistingWinUI.csproj
+dotnet build .\samples\Csxaml.HelloWorld\Csxaml.HelloWorld.csproj
+dotnet build .\samples\Csxaml.TodoApp\Csxaml.TodoApp.csproj
+dotnet build .\samples\Csxaml.FeatureGallery\Csxaml.FeatureGallery.csproj
 ```
 
 ## Generated Output

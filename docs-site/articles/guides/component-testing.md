@@ -42,6 +42,18 @@ Interactions:
 
 When the interaction invokes a component event, the render result updates automatically through the coordinator. If a test changes external state without an interaction callback, call `Rerender()`.
 
+Hostless component tests should prefer semantic queries over native
+`ElementRef<T>` handles. Refs are for projected WinUI interop such as focus,
+scrolling, and animation targets; behaviors that depend on live native controls
+still belong in WinUI projection tests.
+
+Automation attached properties are the preferred way to make component tests
+read semantically. `AutomationProperties.AutomationId` and
+`AutomationProperties.Name` are queryable through `Csxaml.Testing`; expanded
+properties such as `HelpText`, `ItemStatus`, `ItemType`, and `LabeledBy` are
+projected for WinUI accessibility interop and should be covered by projection
+tests when a workflow depends on the live native value.
+
 The important pattern is to assert the initial tree first, perform one
 interaction, then assert the new tree. That keeps tests tied to user-visible
 behavior instead of generated implementation details.

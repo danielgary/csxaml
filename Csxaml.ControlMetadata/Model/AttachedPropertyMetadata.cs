@@ -9,13 +9,15 @@ namespace Csxaml.ControlMetadata;
 /// <param name="ClrTypeName">The fully qualified CLR type name of the property value.</param>
 /// <param name="ValueKindHint">A hint used by tooling and emitters when converting literal values.</param>
 /// <param name="RequiredParentTagName">The parent control tag required for the property, or <see langword="null"/> when any parent is valid.</param>
+/// <param name="DependencyPropertyFieldName">The dependency-property field name when the owner exposes one.</param>
 public sealed record AttachedPropertyMetadata(
     string OwnerName,
     string PropertyName,
     string ClrOwnerTypeName,
     string ClrTypeName,
     ValueKindHint ValueKindHint,
-    string? RequiredParentTagName)
+    string? RequiredParentTagName,
+    string? DependencyPropertyFieldName = null)
 {
     /// <summary>
     /// Gets the markup-qualified attached property name, such as <c>Grid.Row</c>.

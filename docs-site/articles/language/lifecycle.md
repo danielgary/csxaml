@@ -22,5 +22,7 @@ Important rules:
 - async disposal is honored by root disposal
 - state writes after unmount do not resurrect a component
 - render-phase state writes are invalid
+- native `ElementRef<T>` handles are cleared when their element leaves the tree
+  or the root renderer is disposed
 
 See [Lifecycle and Async](../guides/lifecycle-and-async.md) for examples and test expectations.

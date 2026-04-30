@@ -8,16 +8,60 @@ For the feature status table, see [supported-feature-matrix.md](supported-featur
 
 | Control | Child content | Properties | Events |
 | --- | --- | --- | --- |
-| `Border` | Single child | `Background`, `BorderBrush`, `BorderThickness`, `Height`, `HorizontalAlignment`, `Margin`, `Padding`, `Style`, `VerticalAlignment`, `Width` | none |
-| `Button` | None | `Background`, `Content`, `FontSize`, `Foreground`, `Height`, `HorizontalAlignment`, `Margin`, `Style`, `VerticalAlignment`, `Width` | `OnClick` |
-| `CheckBox` | None | `Content`, `Height`, `HorizontalAlignment`, `IsChecked`, `Margin`, `Style`, `VerticalAlignment`, `Width` | `OnCheckedChanged` |
-| `Grid` | Multiple children | `Background`, `ColumnDefinitions`, `Height`, `HorizontalAlignment`, `Margin`, `RowDefinitions`, `Style`, `VerticalAlignment`, `Width` | none |
-| `ScrollViewer` | Single child | `Height`, `HorizontalAlignment`, `Margin`, `Style`, `VerticalAlignment`, `Width` | none |
-| `StackPanel` | Multiple children | `Background`, `Height`, `HorizontalAlignment`, `Margin`, `Orientation`, `Spacing`, `Style`, `VerticalAlignment`, `Width` | none |
-| `TextBlock` | None | `FontSize`, `Foreground`, `Height`, `HorizontalAlignment`, `Margin`, `Style`, `Text`, `VerticalAlignment`, `Width` | none |
-| `TextBox` | None | `AcceptsReturn`, `Height`, `HorizontalAlignment`, `Margin`, `MinHeight`, `PlaceholderText`, `Style`, `Text`, `TextWrapping`, `VerticalAlignment`, `Width` | `OnTextChanged` |
+| `AutoSuggestBox` | None | `Height`, `HorizontalAlignment`, `Margin`, `PlaceholderText`, `Style`, `Text`, `VerticalAlignment`, `Width` | `OnQuerySubmitted`, `OnSuggestionChosen`, common event-args events |
+| `Border` | Single child | `Background`, `BorderBrush`, `BorderThickness`, `Height`, `HorizontalAlignment`, `Margin`, `Padding`, `Style`, `VerticalAlignment`, `Width` | common event-args events |
+| `Button` | None | `Background`, `Content`, `FontSize`, `Foreground`, `Height`, `HorizontalAlignment`, `Margin`, `Style`, `VerticalAlignment`, `Width` | `OnClick`, common event-args events |
+| `Canvas` | Multiple children | `Background`, `Height`, `HorizontalAlignment`, `Margin`, `Style`, `VerticalAlignment`, `Width` | common event-args events |
+| `CheckBox` | None | `Content`, `Height`, `HorizontalAlignment`, `IsChecked`, `Margin`, `Style`, `VerticalAlignment`, `Width` | `OnCheckedChanged`, common event-args events |
+| `Frame` | None | `Height`, `HorizontalAlignment`, `Margin`, `Style`, `VerticalAlignment`, `Width` | navigation events, common event-args events |
+| `Grid` | Multiple children | `Background`, `ColumnDefinitions`, `Height`, `HorizontalAlignment`, `Margin`, `RowDefinitions`, `Style`, `VerticalAlignment`, `Width` | common event-args events |
+| `ListView` | None | `Height`, `HorizontalAlignment`, `IsItemClickEnabled`, `ItemsSource`, `Margin`, `SelectionMode`, `Style`, `VerticalAlignment`, `Width` | `OnSelectionChanged`, `OnItemClick`, common event-args events |
+| `RelativePanel` | Multiple children | `Background`, `Height`, `HorizontalAlignment`, `Margin`, `Style`, `VerticalAlignment`, `Width` | common event-args events |
+| `ScrollViewer` | Single child | `Height`, `HorizontalAlignment`, `HorizontalScrollBarVisibility`, `HorizontalScrollMode`, `Margin`, `Style`, `VerticalAlignment`, `VerticalScrollBarVisibility`, `VerticalScrollMode`, `Width` | common event-args events |
+| `Slider` | None | `Height`, `HorizontalAlignment`, `Margin`, `Maximum`, `Minimum`, `Style`, `Value`, `VerticalAlignment`, `Width` | `OnValueChanged`, common event-args events |
+| `StackPanel` | Multiple children | `Background`, `Height`, `HorizontalAlignment`, `Margin`, `Orientation`, `Spacing`, `Style`, `VerticalAlignment`, `Width` | common event-args events |
+| `TextBlock` | None | `FontSize`, `Foreground`, `Height`, `HorizontalAlignment`, `Margin`, `Style`, `Text`, `TextWrapping`, `VerticalAlignment`, `Width` | common event-args events |
+| `TextBox` | None | `AcceptsReturn`, `Height`, `HorizontalAlignment`, `Margin`, `MinHeight`, `PlaceholderText`, `Style`, `Text`, `TextWrapping`, `VerticalAlignment`, `Width` | `OnTextChanged`, common event-args events |
+| `VariableSizedWrapGrid` | Multiple children | `Background`, `Height`, `HorizontalAlignment`, `Margin`, `Style`, `VerticalAlignment`, `Width` | common event-args events |
 
 Unknown attributes fail during generation with source diagnostics. The supported set is intentionally explicit rather than a promise that every WinUI property is available.
+
+Use `TextWrapping={TextWrapping.Wrap}` on `TextBlock` for long labels or
+paragraph text. WinUI only wraps when the parent gives the text a finite width;
+horizontal stacks and horizontally scrollable regions can still measure text
+with more width than the viewport.
+
+For text-heavy pages hosted in a `ScrollViewer`, disable horizontal scrolling
+when you expect wrapping and native horizontal gestures to stay inside the
+viewport:
+
+```csxaml
+<ScrollViewer
+    HorizontalScrollBarVisibility={ScrollBarVisibility.Disabled}
+    HorizontalScrollMode={ScrollMode.Disabled}
+    VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+    VerticalScrollMode={ScrollMode.Auto}>
+    <TextBlock Text={LongText} TextWrapping={TextWrapping.Wrap} />
+</ScrollViewer>
+```
+
+## Property Content
+
+Experimental property-content syntax assigns child elements to a
+metadata-backed native property:
+
+```csxaml
+<Border>
+    <Border.Child>
+        <TextBlock Text="Title" />
+    </Border.Child>
+</Border>
+```
+
+The owner before the dot must match the containing tag. Single-value properties
+accept at most one child, collection properties accept multiple children when
+metadata describes the collection, and assigning the same property through both
+an attribute and property content is a diagnostic.
 
 ## Literal And Expression Values
 
@@ -35,7 +79,9 @@ Expressions are accepted for every supported property and are required for:
 
 - events
 - `bool`, `int`, `double`, enum, `Thickness`, `Brush`, and `Style` values
-- `Grid.Row`, `Grid.Column`, `Grid.RowSpan`, and `Grid.ColumnSpan`
+- numeric or boolean attached properties such as `Grid.Row`, `Canvas.Left`,
+  `Canvas.ZIndex`, `RelativePanel.AlignLeftWithPanel`, and
+  `VariableSizedWrapGrid.ColumnSpan`
 
 CSXAML does not treat `{...}` as XAML binding or markup-extension syntax. The contents are emitted as C#.
 
@@ -66,6 +112,13 @@ Built-in event names are projected names, not raw WinUI event names.
 | `OnClick` | `Button` | `Action` | Invoked when the WinUI `Click` event fires. |
 | `OnTextChanged` | `TextBox` | `Action<string>` | Invoked with the current text. |
 | `OnCheckedChanged` | `CheckBox` | `Action<bool>` | Invoked with the current checked state, normalized to `false` for null. |
+| `OnLoaded` | Any supported control | `Action<RoutedEventArgs>` | Experimental senderless native event args. |
+| `OnKeyDown` | Any supported control | `Action<KeyRoutedEventArgs>` | Experimental senderless native event args. |
+| Pointer events | Any supported control | `Action<PointerRoutedEventArgs>` | Covers pressed, released, moved, entered, exited, canceled, capture lost, and wheel changed. |
+| `OnSelectionChanged` | `ListView` | `Action<SelectionChangedEventArgs>` | Experimental senderless native event args. |
+| `OnValueChanged` | `Slider` | `Action<RangeBaseValueChangedEventArgs>` | Experimental senderless native event args. |
+| Autosuggest events | `AutoSuggestBox` | `Action<TEventArgs>` | Query submitted and suggestion chosen. |
+| Frame navigation events | `Frame` | `Action<TEventArgs>` | Navigating, navigated, navigation failed, and navigation stopped. |
 
 Events require expression values:
 
@@ -75,7 +128,39 @@ Events require expression values:
 <CheckBox IsChecked={IsDone.Value} OnCheckedChanged={value => IsDone.Value = value} />
 ```
 
-The current built-in event slice does not expose routed event args. If a control or event is outside the built-in slice, use the external-control path described in [external-control-interop.md](external-control-interop.md).
+Typed event-args handlers receive the event args value and omit the sender. If a
+handler needs the element itself, use `Ref={...}` with `ElementRef<T>`.
+
+## Element Refs
+
+`Ref` is a reserved native attribute for focus, scrolling, animation targets,
+and other imperative WinUI interop:
+
+```xml
+ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
+
+render <TextBox Ref={SearchBox} />;
+```
+
+The ref value must be an expression assignable to `Csxaml.Runtime.ElementRef`.
+The runtime sets the ref after projection, preserves it across retained
+rerenders, updates it when an element is replaced, and clears it when the
+element is removed or the renderer is disposed.
+
+This is experimental native-element behavior. Component refs and `x:Name`
+symbolic lookup are not supported.
+
+## Resources And Object Values
+
+When metadata exposes an object-valued property, assign a normal C# expression:
+
+```xml
+<Button Style={AppStyles.PrimaryButtonStyle} Content="Save" />
+```
+
+That expression assigns the value returned by C#. It does not become
+`StaticResource`, `ThemeResource`, or `{Binding}`. Keep XAML dictionaries for
+deep resource graphs, templates, and theme invalidation behavior.
 
 ## Controlled Inputs
 
@@ -118,6 +203,20 @@ Supported attached properties are built into metadata:
 | `Grid.ColumnSpan` | `int` expression | Direct child of `Grid` |
 | `AutomationProperties.Name` | `string` literal or expression | Any supported projected element |
 | `AutomationProperties.AutomationId` | `string` literal or expression | Any supported projected element |
+| `AutomationProperties.HelpText` | `string` literal or expression | Any supported projected element |
+| `AutomationProperties.ItemStatus` | `string` literal or expression | Any supported projected element |
+| `AutomationProperties.ItemType` | `string` literal or expression | Any supported projected element |
+| `AutomationProperties.LabeledBy` | object expression | Any supported projected element |
+| `Canvas.Left` | `double` expression | Direct child of `Canvas` |
+| `Canvas.Top` | `double` expression | Direct child of `Canvas` |
+| `Canvas.ZIndex` | `int` expression | Direct child of `Canvas` |
+| `RelativePanel.AlignLeftWithPanel` | `bool` expression | Direct child of `RelativePanel` |
+| `RelativePanel.AlignTopWithPanel` | `bool` expression | Direct child of `RelativePanel` |
+| `RelativePanel.RightOf` | object literal or expression | Direct child of `RelativePanel` |
+| `RelativePanel.Below` | object literal or expression | Direct child of `RelativePanel` |
+| `ToolTipService.ToolTip` | string literal or expression | Any supported projected element |
+| `VariableSizedWrapGrid.ColumnSpan` | `int` expression | Direct child of `VariableSizedWrapGrid` |
+| `VariableSizedWrapGrid.RowSpan` | `int` expression | Direct child of `VariableSizedWrapGrid` |
 
 Example:
 
@@ -133,15 +232,27 @@ Example:
 </Grid>
 ```
 
+Expanded layout owners are experimental but usable:
+
+```xml
+<Canvas>
+    <Button Canvas.Left={20} Canvas.Top={12} Canvas.ZIndex={2} Content="Move" />
+</Canvas>
+
+<Border ToolTipService.ToolTip="Saved" />
+```
+
 External attached-property owner discovery is not part of the current v1 slice.
 
 ## Child Content Rules
 
 Native child rules are validated before code is emitted:
 
-- `Grid` and `StackPanel` allow multiple children.
+- `Canvas`, `Grid`, `RelativePanel`, `StackPanel`, and
+  `VariableSizedWrapGrid` allow multiple children.
 - `Border` and `ScrollViewer` allow zero or one child.
-- `Button`, `CheckBox`, `TextBlock`, and `TextBox` do not allow child elements.
+- `AutoSuggestBox`, `Button`, `CheckBox`, `Frame`, `ListView`, `Slider`,
+  `TextBlock`, and `TextBox` do not allow child elements.
 
 Component child content is separate from native child content. A component must define a default `<Slot />` outlet before callers can pass children.
 
@@ -152,7 +263,8 @@ These are intentionally outside the current built-in surface:
 - arbitrary WinUI controls without the external-control metadata path
 - broad XAML syntax such as `{Binding}`, `{StaticResource}`, or markup extensions
 - string parsing for enum, bool, thickness, brush, or style values
-- routed event args in built-in event handlers
+- open-ended event args beyond the documented experimental event set
+- component refs or `x:Name` symbolic lookup
 - command binding conventions
 - external attached-property owner discovery
 - child content on childless controls

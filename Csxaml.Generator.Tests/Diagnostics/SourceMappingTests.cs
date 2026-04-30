@@ -89,6 +89,7 @@ public sealed class SourceMappingTests
                     "TestProject",
                     "TestProject",
                     "TestProject.__CsxamlGenerated",
+                    CsxamlApplicationMode.Hybrid,
                     Array.Empty<string>(),
                     [sourcePath]));
             OutputWriter.WriteAll(outputDirectory, files);

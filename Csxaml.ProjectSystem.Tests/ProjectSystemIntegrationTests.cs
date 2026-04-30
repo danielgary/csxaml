@@ -35,6 +35,7 @@ public sealed class ProjectSystemIntegrationTests
                 component =>
                     component.Name == "PanelSurface" &&
                     component.SupportsDefaultSlot &&
+                    component.NamedSlots.Any(slot => slot.Name == "Footer") &&
                     component.Parameters.Any(parameter => parameter.Name == "HeaderText")));
         Assert.IsTrue(
             manifest.Components.Any(
@@ -65,5 +66,71 @@ public sealed class ProjectSystemIntegrationTests
             ProjectSystemTreeHelpers.GetProperty<string>(
                 ProjectSystemTreeHelpers.FindByAutomationName(tree, "Admin Badge")!,
                 "Text"));
+        Assert.AreEqual(
+            "Referenced named slot",
+            ProjectSystemTreeHelpers.GetProperty<string>(
+                ProjectSystemTreeHelpers.FindByAutomationName(tree, "Panel Footer")!,
+                "Text"));
+    }
+
+    [TestMethod]
+    public void GeneratedRootTypes_CompileAndAppearInConsumerManifest()
+    {
+        Assert.AreEqual(typeof(Microsoft.UI.Xaml.Application), typeof(App).BaseType);
+        Assert.AreEqual(typeof(Microsoft.UI.Xaml.Controls.Page), typeof(ShellHomePage).BaseType);
+        Assert.AreEqual(typeof(Microsoft.UI.Xaml.Window), typeof(ShellWindow).BaseType);
+        Assert.AreEqual(typeof(ShellWindow), HybridAppLauncher.StartupWindowType);
+
+        var assembly = typeof(App).Assembly;
+        var attribute = assembly.GetCustomAttribute<CsxamlComponentManifestProviderAttribute>();
+        Assert.IsNotNull(attribute);
+
+        var provider = (IComponentManifestProvider?)Activator.CreateInstance(attribute.ProviderType, true);
+        Assert.IsNotNull(provider);
+
+        var manifest = provider.GetManifest();
+        Assert.IsTrue(
+            manifest.Components.Any(
+                component =>
+                    component.Name == "App" &&
+                    component.Kind == ComponentKind.Application));
+        Assert.IsTrue(
+            manifest.Components.Any(
+                component =>
+                    component.Name == "ShellHomePage" &&
+                    component.Kind == ComponentKind.Page));
+        Assert.IsTrue(
+            manifest.Components.Any(
+                component =>
+                    component.Name == "ShellWindow" &&
+                    component.Kind == ComponentKind.Window));
+    }
+
+    [TestMethod]
+    public void GeneratedAppFixture_DoesNotContainDefaultWinUiShellFiles()
+    {
+        var projectDirectory = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "samples", "Csxaml.TodoApp"));
+
+        Assert.IsTrue(File.Exists(Path.Combine(projectDirectory, "App.csxaml")));
+        Assert.IsTrue(File.Exists(Path.Combine(projectDirectory, "MainWindow.csxaml")));
+        Assert.IsFalse(File.Exists(Path.Combine(projectDirectory, "App.xaml")));
+        Assert.IsFalse(File.Exists(Path.Combine(projectDirectory, "App.xaml.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(projectDirectory, "MainWindow.xaml")));
+        Assert.IsFalse(File.Exists(Path.Combine(projectDirectory, "MainWindow.xaml.cs")));
+    }
+
+    [TestMethod]
+    public void FeatureGalleryFixture_DoesNotContainDefaultWinUiShellFiles()
+    {
+        var projectDirectory = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "samples", "Csxaml.FeatureGallery"));
+
+        Assert.IsTrue(File.Exists(Path.Combine(projectDirectory, "App.csxaml")));
+        Assert.IsTrue(File.Exists(Path.Combine(projectDirectory, "MainWindow.csxaml")));
+        Assert.IsFalse(File.Exists(Path.Combine(projectDirectory, "App.xaml")));
+        Assert.IsFalse(File.Exists(Path.Combine(projectDirectory, "App.xaml.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(projectDirectory, "MainWindow.xaml")));
+        Assert.IsFalse(File.Exists(Path.Combine(projectDirectory, "MainWindow.xaml.cs")));
     }
 }

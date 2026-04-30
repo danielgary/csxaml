@@ -75,7 +75,7 @@ public static partial class CsxamlComponentSignatureScanner
     }
 
     [GeneratedRegex(
-        @"\bcomponent\s+Element\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)",
+        @"\bcomponent\s+(?:Element|Page|Window|Application|ResourceDictionary)\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)",
         RegexOptions.CultureInvariant)]
     private static partial Regex ComponentDeclarationPattern();
 

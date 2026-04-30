@@ -67,6 +67,7 @@ Supported today:
 - writable dependency properties with supported value kinds
 - writable dependency properties whose type is `object`
 - writable CLR properties with non-`Object` supported value kinds
+- writable CLR `UIElement` properties for experimental property-content syntax
 - inherited built-in control properties that already exist in CSXAML metadata
 
 Supported value kinds currently include:
@@ -88,7 +89,8 @@ What this means in practice:
 
 ## Supported Events
 
-External events are intentionally simple in the current slice.
+External events are metadata-defined and intentionally limited to predictable
+delegate shapes.
 
 An external event is supported when:
 
@@ -96,21 +98,77 @@ An external event is supported when:
 - its delegate returns `void`
 - none of its delegate parameters are `ref` or `out`
 
-Supported events are exposed to CSXAML as `On<EventName>` and currently bind as plain `Action` handlers. Event arguments are not surfaced into component code yet; the runtime adapter invokes the supplied action and discards the original event payload.
+Supported events are exposed to CSXAML as `On<EventName>`.
 
-That is enough to support common button-like and notification-like interactions without committing the language to a richer event-argument story too early.
+- zero-argument or inherited curated command events bind as `Action`
+- ordinary two-argument `EventHandler<TEventArgs>` style events bind as
+  senderless `Action<TEventArgs>`
+
+The sender is omitted. If component code needs the element itself, use
+`Ref={...}` with `ElementRef<T>` on the external control tag.
 
 ## Child Content Support
 
-Child-content shape is inferred conservatively from the control type.
+Child-content shape is metadata-driven. For external controls, discovery now
+records the default content property name, the supported content kind, relevant
+CLR type names, and where the metadata came from.
 
 Supported today:
 
+- `[ContentProperty(Name = "...")]` on the control or an inherited base type
+  is preferred over naming conventions
+- a default content property that accepts a single `UIElement` maps to
+  single-child content
+- a default content property that accepts `object` maps to single-child content
 - `Panel`-like controls or controls with a public `Children : UIElementCollection` property map to multi-child content
-- `ContentControl`-like controls, `Border`, `ScrollViewer`, or controls with a public `Child` or `Content` property map to single-child content
+- `ContentControl.Content`, `Border.Child`, `ScrollViewer.Content`, public
+  `Child`, and public `Content` remain supported conventions
 - everything else is treated as childless
 
-Unsupported child-content shapes fail deterministically rather than being guessed.
+Example:
+
+```csharp
+[ContentProperty(Name = nameof(Example))]
+public sealed class ControlExample : Button
+{
+    public UIElement? Example { get; set; }
+    public UIElement? Options { get; set; }
+}
+```
+
+```csxaml
+using Widgets = MyApp.Controls;
+
+render <Widgets:ControlExample>
+    <Button Content="Run" />
+</Widgets:ControlExample>;
+```
+
+The child button is projected into `ControlExample.Example`.
+
+Unsupported child-content shapes fail deterministically rather than being
+guessed. For example, `[ContentProperty(Name = "UnsupportedContent")]` on an
+`int` property is recorded as unsupported metadata and diagnostics name the
+content property.
+
+Experimental property-content syntax can target metadata-backed named
+`UIElement` properties:
+
+```csxaml
+<Widgets:ControlExample>
+    <Widgets:ControlExample.Example>
+        <Button Content="Run" />
+    </Widgets:ControlExample.Example>
+    <Widgets:ControlExample.Options>
+        <CheckBox Content="Enabled" />
+    </Widgets:ControlExample.Options>
+</Widgets:ControlExample>
+```
+
+Unsupported or template-heavy external APIs should remain in handwritten C# or
+XAML resources until their shape is explicitly modeled. Keep `DataTemplate`,
+`ControlTemplate`, theme resources, and `DataContext`-heavy interop in XAML
+dictionaries when those native WinUI semantics matter.
 
 ## Attached Properties
 
@@ -118,7 +176,9 @@ The current attached-property slice is still intentionally built-in only.
 
 Today that means:
 
-- external controls can receive supported built-in attached properties such as `Grid.Row` or `AutomationProperties.Name`
+- external controls can receive supported built-in attached properties such as
+  `Grid.Row`, `Canvas.Left`, `ToolTipService.ToolTip`, or
+  `AutomationProperties.Name`
 - attached-property owners still resolve through ordinary visible type names or explicit type aliases, just like the rest of CSXAML
 - discovery of external attached-property owners is not part of the current supported slice
 
@@ -130,7 +190,8 @@ These areas are still outside the supported v1 slice today:
 
 - arbitrary external control types without public parameterless constructors
 - generic or non-public control types
-- event handlers that need surfaced event arguments inside CSXAML
+- open-ended event transformations beyond `Action` and senderless
+  `Action<TEventArgs>`
 - external attached-property owner discovery
 - unconstrained reflection over every reachable assembly
 - fully hardened project-system and design-time tooling behavior for every reference shape

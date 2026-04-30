@@ -78,7 +78,7 @@ Before rerunning the bootstrap, close any existing experimental instance so cach
 
 In the experimental instance:
 
-1. Open `Csxaml.Demo/Components/TodoCard.csxaml` or `Csxaml.Demo/Components/TodoBoard.csxaml`.
+1. Open `samples/Csxaml.TodoApp/Components/TodoCard.csxaml` or `samples/Csxaml.TodoApp/Components/TodoBoard.csxaml`.
 2. Confirm semantic coloring is active for tags and attributes.
 3. Type `<But` and confirm completion offers `Button`.
 4. Inside `<Button ...>`, type `OnC` and confirm completion offers `OnClick`.

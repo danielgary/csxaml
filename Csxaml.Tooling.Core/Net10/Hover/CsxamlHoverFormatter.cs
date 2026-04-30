@@ -82,6 +82,44 @@ internal static class CsxamlHoverFormatter
         return string.Join(Environment.NewLine, lines);
     }
 
+    public static string FormatComponentNamedSlot(
+        CsxamlWorkspaceComponentSymbol component,
+        string slotName)
+    {
+        var lines = new List<string>
+        {
+            "```cs",
+            $"{component.Metadata.Name}.{slotName}",
+            "```",
+            "Component named slot",
+            string.Empty,
+            $"- Owner component: `{component.Metadata.NamespaceName}.{component.Metadata.Name}`",
+            "- Content is passed through property-content syntax",
+        };
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    public static string FormatNativePropertyContent(
+        ControlMetadataModel control,
+        string propertyName,
+        ControlContentKind kind,
+        string? propertyTypeName)
+    {
+        var lines = new List<string>
+        {
+            "```cs",
+            $"{control.TagName}.{propertyName}: {propertyTypeName ?? "unknown"}",
+            "```",
+            "Native property content",
+            string.Empty,
+            $"- Owner type: `{control.ClrTypeName}`",
+            $"- Content shape: `{kind}`",
+        };
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
     public static string FormatProperty(ControlMetadataModel control, PropertyMetadata property)
     {
         var lines = new List<string>
@@ -122,6 +160,23 @@ internal static class CsxamlHoverFormatter
         return string.Join(Environment.NewLine, lines);
     }
 
+    public static string FormatElementRef(ControlMetadataModel control)
+    {
+        var lines = new List<string>
+        {
+            "```cs",
+            $"{control.TagName}.Ref: Csxaml.Runtime.ElementRef<{control.ClrTypeName}>",
+            "```",
+            "Element reference",
+            string.Empty,
+            $"- Target type: `{control.ClrTypeName}`",
+            "- Set after projection and cleared when the element leaves the rendered tree",
+            "- Does not affect diff identity or trigger rendering",
+        };
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
     public static string FormatAttachedProperty(AttachedPropertyMetadata property)
     {
         var lines = new List<string>
@@ -138,6 +193,11 @@ internal static class CsxamlHoverFormatter
         if (!string.IsNullOrWhiteSpace(property.RequiredParentTagName))
         {
             lines.Add($"- Required parent: `<{property.RequiredParentTagName}>`");
+        }
+
+        if (!string.IsNullOrWhiteSpace(property.DependencyPropertyFieldName))
+        {
+            lines.Add($"- Dependency property: `{property.DependencyPropertyFieldName}`");
         }
 
         return string.Join(Environment.NewLine, lines);

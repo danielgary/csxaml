@@ -18,6 +18,7 @@ That applies to:
 - state initializers
 - component prop expressions
 - native property and event expressions
+- native `Ref={...}` expressions
 - `if` conditions
 - `foreach` collection expressions
 
@@ -65,6 +66,7 @@ Typical stages include:
 - `native element update`
 - `native property read`
 - `attached property application`
+- `ref assignment`
 
 ## When To Open Generated Code
 

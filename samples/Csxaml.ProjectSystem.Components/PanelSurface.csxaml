@@ -1,0 +1,13 @@
+using Microsoft.UI.Xaml.Automation;
+
+component Element PanelSurface(string HeaderText) {
+    render <Border AutomationProperties.Name="Panel Surface">
+        <StackPanel>
+            <TextBlock
+                AutomationProperties.Name="Panel Header"
+                Text={HeaderText} />
+            <Slot />
+            <Slot Name="Footer" />
+        </StackPanel>
+    </Border>;
+}

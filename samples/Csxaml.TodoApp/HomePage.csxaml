@@ -1,0 +1,5 @@
+namespace Csxaml.Samples.TodoApp;
+
+component Page HomePage {
+    render <TodoBoard />;
+}

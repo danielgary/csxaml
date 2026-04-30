@@ -12,9 +12,9 @@ public sealed class CsxamlDefinitionServiceTests
     public void Definition_resolves_helper_method_usages_to_same_file()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 State<List<TodoItemModel>> Items = new State<List<TodoItemModel>>(new());
@@ -42,9 +42,9 @@ public sealed class CsxamlDefinitionServiceTests
     public void Definition_resolves_project_types_in_helper_code_to_source_files()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 TodoItemModel SelectedItem()
@@ -60,6 +60,6 @@ public sealed class CsxamlDefinitionServiceTests
         var definition = new CsxamlDefinitionService().GetDefinition(tempFile.FilePath, tempFile.Text, position);
 
         Assert.IsNotNull(definition);
-        StringAssert.EndsWith(definition.FilePath, "Csxaml.Demo\\Models\\TodoItemModel.cs");
+        StringAssert.EndsWith(definition.FilePath, "samples\\Csxaml.TodoApp\\Models\\TodoItemModel.cs");
     }
 }

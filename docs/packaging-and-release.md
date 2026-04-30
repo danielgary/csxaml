@@ -205,7 +205,8 @@ These areas should not be presented as finished v1 packaging commitments yet:
 - broad external attached-property owner discovery
 - external controls beyond the documented supported shape
 - named slots, fallback slot content, and fragment-root slot pass-through
-- virtualization and very large visible lists
+- first-class CSXAML virtualization abstractions and stable very-large-list
+  authoring commitments
 - `DataContext`-heavy third-party control interop
 - dedicated source-level lifecycle or cancellation syntax
 - full trim/AOT support guarantees

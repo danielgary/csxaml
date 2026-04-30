@@ -151,6 +151,36 @@ public sealed class WinUiNodeRendererTests
         Assert.IsTrue((bool)secondCheckBox.Properties["IsChecked"]!);
     }
 
+    [TestMethod]
+    public void Render_PropertyContent_PatchesAndClearsPropertyChildren()
+    {
+        var renderer = CreateRenderer(
+            new FakeControlAdapter("Border", supportsChildren: false),
+            new FakeControlAdapter("TextBlock", supportsChildren: false));
+
+        var firstBorder = (FakeElement)renderer.RenderProjectedRoot(
+            CreateBorderWithPropertyContent("First"));
+        var firstText = firstBorder.PropertyContent["Child"].Single();
+
+        var secondBorder = (FakeElement)renderer.RenderProjectedRoot(
+            CreateBorderWithPropertyContent("Second"));
+        var secondText = secondBorder.PropertyContent["Child"].Single();
+
+        Assert.AreSame(firstBorder, secondBorder);
+        Assert.AreSame(firstText, secondText);
+        Assert.AreEqual("Second", secondText.Properties["Text"]);
+
+        renderer.RenderProjectedRoot(
+            new NativeElementNode(
+                "Border",
+                null,
+                Array.Empty<NativePropertyValue>(),
+                Array.Empty<NativeEventValue>(),
+                Array.Empty<Node>()));
+
+        Assert.IsEmpty(firstBorder.PropertyContent["Child"]);
+    }
+
     private static WinUiNodeRenderer CreateRenderer(params INativeControlAdapter[] adapters)
     {
         return new WinUiNodeRenderer(new ControlAdapterRegistry(adapters));
@@ -171,5 +201,29 @@ public sealed class WinUiNodeRendererTests
                     Array.Empty<NativeEventValue>(),
                     Array.Empty<Node>())
             ]);
+    }
+
+    private static NativeElementNode CreateBorderWithPropertyContent(string text)
+    {
+        return new NativeElementNode(
+            "Border",
+            null,
+            Array.Empty<NativePropertyValue>(),
+            Array.Empty<NativeAttachedPropertyValue>(),
+            null,
+            Array.Empty<NativeEventValue>(),
+            [
+                new NativePropertyContentValue(
+                    "Child",
+                    [
+                        new NativeElementNode(
+                            "TextBlock",
+                            null,
+                            [new NativePropertyValue("Text", text)],
+                            Array.Empty<NativeEventValue>(),
+                            Array.Empty<Node>())
+                    ])
+            ],
+            Array.Empty<Node>());
     }
 }

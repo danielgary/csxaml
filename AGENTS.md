@@ -91,14 +91,16 @@ This is the quick reference for every project in the solution and what it is res
 | `Csxaml.LanguageServer` | executable | LSP host built on top of `Csxaml.Tooling.Core`. |
 | `Csxaml.VisualStudio` | extension project | Visual Studio-specific host for document registration, language-server startup, and VSIX packaging. |
 
-### Demo and fixture projects
+### Sample and fixture projects
 
 | Project | Kind | Purpose |
 | --- | --- | --- |
-| `Csxaml.Demo` | WinUI app | Main demo application showing the current CSXAML authoring model end to end. |
+| `samples/Csxaml.ExistingWinUI` | WinUI app | Existing WinUI shell sample that mounts generated CSXAML through `CsxamlHost`. |
+| `samples/Csxaml.HelloWorld` | WinUI app | Minimal generated-app sample that starts from `App.csxaml`. |
+| `samples/Csxaml.TodoApp` | WinUI app | Advanced generated-app Todo sample showing state, DI, child components, external controls, and generated app resources. |
 | `Csxaml.ExternalControls` | WinUI library | Small sample external controls used to prove external-control metadata generation and runtime interop. |
-| `Csxaml.ProjectSystem.Components` | WinUI library | Fixture component library used to verify normal project-reference consumption of generated CSXAML components. |
-| `Csxaml.ProjectSystem.Consumer` | WinUI app | Fixture consumer app that references `Csxaml.ProjectSystem.Components` to prove project-system and build integration. |
+| `samples/Csxaml.ProjectSystem.Components` | WinUI library | Fixture component library used to verify normal project-reference consumption of generated CSXAML components. |
+| `samples/Csxaml.ProjectSystem.Consumer` | WinUI app | Fixture consumer app that references `samples/Csxaml.ProjectSystem.Components` to prove project-system and build integration. |
 
 ### Test projects
 
@@ -123,7 +125,7 @@ If you are new to the repo, read in this order:
 1. `LANGUAGE-SPEC.md` for the intended language surface
 2. `Csxaml.Generator/` for how `.csxaml` turns into generated C#
 3. `Csxaml.Runtime/` for how generated trees become retained WinUI UI
-4. `Csxaml.Demo/` for the current end-to-end example
+4. `samples/Csxaml.TodoApp/` for the current end-to-end example
 5. `Csxaml.Tooling.Core/`, then `Csxaml.LanguageServer/` or `Csxaml.VisualStudio/`, for editor behavior
 
 ---
@@ -239,7 +241,7 @@ Example structure:
 /Rendering
 /Hosting
 
-/Csxaml.Demo
+/samples/Csxaml.TodoApp
 /Components
 /Models
 /Views

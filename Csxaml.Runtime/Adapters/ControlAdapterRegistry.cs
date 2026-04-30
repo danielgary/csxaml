@@ -11,13 +11,20 @@ internal sealed class ControlAdapterRegistry
         : this(
         [
             new BorderControlAdapter(),
+            new AutoSuggestBoxControlAdapter(),
             new ButtonControlAdapter(),
+            new CanvasControlAdapter(),
             new CheckBoxControlAdapter(),
+            new FrameControlAdapter(),
             new GridControlAdapter(),
+            new ListViewControlAdapter(),
+            new RelativePanelControlAdapter(),
             new ScrollViewerControlAdapter(),
+            new SliderControlAdapter(),
             new StackPanelControlAdapter(),
             new TextBlockControlAdapter(),
-            new TextBoxControlAdapter()
+            new TextBoxControlAdapter(),
+            new VariableSizedWrapGridControlAdapter()
         ])
     {
     }

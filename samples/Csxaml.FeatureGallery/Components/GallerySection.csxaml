@@ -1,0 +1,41 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+using DemoControls = Csxaml.ExternalControls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element GallerySection(string Eyebrow, string Title, string Description) {
+    render <DemoControls:FluentCard
+        AutomationProperties.Name={Title}
+        Margin={new Thickness(0, 0, 0, 14)}>
+        <StackPanel Spacing={12}>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing={4}>
+                    <TextBlock
+                        Text={Eyebrow}
+                        Foreground={GalleryColors.Accent}
+                        TextWrapping={TextWrapping.Wrap}
+                        FontSize={12} />
+                    <TextBlock
+                        Text={Title}
+                        Foreground={GalleryColors.TextPrimary}
+                        TextWrapping={TextWrapping.Wrap}
+                        FontSize={22} />
+                </StackPanel>
+                <StackPanel
+                    Grid.Column={1}
+                    Orientation={Orientation.Horizontal}
+                    Spacing={8}>
+                    <Slot Name="Actions" />
+                </StackPanel>
+            </Grid>
+            <TextBlock
+                Text={Description}
+                Foreground={GalleryColors.TextMuted}
+                TextWrapping={TextWrapping.Wrap}
+                FontSize={14} />
+            <Slot />
+        </StackPanel>
+    </DemoControls:FluentCard>;
+}

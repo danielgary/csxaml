@@ -1,0 +1,7 @@
+namespace Csxaml.ProjectSystem.Consumer;
+
+component Page ShellHomePage {
+    render <Grid>
+        <TextBlock Text="Generated home" />
+    </Grid>;
+}

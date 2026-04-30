@@ -96,6 +96,95 @@ public sealed class CodeEmitterTests
     }
 
     [TestMethod]
+    public void Emit_TypedEventArgs_UsesFullyQualifiedHandlerType()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "KeyboardProbe.csxaml",
+            """
+            using Microsoft.UI.Xaml.Controls;
+
+            component Element KeyboardProbe {
+                State<string> LastKey = new State<string>(string.Empty);
+
+                render <TextBox OnKeyDown={args => LastKey.Value = args.Key.ToString()} />;
+            }
+            """);
+
+        var emitted = GeneratorTestHarness.Emit(component);
+        var diagnostics = GeneratedCompilationTestHarness.Compile(emitted);
+
+        StringAssert.Contains(emitted, "\"OnKeyDown\"");
+        StringAssert.Contains(emitted, "(global::System.Action<global::Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>)(");
+        AssertNoErrors(diagnostics);
+    }
+
+    [TestMethod]
+    public void Compile_TypedEventArgs_RejectsInvalidLambdaShape()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "KeyboardProbe.csxaml",
+            """
+            using Microsoft.UI.Xaml.Controls;
+
+            component Element KeyboardProbe {
+                State<string> LastKey = new State<string>(string.Empty);
+
+                render <TextBox OnKeyDown={() => LastKey.Value = "bad"} />;
+            }
+            """);
+
+        var diagnostics = GeneratedCompilationTestHarness.Compile(GeneratorTestHarness.Emit(component));
+
+        Assert.IsTrue(
+            diagnostics.Any(diagnostic => diagnostic.Id == "CS1593"),
+            string.Join(Environment.NewLine, diagnostics.Select(diagnostic => diagnostic.ToString())));
+    }
+
+    [TestMethod]
+    public void Emit_ElementRef_UsesDedicatedRuntimeValue()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "SearchPanel.csxaml",
+            """
+            using Microsoft.UI.Xaml.Controls;
+
+            component Element SearchPanel {
+                ElementRef<Control> SearchBox = new ElementRef<Control>();
+
+                render <TextBox Ref={SearchBox} />;
+            }
+            """);
+
+        var emitted = GeneratorTestHarness.Emit(component);
+        var diagnostics = GeneratedCompilationTestHarness.Compile(emitted);
+
+        StringAssert.Contains(emitted, "new NativeElementRefValue(");
+        StringAssert.Contains(emitted, "SearchBox");
+        StringAssert.Contains(emitted, "\"Ref\")");
+        AssertNoErrors(diagnostics);
+    }
+
+    [TestMethod]
+    public void Compile_ElementRef_RejectsNonElementRefExpression()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "SearchPanel.csxaml",
+            """
+            component Element SearchPanel {
+                string SearchBox = "bad";
+
+                render <TextBox Ref={SearchBox} />;
+            }
+            """);
+
+        var diagnostics = GeneratedCompilationTestHarness.Compile(GeneratorTestHarness.Emit(component));
+
+        Assert.IsTrue(
+            diagnostics.Any(diagnostic => diagnostic.Id == "CS1503"),
+            string.Join(Environment.NewLine, diagnostics.Select(diagnostic => diagnostic.ToString())));
+    }
+
+    [TestMethod]
     public void Emit_BuiltInStyleExpression_UsesStyleValueKind()
     {
         var component = GeneratorTestHarness.Parse(
@@ -111,5 +200,15 @@ public sealed class CodeEmitterTests
         StringAssert.Contains(emitted, "\"Style\"");
         StringAssert.Contains(emitted, "TodoStyles.PrimaryButton");
         StringAssert.Contains(emitted, "global::Csxaml.ControlMetadata.ValueKindHint.Style");
+    }
+
+    private static void AssertNoErrors(IReadOnlyList<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
+    {
+        var errors = diagnostics
+            .Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+            .ToList();
+        Assert.IsFalse(
+            errors.Any(),
+            string.Join(Environment.NewLine, errors.Select(error => error.ToString())));
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Csxaml.Tooling.Core.Completion;
 using Csxaml.Tooling.Core.CSharp;
 using Csxaml.Tooling.Core.Markup;
@@ -30,13 +31,18 @@ public sealed class CsxamlDefinitionService
         if (element is not null)
         {
             var currentNamespace = scan.NamespaceDirective?.NamespaceName ?? workspace.Project.DefaultNamespace;
+            if (TryGetNamedSlotDefinition(filePath, text, element, workspace, scan, currentNamespace, out var slotDefinition))
+            {
+                return slotDefinition;
+            }
+
             var resolvedTag = _tagResolver.Resolve(element.TagName, scan.UsingDirectives, currentNamespace, workspace);
             if (resolvedTag.Component is not null)
             {
                 return new CsxamlDefinitionLocation(
                     resolvedTag.Component.FilePath,
                     resolvedTag.Component.NameStart,
-                    resolvedTag.Component.NameLength);
+                resolvedTag.Component.NameLength);
             }
         }
 
@@ -47,5 +53,67 @@ public sealed class CsxamlDefinitionService
                 csharpDefinition.Value.FilePath,
                 csharpDefinition.Value.Start,
                 csharpDefinition.Value.Length);
+    }
+
+    private bool TryGetNamedSlotDefinition(
+        string filePath,
+        string currentText,
+        CsxamlMarkupElementReference element,
+        CsxamlWorkspaceSnapshot workspace,
+        CsxamlMarkupScanResult scan,
+        string currentNamespace,
+        out CsxamlDefinitionLocation? definition)
+    {
+        definition = null;
+        if (element.PropertyContentOwner is null || element.PropertyContentName is null)
+        {
+            return false;
+        }
+
+        var resolvedOwner = _tagResolver.Resolve(
+            element.PropertyContentOwner,
+            scan.UsingDirectives,
+            currentNamespace,
+            workspace);
+        if (resolvedOwner.Component is null ||
+            resolvedOwner.Component.Metadata.NamedSlots.All(slot => slot.Name != element.PropertyContentName))
+        {
+            return false;
+        }
+
+        var sourceText = string.Equals(resolvedOwner.Component.FilePath, filePath, StringComparison.Ordinal)
+            ? currentText
+            : ReadComponentSource(resolvedOwner.Component.FilePath, currentText);
+        var start = FindNamedSlotStart(
+            sourceText,
+            resolvedOwner.Component.Metadata.Name,
+            element.PropertyContentName);
+        if (start < 0)
+        {
+            return false;
+        }
+
+        definition = new CsxamlDefinitionLocation(
+            resolvedOwner.Component.FilePath,
+            start,
+            element.PropertyContentName.Length);
+        return true;
+    }
+
+    private static int FindNamedSlotStart(
+        string text,
+        string componentName,
+        string slotName)
+    {
+        var pattern = $@"component\s+\w+\s+{Regex.Escape(componentName)}\b[\s\S]*?<Slot\b[^>]*\bName\s*=\s*""{Regex.Escape(slotName)}""";
+        var match = Regex.Match(text, pattern, RegexOptions.CultureInvariant);
+        return match.Success
+            ? match.Value.LastIndexOf(slotName, StringComparison.Ordinal) + match.Index
+            : -1;
+    }
+
+    private static string ReadComponentSource(string filePath, string fallback)
+    {
+        return File.Exists(filePath) ? File.ReadAllText(filePath) : fallback;
     }
 }

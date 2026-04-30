@@ -1,6 +1,6 @@
 namespace Csxaml.Generator;
 
-internal sealed class ComponentEmitter
+internal sealed partial class ComponentEmitter
 {
     private readonly CompilationContext _compilation;
     private readonly IndentedCodeWriter _writer;
@@ -16,26 +16,46 @@ internal sealed class ComponentEmitter
         EmitUsings(component.File.UsingDirectives);
         EmitNamespace(component.File.Namespace);
         EmitFileHelpers(component, beforeComponent: true, component.Definition.Span.Start);
-        EmitPropsRecord(component);
-        EmitComponentClass(component);
+        switch (component.Definition.Kind)
+        {
+            case ComponentKind.Element:
+                EmitPropsRecord(component);
+                EmitComponentClass(component, $"{component.Definition.Name}Component", "public");
+                break;
+            case ComponentKind.Page:
+            case ComponentKind.Window:
+                EmitRootShell(component);
+                EmitComponentClass(component, $"{component.Definition.Name}Component", "public");
+                break;
+            case ComponentKind.Application:
+                EmitApplicationRoot(component);
+                break;
+            case ComponentKind.ResourceDictionary:
+                EmitResourceDictionaryRoot(component);
+                break;
+        }
+
         EmitFileHelpers(component, beforeComponent: false, component.Definition.Span.Start);
     }
 
-    private void EmitComponentClass(ParsedComponent component)
+    private void EmitComponentClass(
+        ParsedComponent component,
+        string className,
+        string accessibility)
     {
         var definition = component.Definition;
         var baseType = definition.Parameters.Count == 0
             ? "ComponentInstance"
             : $"ComponentInstance<{definition.Name}Props>";
 
-        _writer.WriteLine($"public sealed class {definition.Name}Component : {baseType}");
+        _writer.WriteLine($"{accessibility} sealed class {className} : {baseType}");
         _writer.WriteLine("{");
         _writer.PushIndent();
         EmitComponentMetadata(component);
         EmitStateFields(component);
         EmitInjectFields(component);
         EmitPropAccessors(component);
-        EmitRegistrationConstructor(definition);
+        EmitRegistrationConstructor(className);
         EmitResolveInjectedServicesMethod(component);
         EmitRenderMethod(component);
         _writer.PopIndent();
@@ -47,13 +67,6 @@ internal sealed class ComponentEmitter
         _writer.WriteLine($"public override string CsxamlComponentName => \"{EscapeString(component.Definition.Name)}\";");
         _writer.WriteLine(
             $"public override CsxamlSourceInfo? CsxamlSourceInfo => {SourceInfoEmitter.Emit(component.Source, component.Definition.Name, component.Definition.Span)};");
-        _writer.WriteLine();
-    }
-
-    private void EmitNamespace(FileScopedNamespaceDefinition? fileNamespace)
-    {
-        var namespaceName = fileNamespace?.NamespaceName ?? _compilation.Project.DefaultComponentNamespace;
-        _writer.WriteLine($"namespace {namespaceName};");
         _writer.WriteLine();
     }
 
@@ -243,74 +256,4 @@ internal sealed class ComponentEmitter
         _writer.WriteLine();
     }
 
-    private void EmitUsings(IReadOnlyList<UsingDirectiveDefinition> usingDirectives)
-    {
-        _writer.WriteLine("#nullable enable");
-        _writer.WriteLine("using System;");
-        _writer.WriteLine("using System.Collections.Generic;");
-        _writer.WriteLine("using System.Linq;");
-        _writer.WriteLine("using Csxaml.Runtime;");
-        foreach (var usingDirective in usingDirectives)
-        {
-            if (usingDirective.IsStatic)
-            {
-                _writer.WriteLine($"using static {usingDirective.QualifiedName};");
-                continue;
-            }
-
-            if (usingDirective.Alias is null)
-            {
-                _writer.WriteLine($"using {usingDirective.QualifiedName};");
-                continue;
-            }
-
-            _writer.WriteLine($"using {usingDirective.Alias} = {usingDirective.QualifiedName};");
-        }
-        _writer.WriteLine();
-    }
-
-    private void EmitFileHelpers(
-        ParsedComponent component,
-        bool beforeComponent,
-        int componentStart)
-    {
-        foreach (var helperCodeBlock in component.File.HelperCodeBlocks)
-        {
-            if ((helperCodeBlock.Span.Start < componentStart) != beforeComponent)
-            {
-                continue;
-            }
-
-            _writer.WriteMappedBlock(
-                LineDirectiveFormatter.Wrap(component.Source, helperCodeBlock.Span, helperCodeBlock.CodeText),
-                component.Source,
-                helperCodeBlock.Span,
-                "file-helper-code");
-            _writer.WriteLine();
-        }
-    }
-
-    private void EmitRegistrationConstructor(ComponentDefinition component)
-    {
-        if (!_compilation.HasExternalControls)
-        {
-            return;
-        }
-
-        _writer.WriteLine($"static {component.Name}Component()");
-        _writer.WriteLine("{");
-        _writer.PushIndent();
-        _writer.WriteLine(
-            $"global::{_compilation.Project.InternalGeneratedNamespace}.GeneratedExternalControlRegistration.EnsureRegistered();");
-        _writer.PopIndent();
-        _writer.WriteLine("}");
-        _writer.WriteLine();
-    }
-
-    private static string EscapeString(string value)
-    {
-        return value
-            .Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("\"", "\\\"", StringComparison.Ordinal);
-    }
 }

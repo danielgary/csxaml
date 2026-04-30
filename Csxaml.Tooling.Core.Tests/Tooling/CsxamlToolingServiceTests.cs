@@ -15,11 +15,11 @@ public sealed class CsxamlToolingServiceTests
     public void Completion_suggests_workspace_component_tags()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
             using Microsoft.UI.Xaml.Controls;
 
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TodoC />;
@@ -38,9 +38,9 @@ public sealed class CsxamlToolingServiceTests
     public void Completion_suggests_component_parameters_as_attributes()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TodoCard Tit />;
@@ -59,9 +59,9 @@ public sealed class CsxamlToolingServiceTests
     public void Completion_suggests_native_events_as_attributes()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <Button OnC />;
@@ -77,14 +77,37 @@ public sealed class CsxamlToolingServiceTests
     }
 
     [TestMethod]
+    public void Completion_suggests_typed_event_args_as_attributes()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
+            """
+            namespace Csxaml.Samples.TodoApp;
+
+            component Element ToolingProbe() {
+                render <Slider OnV />;
+            }
+            """);
+        var position = tempFile.Text.IndexOf("OnV", StringComparison.Ordinal) + "OnV".Length;
+
+        var items = new CsxamlCompletionService().GetCompletions(tempFile.FilePath, tempFile.Text, position);
+        var valueChanged = items.SingleOrDefault(item => item.Label == "OnValueChanged");
+
+        Assert.IsNotNull(valueChanged, $"Items: {string.Join(", ", items.Select(item => item.Label))}");
+        StringAssert.Contains(
+            valueChanged.Detail,
+            "System.Action<Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs>");
+    }
+
+    [TestMethod]
     public void Completion_suggests_imported_external_control_tags_through_aliases()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
             using DemoControls = Csxaml.ExternalControls;
 
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <DemoControls:Stat />;
@@ -103,11 +126,11 @@ public sealed class CsxamlToolingServiceTests
     public void Completion_suggests_package_controls_through_aliases()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
             using WinUi = Microsoft.UI.Xaml.Controls;
 
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <WinUi:Info />;
@@ -126,9 +149,9 @@ public sealed class CsxamlToolingServiceTests
     public void Completion_suggests_attached_properties_as_attributes()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TextBlock Grid.R />;
@@ -147,9 +170,9 @@ public sealed class CsxamlToolingServiceTests
     public void Completion_suggests_injected_services_in_helper_code()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 inject ITodoService todoService;
@@ -170,9 +193,9 @@ public sealed class CsxamlToolingServiceTests
     public void Definition_resolves_component_usages_to_source_files()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TodoCard />;
@@ -183,7 +206,7 @@ public sealed class CsxamlToolingServiceTests
         var definition = new CsxamlDefinitionService().GetDefinition(tempFile.FilePath, tempFile.Text, position);
 
         Assert.IsNotNull(definition);
-        StringAssert.EndsWith(definition.FilePath, "Csxaml.Demo\\Components\\TodoCard.csxaml");
+        StringAssert.EndsWith(definition.FilePath, "samples\\Csxaml.TodoApp\\Components\\TodoCard.csxaml");
     }
 
     [TestMethod]
@@ -193,7 +216,7 @@ public sealed class CsxamlToolingServiceTests
             """
             using Microsoft.UI.Xaml.Controls;
 
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TextBlock Grid.Row={1} />;
@@ -201,7 +224,7 @@ public sealed class CsxamlToolingServiceTests
             """;
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             text);
 
         var tokens = new CsxamlSemanticTokenService().GetTokens(tempFile.FilePath, text);
@@ -220,7 +243,7 @@ public sealed class CsxamlToolingServiceTests
     {
         const string text =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TextBlock Grid.Row={1} />;
@@ -228,7 +251,7 @@ public sealed class CsxamlToolingServiceTests
             """;
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             text);
 
         var tokens = new CsxamlSemanticTokenService().GetTokens(tempFile.FilePath, text);
@@ -247,7 +270,7 @@ public sealed class CsxamlToolingServiceTests
     {
         const string text =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 inject ITodoService todoService;
@@ -264,7 +287,7 @@ public sealed class CsxamlToolingServiceTests
             """;
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             text);
 
         var tokens = new CsxamlSemanticTokenService().GetTokens(tempFile.FilePath, text);
@@ -311,7 +334,7 @@ public sealed class CsxamlToolingServiceTests
     {
         const string text =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
             render <Border

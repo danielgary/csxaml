@@ -29,6 +29,12 @@ public sealed class CsxamlHoverService
         var targetAttribute = FindAttributeAtPosition(markup, position);
         if (targetElement is null && targetAttribute is null)
         {
+            var keywordHover = CsxamlKeywordHoverService.TryGetHover(text, position);
+            if (keywordHover is not null)
+            {
+                return keywordHover;
+            }
+
             return _csharpHoverService.GetHover(filePath, text, position);
         }
 
@@ -36,7 +42,7 @@ public sealed class CsxamlHoverService
         var currentNamespace = markup.NamespaceDirective?.NamespaceName ?? workspace.Project.DefaultNamespace;
         var markupHover = targetAttribute is not null
             ? GetAttributeHover(markup, currentNamespace, workspace, targetAttribute.Value.Element, targetAttribute.Value.Attribute)
-            : GetTagHover(currentNamespace, markup, workspace, targetElement!);
+            : GetTagHover(currentNamespace, markup, workspace, targetElement!, position);
         return markupHover ?? _csharpHoverService.GetHover(filePath, text, position);
     }
 
@@ -44,8 +50,16 @@ public sealed class CsxamlHoverService
         string currentNamespace,
         CsxamlMarkupScanResult markup,
         CsxamlWorkspaceSnapshot workspace,
-        CsxamlMarkupElementReference element)
+        CsxamlMarkupElementReference element,
+        int position)
     {
+        if (element.PropertyContentName is not null &&
+            position >= element.PropertyContentNameStart &&
+            position <= element.PropertyContentNameStart + element.PropertyContentNameLength)
+        {
+            return GetPropertyContentHover(currentNamespace, markup, workspace, element);
+        }
+
         var resolvedTag = _tagResolver.Resolve(element.TagName, markup.UsingDirectives, currentNamespace, workspace);
         var markdown = resolvedTag.Kind switch
         {
@@ -61,6 +75,71 @@ public sealed class CsxamlHoverService
         return markdown is null
             ? null
             : new CsxamlHoverInfo(element.NameStart, element.NameLength, markdown);
+    }
+
+    private CsxamlHoverInfo? GetPropertyContentHover(
+        string currentNamespace,
+        CsxamlMarkupScanResult markup,
+        CsxamlWorkspaceSnapshot workspace,
+        CsxamlMarkupElementReference element)
+    {
+        if (element.PropertyContentOwner is null || element.PropertyContentName is null)
+        {
+            return null;
+        }
+
+        var resolvedOwner = _tagResolver.Resolve(
+            element.PropertyContentOwner,
+            markup.UsingDirectives,
+            currentNamespace,
+            workspace);
+        if (resolvedOwner.Control is not null)
+        {
+            return GetNativePropertyContentHover(element, resolvedOwner.Control);
+        }
+
+        if (resolvedOwner.Component is not null &&
+            resolvedOwner.Component.Metadata.NamedSlots.Any(slot => slot.Name == element.PropertyContentName))
+        {
+            return new CsxamlHoverInfo(
+                element.PropertyContentNameStart,
+                element.PropertyContentNameLength,
+                CsxamlHoverFormatter.FormatComponentNamedSlot(
+                    resolvedOwner.Component,
+                    element.PropertyContentName));
+        }
+
+        return null;
+    }
+
+    private static CsxamlHoverInfo? GetNativePropertyContentHover(
+        CsxamlMarkupElementReference element,
+        Csxaml.ControlMetadata.ControlMetadata control)
+    {
+        var propertyName = element.PropertyContentName!;
+        if (string.Equals(control.Content.DefaultPropertyName, propertyName, StringComparison.Ordinal))
+        {
+            return new CsxamlHoverInfo(
+                element.PropertyContentNameStart,
+                element.PropertyContentNameLength,
+                CsxamlHoverFormatter.FormatNativePropertyContent(
+                    control,
+                    propertyName,
+                    control.Content.Kind,
+                    control.Content.PropertyTypeName));
+        }
+
+        var property = control.Properties.FirstOrDefault(candidate => candidate.Name == propertyName);
+        return property is null
+            ? null
+            : new CsxamlHoverInfo(
+                element.PropertyContentNameStart,
+                element.PropertyContentNameLength,
+                CsxamlHoverFormatter.FormatNativePropertyContent(
+                    control,
+                    property.Name,
+                    ControlContentKind.Single,
+                    property.ClrTypeName));
     }
 
     private CsxamlHoverInfo? GetAttributeHover(
@@ -79,6 +158,11 @@ public sealed class CsxamlHoverService
         if (resolvedTag.Control is not null)
         {
             var control = resolvedTag.Control;
+            if (string.Equals(attribute.Name, "Ref", StringComparison.Ordinal))
+            {
+                return new CsxamlHoverInfo(attribute.Start, attribute.Length, CsxamlHoverFormatter.FormatElementRef(control));
+            }
+
             var @event = control.Events.FirstOrDefault(candidate => string.Equals(candidate.ExposedName, attribute.Name, StringComparison.Ordinal));
             if (@event is not null)
             {

@@ -31,8 +31,20 @@ internal sealed class GeneratedComponentManifestEmitter
             .ThenBy(component => component.Name, StringComparer.Ordinal)
             .Select(
                 component =>
-                    $"new ComponentMetadata({FormatStringLiteral(component.Name)}, {FormatStringLiteral(component.NamespaceName)}, {FormatStringLiteral(component.AssemblyName)}, {FormatStringLiteral(component.ComponentTypeName)}, {FormatNullableStringLiteral(component.PropsTypeName)}, {BuildParametersExpression(component.Parameters)}, {FormatBool(component.SupportsDefaultSlot)})");
+                    $"new ComponentMetadata({FormatStringLiteral(component.Name)}, {FormatStringLiteral(component.NamespaceName)}, {FormatStringLiteral(component.AssemblyName)}, {FormatStringLiteral(component.ComponentTypeName)}, {FormatNullableStringLiteral(component.PropsTypeName)}, {BuildParametersExpression(component.Parameters)}, {FormatBool(component.SupportsDefaultSlot)}, {BuildSlotsExpression(component.NamedSlots)}, ComponentKind.{component.Kind})");
         return $"new ComponentMetadata[] {{ {string.Join(", ", values)} }}";
+    }
+
+    private static string BuildSlotsExpression(IReadOnlyList<ComponentSlotMetadata> namedSlots)
+    {
+        if (namedSlots.Count == 0)
+        {
+            return "Array.Empty<ComponentSlotMetadata>()";
+        }
+
+        var values = namedSlots
+            .Select(slot => $"new ComponentSlotMetadata({FormatStringLiteral(slot.Name)})");
+        return $"new ComponentSlotMetadata[] {{ {string.Join(", ", values)} }}";
     }
 
     private static string BuildParametersExpression(IReadOnlyList<ComponentParameterMetadata> parameters)

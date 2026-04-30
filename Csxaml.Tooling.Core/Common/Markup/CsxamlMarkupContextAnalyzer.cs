@@ -3,7 +3,7 @@ namespace Csxaml.Tooling.Core.Markup;
 /// <summary>
 /// Analyzes source text to identify the CSXAML markup context at a cursor position.
 /// </summary>
-public static class CsxamlMarkupContextAnalyzer
+public static partial class CsxamlMarkupContextAnalyzer
 {
     /// <summary>
     /// Analyzes the markup context at the specified source position.
@@ -32,13 +32,15 @@ public static class CsxamlMarkupContextAnalyzer
                 tagState.PrefixText,
                 tagState.Qualifier,
                 null,
-                Array.Empty<string>()),
+                Array.Empty<string>(),
+                tagState.PropertyContentOwner),
             CsxamlMarkupContextKind.AttributeName => new CsxamlMarkupContext(
                 CsxamlMarkupContextKind.AttributeName,
                 tagState.PrefixText,
                 null,
                 tagState.TagName,
-                tagState.ExistingAttributes),
+                tagState.ExistingAttributes,
+                null),
             _ => None(),
         };
     }
@@ -121,31 +123,44 @@ public static class CsxamlMarkupContextAnalyzer
         var rawTagText = text[nameStart..index];
         if (position <= index)
         {
+            if (TrySplitPropertyContent(rawTagText, out var ownerName, out var propertyPrefix))
+            {
+                return new TagState(
+                    CsxamlMarkupContextKind.TagName,
+                    propertyPrefix,
+                    null,
+                    null,
+                    Array.Empty<string>(),
+                    ownerName);
+            }
+
             var qualifierSeparator = rawTagText.IndexOf(':');
             return new TagState(
                 CsxamlMarkupContextKind.TagName,
                 qualifierSeparator >= 0 ? rawTagText[(qualifierSeparator + 1)..] : rawTagText,
                 qualifierSeparator >= 0 ? rawTagText[..qualifierSeparator] : null,
                 null,
-                Array.Empty<string>());
+                Array.Empty<string>(),
+                null);
         }
 
         if (string.IsNullOrWhiteSpace(rawTagText))
         {
-            return new TagState(CsxamlMarkupContextKind.TagName, string.Empty, null, null, Array.Empty<string>());
+            return new TagState(CsxamlMarkupContextKind.TagName, string.Empty, null, null, Array.Empty<string>(), null);
         }
 
         var tagName = rawTagText;
         var attributes = ReadExistingAttributeNames(text, index, position);
         var attributePrefix = ReadAttributePrefix(text, index, position);
         return attributePrefix is null
-            ? new TagState(CsxamlMarkupContextKind.None, string.Empty, null, null, Array.Empty<string>())
+            ? new TagState(CsxamlMarkupContextKind.None, string.Empty, null, null, Array.Empty<string>(), null)
             : new TagState(
                 CsxamlMarkupContextKind.AttributeName,
                 attributePrefix,
                 null,
                 tagName,
-                attributes);
+                attributes,
+                null);
     }
 
     private static IReadOnlyList<string> ReadExistingAttributeNames(string text, int start, int end)
@@ -245,25 +260,4 @@ public static class CsxamlMarkupContextAnalyzer
         return index;
     }
 
-    private static bool IsTagNameCharacter(char character)
-    {
-        return char.IsLetterOrDigit(character) || character is '_' or ':';
-    }
-
-    private static CsxamlMarkupContext None()
-    {
-        return new CsxamlMarkupContext(
-            CsxamlMarkupContextKind.None,
-            string.Empty,
-            null,
-            null,
-            Array.Empty<string>());
-    }
-
-    private sealed record TagState(
-        CsxamlMarkupContextKind Kind,
-        string PrefixText,
-        string? Qualifier,
-        string? TagName,
-        IReadOnlyList<string> ExistingAttributes);
 }

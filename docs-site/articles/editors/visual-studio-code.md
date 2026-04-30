@@ -10,8 +10,9 @@ The VS Code extension contributes:
 - `csxaml` language id
 - `.csxaml` file association
 - language configuration for comments and bracket pairs
-- hybrid TextMate grammar
-- snippets
+- hybrid TextMate grammar for CSXAML markup plus embedded C# islands
+- snippets for components, generated roots, refs, property content, and named
+  slots
 - language-server client for richer editor behavior
 
 ## Requirements
@@ -41,6 +42,19 @@ need to build that VSIX from source.
 2. Confirm the language mode is `CSXAML`.
 3. Type `<But` inside a render body and confirm `Button` completion.
 4. Run **CSXAML: Restart Language Server** if semantic features do not appear after install.
+
+## Highlighting Coverage
+
+The TextMate grammar is the syntax-coloring source of truth for VS Code and the
+DocFX CSXAML highlighter. It covers the current syntax surface, including
+generated `Application`, `Window`, `Page`, and `ResourceDictionary` roots,
+`startup` and `resources`, `Ref`, property-content tags such as
+`<Button.Flyout>`, named slot outlets and usage, attached properties, and
+embedded C# expressions.
+
+`samples/Csxaml.FeatureGallery` includes an app-hosted `SampleCodePresenter`
+with a small fallback classifier. A future hardened presenter should reuse this
+grammar when practical.
 
 ## Expected failure modes
 

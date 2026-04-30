@@ -84,6 +84,51 @@ public sealed class ExternalControlAdapterTests
         });
     }
 
+    [TestMethod]
+    public void Render_StatusButton_AssignsElementRef()
+    {
+        WinUiTestEnvironment.Run(() =>
+        {
+            ExternalControlRegistry.Register(CreateStatusButtonDescriptor());
+            var renderer = new WinUiNodeRenderer();
+            var reference = new ElementRef<StatusButton>();
+
+            var button = (StatusButton)renderer.RenderProjectedRoot(
+                new NativeElementNode(
+                    typeof(StatusButton).FullName!,
+                    null,
+                    Array.Empty<NativePropertyValue>(),
+                    Array.Empty<NativeAttachedPropertyValue>(),
+                    new NativeElementRefValue(reference),
+                    Array.Empty<NativeEventValue>(),
+                    Array.Empty<Node>()));
+
+            Assert.AreSame(button, reference.Current);
+        });
+    }
+
+    [TestMethod]
+    public void Render_ControlExample_SetsAndClearsMetadataContentProperty()
+    {
+        WinUiTestEnvironment.Run(() =>
+        {
+            ExternalControlRegistry.Register(CreateControlExampleDescriptor());
+            var renderer = new WinUiNodeRenderer();
+
+            var firstExample = (ControlExample)renderer.RenderProjectedRoot(
+                CreateControlExampleNode("Run"));
+            var firstChild = (TextBlock)firstExample.Example!;
+
+            Assert.AreEqual("Run", firstChild.Text);
+
+            var secondExample = (ControlExample)renderer.RenderProjectedRoot(
+                CreateControlExampleNode(null));
+
+            Assert.AreSame(firstExample, secondExample);
+            Assert.IsNull(secondExample.Example);
+        });
+    }
+
     private static NativeElementNode CreateInfoBarNode(
         bool isOpen,
         string message,
@@ -144,6 +189,42 @@ public sealed class ExternalControlAdapterTests
                 ]));
     }
 
+    private static ExternalControlDescriptor CreateControlExampleDescriptor()
+    {
+        return new ExternalControlDescriptor(
+            typeof(ControlExample),
+            new Csxaml.ControlMetadata.ControlMetadata(
+                typeof(ControlExample).FullName!,
+                typeof(ControlExample).FullName!,
+                typeof(Button).FullName,
+                ControlChildKind.Single,
+                new ControlContentMetadata(
+                    "Example",
+                    ControlContentKind.Single,
+                    typeof(Microsoft.UI.Xaml.UIElement).FullName!,
+                    null,
+                    ControlContentSource.ContentPropertyAttribute),
+                [
+                    new PropertyMetadata(
+                        "Example",
+                        typeof(Microsoft.UI.Xaml.UIElement).FullName!,
+                        true,
+                        false,
+                        false,
+                        true,
+                        ValueKindHint.Object),
+                    new PropertyMetadata(
+                        "Options",
+                        typeof(Microsoft.UI.Xaml.UIElement).FullName!,
+                        true,
+                        false,
+                        false,
+                        true,
+                        ValueKindHint.Object)
+                ],
+                Array.Empty<EventMetadata>()));
+    }
+
     private static NativeElementNode CreateStatusButtonGrid(
         string? badgeText,
         string childText,
@@ -179,6 +260,26 @@ public sealed class ExternalControlAdapterTests
                             Array.Empty<Node>())
                     ])
             ]);
+    }
+
+    private static NativeElementNode CreateControlExampleNode(string? childText)
+    {
+        return new NativeElementNode(
+            typeof(ControlExample).FullName!,
+            null,
+            Array.Empty<NativePropertyValue>(),
+            Array.Empty<NativeEventValue>(),
+            childText is null
+                ? Array.Empty<Node>()
+                :
+                [
+                    new NativeElementNode(
+                        "TextBlock",
+                        null,
+                        [new NativePropertyValue("Text", childText, ValueKindHint.String)],
+                        Array.Empty<NativeEventValue>(),
+                        Array.Empty<Node>())
+                ]);
     }
 
     private static void InvokeClick(StatusButton button)

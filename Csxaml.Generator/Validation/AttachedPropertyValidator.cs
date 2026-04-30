@@ -48,7 +48,8 @@ internal sealed class AttachedPropertyValidator
             return;
         }
 
-        if (metadata.ValueKindHint is ValueKindHint.Object or ValueKindHint.String)
+        if (metadata.ValueKindHint == ValueKindHint.String ||
+            IsLiteralFriendlyObject(metadata))
         {
             return;
         }
@@ -57,5 +58,11 @@ internal sealed class AttachedPropertyValidator
             source,
             property.Span,
             $"attached property '{property.Name}' on '{node.TagName}' requires an expression value");
+    }
+
+    private static bool IsLiteralFriendlyObject(AttachedPropertyMetadata metadata)
+    {
+        return metadata.ValueKindHint == ValueKindHint.Object &&
+            string.Equals(metadata.ClrTypeName, "System.Object", StringComparison.Ordinal);
     }
 }

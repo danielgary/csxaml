@@ -66,6 +66,11 @@ public sealed partial class CsxamlSemanticTokenService
     {
         foreach (var element in scan.Elements)
         {
+            if (TryEmitPropertyContentTokens(tokens, element, scan, currentNamespace, workspace))
+            {
+                continue;
+            }
+
             var resolvedTag = _tagResolver.Resolve(element.TagName, scan.UsingDirectives, currentNamespace, workspace);
             tokens.Add(CreateTagToken(element, resolvedTag));
 
@@ -74,6 +79,38 @@ public sealed partial class CsxamlSemanticTokenService
                 EmitAttributeToken(tokens, attribute, resolvedTag, scan.UsingDirectives, currentNamespace);
             }
         }
+    }
+
+    private bool TryEmitPropertyContentTokens(
+        ICollection<CsxamlSemanticToken> tokens,
+        CsxamlMarkupElementReference element,
+        CsxamlMarkupScanResult scan,
+        string currentNamespace,
+        CsxamlWorkspaceSnapshot workspace)
+    {
+        if (element.PropertyContentOwner is null || element.PropertyContentName is null)
+        {
+            return false;
+        }
+
+        var resolvedOwner = _tagResolver.Resolve(
+            element.PropertyContentOwner,
+            scan.UsingDirectives,
+            currentNamespace,
+            workspace);
+        tokens.Add(
+            new CsxamlSemanticToken(
+                element.PropertyContentOwnerStart,
+                element.PropertyContentOwnerLength,
+                CsxamlSemanticTokenType.Class,
+                IsDefaultLibrary: resolvedOwner.Kind == CsxamlResolvedTagKind.Native));
+        tokens.Add(
+            new CsxamlSemanticToken(
+                element.PropertyContentNameStart,
+                element.PropertyContentNameLength,
+                CsxamlSemanticTokenType.Property,
+                IsDefaultLibrary: resolvedOwner.Kind == CsxamlResolvedTagKind.Native));
+        return true;
     }
 
     private static CsxamlSemanticToken CreateTagToken(
@@ -101,7 +138,7 @@ public sealed partial class CsxamlSemanticTokenService
         IReadOnlyList<CsxamlUsingDirectiveInfo> usingDirectives,
         string currentNamespace)
     {
-        if (attribute.Name == "Key")
+        if (attribute.Name is "Key" or "Ref")
         {
             tokens.Add(new CsxamlSemanticToken(attribute.Start, attribute.Length, CsxamlSemanticTokenType.Property, IsReadOnly: true));
             return;
@@ -191,6 +228,6 @@ public sealed partial class CsxamlSemanticTokenService
         };
     }
 
-    [GeneratedRegex(@"\b(component|Element|State|inject|render|if|foreach|var|in|using|namespace)\b", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\b(component|Element|Page|Window|Application|ResourceDictionary|startup|resources|State|inject|render|if|foreach|var|in|using|namespace)\b", RegexOptions.CultureInvariant)]
     private static partial Regex KeywordPattern();
 }

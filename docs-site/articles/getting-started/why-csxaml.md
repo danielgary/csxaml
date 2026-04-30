@@ -59,6 +59,8 @@ Bad fit: an existing page built around XAML `DataTemplate` resources,
 `DataContext` inheritance, designer-owned layout, and mature binding patterns.
 Keep that page in XAML unless there is a specific component slice that benefits
 from typed CSXAML props and explicit event flow.
+The [Resources and Templates](../guides/resources-and-templates.md) guide
+spells out that boundary for generated app resources and XAML dictionaries.
 
 ## Current boundary
 

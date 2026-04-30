@@ -1,0 +1,132 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element RefsAndEventsPage {
+    State<string> SearchText = new State<string>("Focus me, then press a key");
+    State<string> LoadedStatus = new State<string>("Waiting for Loaded");
+    State<string> PointerStatus = new State<string>("Pointer events appear here");
+    State<string> QueryStatus = new State<string>("Submit a query");
+    State<string> ListStatus = new State<string>("Choose a ListView item");
+    State<double> SliderValue = new State<double>(40);
+    State<string> NavigationStatus = new State<string>("Frame has not navigated");
+
+    ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
+    ElementRef<Frame> DemoFrame = new ElementRef<Frame>();
+
+    void FocusSearch()
+    {
+        SearchBox.Current?.Focus(FocusState.Programmatic);
+    }
+
+    void MarkLoaded(RoutedEventArgs args)
+    {
+        if (LoadedStatus.Value != "Loaded fired")
+        {
+            LoadedStatus.Value = "Loaded fired";
+        }
+    }
+
+    void NavigateFrame()
+    {
+        DemoFrame.Current?.Navigate(typeof(FrameTargetPage));
+    }
+
+    void UpdateSlider(RangeBaseValueChangedEventArgs args)
+    {
+        SliderValue.Value = args.NewValue;
+    }
+
+    string FormatSliderStatus()
+    {
+        return $"ValueChanged: {SliderValue.Value:0}";
+    }
+
+    render <StackPanel Spacing={14}>
+        <GallerySection
+            Eyebrow="Imperative interop"
+            Title="Refs for focus and navigation"
+            Description="ElementRef<T> gives component code a typed handle to a retained native control without introducing x:Name lookup.">
+            <GallerySection.Actions>
+                <Button Content="Focus input" Style={GalleryStyles.PrimaryButton} OnClick={FocusSearch} />
+                <Button Content="Navigate frame" Style={GalleryStyles.SubtleButton} OnClick={NavigateFrame} />
+            </GallerySection.Actions>
+            <TextBox
+                AutomationProperties.AutomationId="FeatureGallerySearchBox"
+                Ref={SearchBox}
+                Text={SearchText.Value}
+                PlaceholderText="Ref target"
+                OnTextChanged={value => SearchText.Value = value}
+                OnLoaded={MarkLoaded}
+                OnKeyDown={args => LoadedStatus.Value = $"KeyDown: {args.Key}"} />
+            <Frame
+                Ref={DemoFrame}
+                Height={110}
+                Margin={new Thickness(0, 8, 0, 0)}
+                OnNavigating={args => NavigationStatus.Value = "Navigating"}
+                OnNavigated={args => NavigationStatus.Value = "Navigated"}
+                OnNavigationFailed={args => NavigationStatus.Value = "Navigation failed"}
+                OnNavigationStopped={args => NavigationStatus.Value = "Navigation stopped"} />
+            <TextBlock
+                Text={LoadedStatus.Value}
+                Foreground={GalleryColors.TextMuted}
+                TextWrapping={TextWrapping.Wrap} />
+            <TextBlock
+                Text={NavigationStatus.Value}
+                Foreground={GalleryColors.TextMuted}
+                TextWrapping={TextWrapping.Wrap} />
+            <SampleCodePresenter Title="Refs and typed key events" Code={GallerySnippets.RefsAndEvents} />
+        </GallerySection>
+        <GallerySection
+            Eyebrow="Typed event args"
+            Title="Selection, item click, query, value, pointer"
+            Description="Typed senderless handlers keep the callback shape simple while preserving native event data.">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+                <ListView
+                    Grid.Row={0}
+                    Grid.Column={0}
+                    Height={150}
+                    ItemsSource={GalleryItems.EventItems}
+                    IsItemClickEnabled={true}
+                    SelectionMode={ListViewSelectionMode.Single}
+                    OnSelectionChanged={args => ListStatus.Value = $"SelectionChanged: {args.AddedItems.Count} added"}
+                    OnItemClick={args => ListStatus.Value = $"ItemClick: {args.ClickedItem}"} />
+                <StackPanel Grid.Row={0} Grid.Column={1} Spacing={8} Margin={new Thickness(12, 0, 0, 0)}>
+                    <AutoSuggestBox
+                        PlaceholderText="Try a query"
+                        Text={SearchText.Value}
+                        OnQuerySubmitted={args => QueryStatus.Value = $"QuerySubmitted: {args.QueryText}"}
+                        OnSuggestionChosen={args => QueryStatus.Value = "SuggestionChosen"} />
+                    <Slider
+                        Minimum={0}
+                        Maximum={100}
+                        Value={SliderValue.Value}
+                        OnValueChanged={UpdateSlider} />
+                </StackPanel>
+                <Border
+                    Grid.Row={1}
+                    Grid.ColumnSpan={2}
+                    Background={GalleryColors.AccentSoft}
+                    Padding={new Thickness(12)}
+                    Margin={new Thickness(0, 12, 0, 0)}
+                    OnPointerEntered={args => PointerStatus.Value = "PointerEntered"}
+                    OnPointerExited={args => PointerStatus.Value = "PointerExited"}
+                    OnPointerPressed={args => PointerStatus.Value = "PointerPressed"}>
+                    <TextBlock
+                        Text="Pointer event surface"
+                        Foreground={GalleryColors.TextPrimary}
+                        TextWrapping={TextWrapping.Wrap} />
+                </Border>
+                <StackPanel Grid.Row={2} Grid.ColumnSpan={2} Spacing={4} Margin={new Thickness(0, 10, 0, 0)}>
+                    <TextBlock Text={ListStatus.Value} Foreground={GalleryColors.TextMuted} TextWrapping={TextWrapping.Wrap} />
+                    <TextBlock Text={QueryStatus.Value} Foreground={GalleryColors.TextMuted} TextWrapping={TextWrapping.Wrap} />
+                    <TextBlock Text={FormatSliderStatus()} Foreground={GalleryColors.TextMuted} TextWrapping={TextWrapping.Wrap} />
+                    <TextBlock Text={PointerStatus.Value} Foreground={GalleryColors.TextMuted} TextWrapping={TextWrapping.Wrap} />
+                </StackPanel>
+            </Grid>
+        </GallerySection>
+    </StackPanel>;
+}

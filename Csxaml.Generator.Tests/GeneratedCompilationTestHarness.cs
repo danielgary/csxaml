@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml.Controls;
 using RoslynDiagnostic = Microsoft.CodeAnalysis.Diagnostic;
 
 namespace Csxaml.Generator.Tests;
@@ -39,9 +40,44 @@ internal static class GeneratedCompilationTestHarness
         references.Add(MetadataReference.CreateFromFile(GetAssemblyPath(
             "Csxaml.ControlMetadata",
             "net10.0")));
+        references.Add(MetadataReference.CreateFromFile(typeof(Button).Assembly.Location));
+        references.Add(MetadataReference.CreateFromFile(FindWinUiMetadataPath()));
+        references.Add(MetadataReference.CreateFromFile(FindWindowsSdkMetadataPath("Windows.Foundation.UniversalApiContract.winmd")));
         references.Add(MetadataReference.CreateFromFile(typeof(ActivatorUtilities).Assembly.Location));
         references.Add(MetadataReference.CreateFromFile(typeof(IServiceCollection).Assembly.Location));
         return references;
+    }
+
+    private static string FindWinUiMetadataPath()
+    {
+        var packageRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".nuget",
+            "packages",
+            "microsoft.windowsappsdk.winui");
+        var candidate = Directory
+            .EnumerateFiles(packageRoot, "Microsoft.UI.Xaml.winmd", SearchOption.AllDirectories)
+            .OrderByDescending(path => path, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+        return candidate ?? throw new FileNotFoundException(
+            "Could not find Microsoft.UI.Xaml.winmd under the NuGet package cache.",
+            packageRoot);
+    }
+
+    private static string FindWindowsSdkMetadataPath(string fileName)
+    {
+        var packageRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".nuget",
+            "packages",
+            "microsoft.windows.sdk.net.ref");
+        var candidate = Directory
+            .EnumerateFiles(packageRoot, fileName, SearchOption.AllDirectories)
+            .OrderByDescending(path => path, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+        return candidate ?? throw new FileNotFoundException(
+            $"Could not find {fileName} under the NuGet package cache.",
+            packageRoot);
     }
 
     private static string GetAssemblyPath(string projectName, string targetFramework)

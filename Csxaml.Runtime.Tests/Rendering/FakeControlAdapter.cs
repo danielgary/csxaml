@@ -10,6 +10,8 @@ internal sealed class FakeControlAdapter : INativeControlAdapter
 
     public bool SupportsChildren { get; }
 
+    public int CreateCount { get; private set; }
+
     public string TagName { get; }
 
     public void ApplyEvents(
@@ -42,6 +44,7 @@ internal sealed class FakeControlAdapter : INativeControlAdapter
 
     public object Create()
     {
+        CreateCount++;
         return new FakeElement(TagName);
     }
 
@@ -57,6 +60,19 @@ internal sealed class FakeControlAdapter : INativeControlAdapter
         foreach (var child in children)
         {
             fakeElement.Children.Add(RequireElement(child));
+        }
+    }
+
+    public void SetPropertyContent(
+        object element,
+        IReadOnlyDictionary<string, IReadOnlyList<object>> propertyContent)
+    {
+        var fakeElement = RequireElement(element);
+        foreach (var entry in propertyContent)
+        {
+            fakeElement.PropertyContent[entry.Key] = entry.Value
+                .Select(RequireElement)
+                .ToList();
         }
     }
 

@@ -13,11 +13,13 @@ internal sealed class ExternalControlMetadataBuilder
         }
 
         var builtInBaseControl = FindBuiltInBaseControl(controlType);
+        var content = ExternalControlContentMetadataResolver.Resolve(controlType);
         metadata = new ControlMetadataModel(
             controlType.FullName ?? controlType.Name,
             controlType.FullName ?? controlType.Name,
             controlType.BaseType?.FullName,
-            ExternalControlChildKindResolver.Resolve(controlType),
+            content.ToChildKind(),
+            content,
             BuildProperties(controlType, builtInBaseControl),
             BuildEvents(controlType, builtInBaseControl));
         reason = null;
@@ -31,18 +33,11 @@ internal sealed class ExternalControlMetadataBuilder
         var reflectedEvents = controlType
             .GetEvents(BindingFlags.Instance | BindingFlags.Public)
             .Where(IsSupportedEvent)
-            .Select(
-                eventInfo => new EventMetadata(
-                    eventInfo.Name,
-                    $"On{eventInfo.Name}",
-                    typeof(Action).FullName ?? nameof(Action),
-                    true,
-                    ValueKindHint.Unknown,
-                    EventBindingKind.Direct))
+            .Select(BuildEventMetadata)
             .ToList();
 
-        return reflectedEvents
-            .Concat(builtInBaseControl?.Events ?? Array.Empty<EventMetadata>())
+        return (builtInBaseControl?.Events ?? Array.Empty<EventMetadata>())
+            .Concat(reflectedEvents)
             .DistinctBy(eventMetadata => eventMetadata.ExposedName, StringComparer.Ordinal)
             .OrderBy(eventMetadata => eventMetadata.ExposedName, StringComparer.Ordinal)
             .ToList();
@@ -64,7 +59,7 @@ internal sealed class ExternalControlMetadataBuilder
                     ValueKind = ExternalControlValueKindResolver.Resolve(property.PropertyType)
                 })
             .Where(entry => entry.ValueKind != ValueKindHint.Unknown)
-            .Where(entry => entry.IsDependencyProperty || SupportsClrProperty(entry.ValueKind))
+            .Where(entry => entry.IsDependencyProperty || SupportsClrProperty(entry.ValueKind, entry.Property.PropertyType))
             .Select(
                 entry => new PropertyMetadata(
                     entry.Property.Name,
@@ -119,6 +114,34 @@ internal sealed class ExternalControlMetadataBuilder
             eventInfo.RemoveMethod is not null;
     }
 
+    private static EventMetadata BuildEventMetadata(EventInfo eventInfo)
+    {
+        var parameters = eventInfo.EventHandlerType!.GetMethod("Invoke")!.GetParameters();
+        if (parameters.Length == 2)
+        {
+            return new EventMetadata(
+                eventInfo.Name,
+                $"On{eventInfo.Name}",
+                $"System.Action<{FormatTypeName(parameters[1].ParameterType)}>",
+                true,
+                ValueKindHint.Unknown,
+                EventBindingKind.EventArgs);
+        }
+
+        return new EventMetadata(
+            eventInfo.Name,
+            $"On{eventInfo.Name}",
+            typeof(Action).FullName ?? nameof(Action),
+            true,
+            ValueKindHint.Unknown,
+            EventBindingKind.Direct);
+    }
+
+    private static string FormatTypeName(Type type)
+    {
+        return type.FullName ?? type.Name;
+    }
+
     private static bool SupportsControlType(Type controlType, out string? reason)
     {
         if (!IsFrameworkElement(controlType))
@@ -164,9 +187,22 @@ internal sealed class ExternalControlMetadataBuilder
         return false;
     }
 
-    private static bool SupportsClrProperty(ValueKindHint valueKind)
+    private static bool SupportsClrProperty(ValueKindHint valueKind, Type propertyType)
     {
-        return valueKind != ValueKindHint.Object;
+        return valueKind != ValueKindHint.Object || IsUiElement(propertyType);
+    }
+
+    private static bool IsUiElement(Type type)
+    {
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            if (string.Equals(current.FullName, "Microsoft.UI.Xaml.UIElement", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static ControlMetadataModel? FindBuiltInBaseControl(Type controlType)

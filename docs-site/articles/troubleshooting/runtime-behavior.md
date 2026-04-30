@@ -54,6 +54,23 @@ Common expected shapes:
 | `OnClick` | `Action` |
 | `OnTextChanged` | `Action<string>` |
 | `OnCheckedChanged` | `Action<bool>` |
+| `OnKeyDown` | `Action<KeyRoutedEventArgs>` |
+| `OnValueChanged` | `Action<RangeBaseValueChangedEventArgs>` |
+
+For typed event-args handlers, CSXAML passes the event args value and omits the
+sender.
+
+## Symptom: an element ref is null
+
+Likely causes:
+
+1. The element has not been projected yet.
+2. The element was removed by an `if` branch or repeated-child update.
+3. The root renderer or host was disposed.
+4. `Ref` was placed on a component tag instead of a native control tag.
+
+`ElementRef<T>.Current` is intentionally nullable. Use `TryGet` or null checks
+around focus, scrolling, and animation interop.
 
 ## Symptom: removed component still receives async work
 

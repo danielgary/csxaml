@@ -13,6 +13,7 @@ internal sealed class SupportedControlFilter
             discoveredControl.ClrTypeName,
             discoveredControl.BaseTypeName,
             definition.ChildKind,
+            CuratedControlContentMetadataFactory.Create(definition, discoveredControl),
             BuildProperties(definition, discoveredControl),
             BuildEvents(definition, discoveredControl));
     }

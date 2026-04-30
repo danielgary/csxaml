@@ -1,0 +1,6 @@
+namespace Csxaml.Samples.FeatureGallery;
+
+component Application App {
+    startup MainWindow;
+    resources AppResources;
+}

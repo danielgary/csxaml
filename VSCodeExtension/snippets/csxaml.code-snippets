@@ -17,6 +17,53 @@
     ],
     "description": "Insert a State<T> field."
   },
+  "CSXAML Page Root": {
+    "prefix": "csxaml-page",
+    "body": [
+      "component Page ${1:PageName} {",
+      "\trender <Grid>",
+      "\t\t$0",
+      "\t</Grid>;",
+      "}"
+    ],
+    "description": "Create an experimental generated Page root."
+  },
+  "CSXAML Window Root": {
+    "prefix": "csxaml-window",
+    "body": [
+      "component Window ${1:MainWindow} {",
+      "\tTitle = \"${2:CSXAML App}\";",
+      "\tWidth = ${3:960};",
+      "\tHeight = ${4:640};",
+      "",
+      "\trender <${5:HomePage} />;",
+      "}"
+    ],
+    "description": "Create an experimental generated Window root."
+  },
+  "CSXAML Application Root": {
+    "prefix": "csxaml-app",
+    "body": [
+      "component Application ${1:App} {",
+      "\tstartup ${2:MainWindow};",
+      "\tresources ${3:AppResources};",
+      "}"
+    ],
+    "description": "Create an experimental generated Application root."
+  },
+  "CSXAML Resource Dictionary Root": {
+    "prefix": "csxaml-resources",
+    "body": [
+      "component ResourceDictionary ${1:AppResources} {",
+      "\trender <ResourceDictionary>",
+      "\t\t<ResourceDictionary.MergedDictionaries>",
+      "\t\t\t<XamlControlsResources />",
+      "\t\t</ResourceDictionary.MergedDictionaries>",
+      "\t</ResourceDictionary>;",
+      "}"
+    ],
+    "description": "Create an experimental generated ResourceDictionary root."
+  },
   "CSXAML If": {
     "prefix": "csxaml-if",
     "body": [
@@ -41,5 +88,39 @@
       "<Button Content=\"${1:Label}\" OnClick={${2:OnClick}} />"
     ],
     "description": "Insert a Button element."
+  },
+  "CSXAML Property Content": {
+    "prefix": "csxaml-property-content",
+    "body": [
+      "<${1:Owner}.${2:Property}>",
+      "\t$0",
+      "</${1:Owner}.${2:Property}>"
+    ],
+    "description": "Insert an experimental property-content block."
+  },
+  "CSXAML Named Slot": {
+    "prefix": "csxaml-named-slot",
+    "body": [
+      "<Slot Name=\"${1:Name}\" />"
+    ],
+    "description": "Insert an experimental named slot outlet."
+  },
+  "CSXAML Named Slot Usage": {
+    "prefix": "csxaml-named-slot-usage",
+    "body": [
+      "<${1:Component}.${2:SlotName}>",
+      "\t$0",
+      "</${1:Component}.${2:SlotName}>"
+    ],
+    "description": "Insert experimental named slot content at a call site."
+  },
+  "CSXAML Ref": {
+    "prefix": "csxaml-ref",
+    "body": [
+      "ElementRef<${1:TextBox}> ${2:Element}Ref = new ElementRef<${1:TextBox}>();",
+      "",
+      "<${1:TextBox} Ref={${2:Element}Ref} />"
+    ],
+    "description": "Create an experimental native element ref declaration and usage."
   }
 }

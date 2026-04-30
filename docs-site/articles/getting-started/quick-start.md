@@ -62,6 +62,14 @@ In `MainWindow.xaml`, add a named panel that CSXAML can render into:
 </Window>
 ```
 
+This `MainWindow` host is the current v1-safe app shape. Experimental generated
+application mode exists for post-v1 exploration, but the quick-start path still
+uses a normal WinUI shell and `CsxamlHost`. The `{ThemeResource ...}` value in
+`MainWindow.xaml` is ordinary WinUI XAML resource behavior; CSXAML expressions
+do not synthesize `ThemeResource` or `StaticResource` semantics. See
+[Resources and Templates](../guides/resources-and-templates.md) when the app
+starts sharing styles, templates, or theme dictionaries.
+
 ## 4. Render the component
 
 In `MainWindow.xaml.cs`, create the generated component, set its typed props,

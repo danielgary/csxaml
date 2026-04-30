@@ -24,6 +24,8 @@ Generated components depend on this package. App authors usually interact with i
 Use these directly in normal apps:
 
 - `CsxamlHost` to mount a root component
+- `CsxamlRootHost` when working with experimental generated `Window` or `Page`
+  roots
 - generated component classes and generated props records
 - `State<T>` inside `.csxaml` or handwritten component code
 - `CsxamlRuntimeException` when reporting runtime failures
@@ -41,6 +43,7 @@ advanced host or runtime extension:
 | Type | Use it for |
 | --- | --- |
 | [CsxamlHost](xref:Csxaml.Runtime.CsxamlHost) | Rendering a root component into a WinUI `Panel`. |
+| [CsxamlRootHost](xref:Csxaml.Runtime.CsxamlRootHost) | Mounting the retained body behind an experimental generated `Window` or `Page` root. |
 | [State&lt;T&gt;](xref:Csxaml.Runtime.State`1) | Component-local mutable state that can invalidate rendering. |
 | [ComponentInstance](xref:Csxaml.Runtime.ComponentInstance) | Base type for generated and handwritten components. |
 | [ComponentInstance&lt;TProps&gt;](xref:Csxaml.Runtime.ComponentInstance`1) | Base type for generated components with typed props. |

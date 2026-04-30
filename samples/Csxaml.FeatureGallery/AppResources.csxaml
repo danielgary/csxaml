@@ -1,0 +1,9 @@
+namespace Csxaml.Samples.FeatureGallery;
+
+component ResourceDictionary AppResources {
+    render <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <XamlControlsResources />
+        </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>;
+}

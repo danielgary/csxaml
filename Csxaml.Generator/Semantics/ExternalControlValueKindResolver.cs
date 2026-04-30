@@ -51,6 +51,11 @@ internal static class ExternalControlValueKindResolver
             return ValueKindHint.Object;
         }
 
+        if (InheritsFrom(type, "Microsoft.UI.Xaml.UIElement"))
+        {
+            return ValueKindHint.Object;
+        }
+
         return ValueKindHint.Unknown;
     }
 

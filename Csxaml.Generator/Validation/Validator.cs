@@ -3,6 +3,7 @@ namespace Csxaml.Generator;
 internal sealed class Validator
 {
     private readonly ComponentDefinitionValidator _componentDefinitionValidator = new();
+    private readonly ApplicationModeValidator _applicationModeValidator = new();
     private readonly ReferencedComponentCatalogBuilder _referencedComponentCatalogBuilder = new();
     private readonly ExternalControlCatalogBuilder _externalControlCatalogBuilder = new();
 
@@ -33,6 +34,7 @@ internal sealed class Validator
             components,
             referencePaths ?? Array.Empty<string>());
         var compilation = new CompilationContext(projectContext, componentCatalog, nativeControls);
+        _applicationModeValidator.Validate(components, compilation);
         foreach (var component in components)
         {
             _componentDefinitionValidator.Validate(component, compilation);
