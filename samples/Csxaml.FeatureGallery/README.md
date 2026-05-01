@@ -18,9 +18,8 @@ It demonstrates:
 - generated resource guidance and C# style helpers
 - `foreach` retained rendering contrasted with native `ListView`
 - app-hosted CSXAML sample code presentation with a small fallback classifier
-- WinUI Fluent resources and controls, translucent cards, reveal-style hover
-  states, animated card lift, Mica window backdrop, and native button hover
-  motion
+- WinUI Fluent resources and controls, translucent cards, Mica window backdrop,
+  retained child surfaces, and native button hover motion
 - package-provided Fluent control interop through `Microsoft.UI.Xaml.Controls.InfoBar`
 
 The sample intentionally has no source XAML shell files:

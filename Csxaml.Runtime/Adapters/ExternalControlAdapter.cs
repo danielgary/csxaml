@@ -14,6 +14,8 @@ internal sealed class ExternalControlAdapter : INativeControlAdapter
         _descriptor = descriptor;
         _childSetter = ExternalChildSetter.Create(descriptor);
         _propertyAccessors = descriptor.Metadata.Properties
+            .Where(property => property.IsWritable)
+            .Where(property => !IsDefaultContentProperty(property, descriptor.Metadata.Content))
             .Select(property => ExternalPropertyAccessor.Create(descriptor.ControlType, property))
             .ToList();
         _eventBinders = descriptor.Metadata.Events
@@ -22,6 +24,14 @@ internal sealed class ExternalControlAdapter : INativeControlAdapter
     }
 
     public string TagName => _descriptor.TagName;
+
+    private static bool IsDefaultContentProperty(
+        Csxaml.ControlMetadata.PropertyMetadata property,
+        ControlContentMetadata content)
+    {
+        return content.Kind != ControlContentKind.None &&
+            string.Equals(content.DefaultPropertyName, property.Name, StringComparison.Ordinal);
+    }
 
     public object Create()
     {

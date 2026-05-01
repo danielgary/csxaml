@@ -8,10 +8,15 @@ internal static class CommonElementEventBinder
     public static void Apply(
         FrameworkElement control,
         NativeElementNode node,
-        NativeEventBindingStore bindingStore)
+        NativeEventBindingStore bindingStore,
+        bool bindKeyDown = true)
     {
         BindLoaded(control, node, bindingStore);
-        BindKeyDown(control, node, bindingStore);
+        if (bindKeyDown)
+        {
+            BindKeyDown(control, node, bindingStore);
+        }
+
         BindPointer(control, node, bindingStore, "OnPointerCanceled", add => control.PointerCanceled += add, remove => control.PointerCanceled -= remove);
         BindPointer(control, node, bindingStore, "OnPointerCaptureLost", add => control.PointerCaptureLost += add, remove => control.PointerCaptureLost -= remove);
         BindPointer(control, node, bindingStore, "OnPointerEntered", add => control.PointerEntered += add, remove => control.PointerEntered -= remove);
@@ -51,8 +56,8 @@ internal static class CommonElementEventBinder
             handler =>
             {
                 KeyEventHandler typedHandler = (_, args) => handler(args);
-                control.KeyDown += typedHandler;
-                return () => control.KeyDown -= typedHandler;
+                control.AddHandler(UIElement.KeyDownEvent, typedHandler, handledEventsToo: true);
+                return () => control.RemoveHandler(UIElement.KeyDownEvent, typedHandler);
             });
     }
 

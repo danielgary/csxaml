@@ -58,7 +58,7 @@ namespace Csxaml.Generator.Tests.Semantics
             Assert.AreEqual("Example", metadata.Content.DefaultPropertyName);
             Assert.AreEqual("Microsoft.UI.Xaml.UIElement", metadata.Content.PropertyTypeName);
             Assert.AreEqual(ControlContentSource.ContentPropertyAttribute, metadata.Content.Source);
-            Assert.IsTrue(metadata.Properties.Any(property => property.Name == "Example"));
+            Assert.IsFalse(metadata.Properties.Any(property => property.Name == "Example"));
             Assert.IsTrue(metadata.Properties.Any(property => property.Name == "Options"));
         }
 
@@ -104,6 +104,27 @@ namespace Csxaml.Generator.Tests.Semantics
             Assert.AreEqual("Microsoft.UI.Xaml.Controls.UIElementCollection", metadata.Content.PropertyTypeName);
             Assert.AreEqual("Microsoft.UI.Xaml.UIElement", metadata.Content.ItemTypeName);
             Assert.AreEqual(ControlContentSource.Convention, metadata.Content.Source);
+        }
+
+        [TestMethod]
+        public void TryBuild_DeclaredSingleChildOnPanel_PrefersChildOverInheritedChildren()
+        {
+            var builder = new ExternalControlMetadataBuilder();
+
+            var success = builder.TryBuild(typeof(MyApp.Controls.CardPanel), out var metadata, out var reason);
+
+            Assert.IsTrue(success, reason);
+            Assert.IsNotNull(metadata);
+            Assert.AreEqual(ControlChildKind.Single, metadata.ChildKind);
+            Assert.AreEqual(ControlContentKind.Single, metadata.Content.Kind);
+            Assert.AreEqual("Child", metadata.Content.DefaultPropertyName);
+            Assert.AreEqual(ControlContentSource.Convention, metadata.Content.Source);
+            Assert.IsFalse(
+                metadata.Properties.Any(property => property.Name == "ColumnDefinitions"),
+                "External controls should not inherit built-in read-only collection properties.");
+            Assert.IsFalse(
+                metadata.Properties.Any(property => property.Name == "Child"),
+                "Default content properties should not also be projected as ordinary external properties.");
         }
 
         [TestMethod]
@@ -174,6 +195,15 @@ namespace Microsoft.UI.Xaml.Controls
             Click?.Invoke();
         }
     }
+
+    public class Panel : global::Microsoft.UI.Xaml.FrameworkElement
+    {
+        public UIElementCollection Children { get; } = new();
+    }
+
+    public class Grid : Panel
+    {
+    }
 }
 
 namespace Microsoft.UI.Xaml.Markup
@@ -242,6 +272,11 @@ namespace MyApp.Controls
     public sealed class ChildrenHost : global::Microsoft.UI.Xaml.FrameworkElement
     {
         public global::Microsoft.UI.Xaml.Controls.UIElementCollection Children { get; } = new();
+    }
+
+    public sealed class CardPanel : global::Microsoft.UI.Xaml.Controls.Grid
+    {
+        public global::Microsoft.UI.Xaml.UIElement? Child { get; set; }
     }
 
     [ContentProperty(Name = nameof(UnsupportedContent))]

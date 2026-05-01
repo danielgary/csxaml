@@ -17,7 +17,7 @@ component Element GalleryHero {
                     TextWrapping={TextWrapping.Wrap}
                     FontSize={34} />
                 <TextBlock
-                    Text="A generated WinUI app that demonstrates the current CSXAML feature surface with WinUI Fluent resources, motion, transparency, and practical examples."
+                    Text="A generated WinUI app that demonstrates the current CSXAML feature surface with WinUI Fluent resources, transparency, and practical examples."
                     Foreground={GalleryColors.TextMuted}
                     TextWrapping={TextWrapping.Wrap}
                     FontSize={16} />
@@ -42,7 +42,7 @@ component Element GalleryHero {
                         TextWrapping={TextWrapping.Wrap}
                         FontSize={18} />
                     <TextBlock
-                        Text="Native controls first, one backdrop layer, acrylic-like transient surfaces, and purposeful hover motion."
+                        Text="Native controls first, one backdrop layer, acrylic-like surfaces, and stable retained children."
                         Foreground={GalleryColors.TextMuted}
                         TextWrapping={TextWrapping.Wrap} />
                 </StackPanel>

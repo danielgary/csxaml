@@ -1,13 +1,10 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using System.Runtime.CompilerServices;
 
 namespace Csxaml.Runtime;
 
 internal sealed class ListViewControlAdapter : ControlAdapter<ListView>
 {
-    private static readonly ConditionalWeakTable<ListView, ListViewWheelScrollState> WheelScrollStates = new();
-
     public override string TagName => "ListView";
 
     protected override void ApplyEvents(
@@ -15,7 +12,6 @@ internal sealed class ListViewControlAdapter : ControlAdapter<ListView>
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
-        WheelScrollStates.GetValue(control, _ => new ListViewWheelScrollState()).EnsureAttached(control);
         CommonElementEventBinder.Apply(control, node, bindingStore);
         BindItemClick(control, node, bindingStore);
         BindSelectionChanged(control, node, bindingStore);

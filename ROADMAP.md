@@ -54,8 +54,7 @@ The project currently has implemented proof points in these areas:
   text surfaces and native horizontal gesture interop
 - `ScrollViewer` attached-property support for native list scrolling
   configuration, with `ListView` rerenders preserving stable native
-  `ItemsSource`, item-click, and selection-mode state plus a wheel fallback for
-  routed events that reach the list before its templated scroller moves
+  `ItemsSource`, item-click, and selection-mode state
 - Todo demo styling through CSXAML props for done/not-done state
 - metadata, generator, and runtime regression coverage for the Milestone 3 path
 - controlled `TextBox` and `CheckBox` support through metadata-driven validation and runtime adapters
@@ -1476,8 +1475,8 @@ Use this section to capture milestone-specific discoveries that affect future pl
   WinUI events, expanded attached-property owners, generated resource guidance,
   native virtualization guidance, and app-hosted CSXAML code presentation with
   WinUI Fluent resources and controls, translucent cards, reveal-style hover
-  states, animated card lift, Mica window backdrop, native button hover motion,
-  and package-provided `InfoBar` interop. VS Code launch/tasks and
+  states, Mica window backdrop, native button hover motion, and
+  package-provided `InfoBar` interop. VS Code launch/tasks and
   project-system configuration tests now include the sample.
 - 2026-04-30: Fixed generated `Page` root activation through native WinUI frame
   navigation. Page roots now emit hidden generated `.xaml` companions, generated
@@ -1496,20 +1495,22 @@ Use this section to capture milestone-specific discoveries that affect future pl
   Gallery. The runtime now leaves stable `ItemsSource`, item-click, and
   selection-mode values alone during rerenders, attached-property application
   only clears properties previously owned by CSXAML, `ScrollViewer.*` attached
-  properties are supported for native list scroll configuration, and `ListView`
-  has a wheel fallback for routed wheel events that reach the list before its
-  templated scroller moves. Generated `Window` roots now also install a native
-  wheel bridge over the top-level window, WinUI child HWNDs, and the window UI
-  thread's physical-wheel message path. The bridge refreshes after
-  retained-root rerenders, handles native mouse and pointer wheel messages,
-  lets WinUI handle the message first, converts physical screen coordinates to
-  WinUI effective pixels, and then scrolls the nearest vertical `ScrollViewer`
-  whose transformed bounds contain the pointer only when native handling did
-  not move it. This keeps wrapper controls such as Fluent cards from causing
-  a broad root/card hit-test candidate to select an unrelated scroll viewer;
-  hosted roots get the same target lookup as a routed pointer fallback. The
-  gallery keeps `RefsAndEventsPage` outside the
-  shell-level page `ScrollViewer` while its list owns vertical scrolling.
+  properties are supported for native list scroll configuration, and the
+  gallery keeps `RefsAndEventsPage` outside the shell-level page
+  `ScrollViewer` while its list owns vertical scrolling.
+- 2026-05-01: Removed the experimental mouse-wheel fallback layer from
+  `Csxaml.Runtime`. The host-level HWND subclass, UI-thread mouse hook, routed
+  root bridge, target finder, offset calculator, and per-`ListView` wheel state
+  did not improve physical mouse-wheel behavior in the Feature Gallery. The
+  sample `FluentCard` hover treatment now keeps the card visually stationary so
+  the wrapper does not move or scale the native `ListView` subtree under the
+  pointer.
+- 2026-05-01: Tightened controlled `TextBox` event timing. A `TextBox`
+  `OnKeyDown` handler can now update component state without projecting a stale
+  `Text` value before native text input raises `TextChanged`; the adapter holds
+  that render request until text input completes or the dispatcher confirms the
+  key did not change text, and restores focus when a retained TextBox rerender
+  was triggered by focused keyboard input.
 - 2026-04-29: Began Phase 01 of the post-v1 WinUI interop and app-shell breadth track. This pass records planned direction only, not shipped behavior: typed event-argument projection, explicit `ElementRef<T>` handles, content-property/property-content expansion, generated `Application`/`Window`/`Page`/`ResourceDictionary` roots with `CsxamlApplicationMode=Generated`, broader attached-property metadata, resource/template guidance, virtualization guidance, and highlighting alignment. The work is tracked through `FEATURE_PLAN.md` and execution packages under `plans/FEATURE_PLAN/`.
 - 2026-04-10: Milestone 3 core implementation completed. Metadata-driven native props/events, generic native node emission, runtime control adapters, and Todo demo red/green styling are all in place. Remaining demo launch/build friction is being treated as project-system maturity work under Milestone 10.
 - 2026-04-10: Added a draft language specification focused on C# compatibility, XAML familiarity, parseability, and developer experience. This is real progress toward Milestone 15, but it does not close the broader documentation and release-preparation work.
@@ -1591,3 +1592,15 @@ Use this section to capture milestone-specific discoveries that affect future pl
 - 2026-04-28: Closed a public docs feedback pass against the DocFX site. The Quick Start now renders a visible WinUI component through `CsxamlHost`, the Todo tutorial and testing docs now agree on automation IDs and generated component type names, the full language spec and supported feature matrix render into DocFX, public version posture is aligned to `0.1.0-preview.1`, API overview pages link into generated type/namespace reference, editor docs are split into install vs source-development paths, troubleshooting is symptom-first, and `Invoke-DocsBuild.ps1` now cleans generated outputs and checks built-site local links.
 - 2026-04-28: Closed the follow-up DocFX docs review. The Getting Started path now includes a blank WinUI app route plus the repo starter sample, stale `DOCS_FEEDBACK.md` was removed, rendered spec/feature-matrix includes are smoke-tested during docs builds, external links are checked in report-only mode, the docs contribution guide documents master-only Pages deployment, Concepts is a real glossary, guide pages now include concrete lifecycle/performance/compatibility/release examples, homepage/Quick Start/Todo pages include rendered-output assets, troubleshooting/editor docs include recognizable error snippets, external-control interop includes failure examples, and API pages now warn app authors away from runtime internals, tooling services, and metadata registries.
 - 2026-04-28: Added DocFX CSXAML syntax highlighting from the existing VS Code TextMate grammar. Docs builds now install the docs-site Node package, render `csxaml` Markdown fences through Shiki after DocFX emits HTML, validate that CSXAML-looking fences stay tagged as `csxaml`, and keep the docs workflow on Node 22 so CI exercises the same path.
+- 2026-05-01: Added opt-in Windows UI Automation coverage for the generated `Csxaml.FeatureGallery` app. The tests launch the real app, navigate to Refs and Events, drive the TextBox with physical keyboard input, and send physical mouse-wheel input over the ListView inside `FluentCard`. The live run now shows TextBox key handling reaches `OnKeyDown` while the retained TextBox keeps focus, ListView physical clicks reach selection, UIA `ScrollPattern.Scroll` can move the ListView, and physical mouse-wheel input still leaves the ListView scroll percent unchanged; this keeps the remaining wheel problem recorded as a real app-level repro rather than a hostless runtime assertion.
+- 2026-05-01: Added a temporary wheel probe panel to the Feature Gallery Refs and Events page to compare a bare `ListView`, a `Border`-wrapped `ListView`, a standalone `FluentCard`-wrapped `ListView`, and the original GallerySection `FluentCard` list. The opt-in UIA probe showed all four targets sit under the same `Microsoft.UI.Content.DesktopChildSiteBridge` HWND and all four expose working UIA scroll patterns, but physical wheel input triggers no XAML `PointerWheelChanged` route at the list, wrapper, or probe root. That narrows the current failure below wrapper choice and above individual `ListView` configuration.
+- 2026-05-01: Added a native HWND wheel-message audit to the Feature Gallery probe. The opt-in UIA comparison now records `WM_MOUSEWHEEL`, horizontal wheel, `WM_POINTERWHEEL`, and horizontal pointer-wheel counters for both the root WinUI HWND and the `Microsoft.UI.Content.DesktopChildSiteBridge` child HWND. The latest automation run sent wheel input successfully over visible probe lists but recorded zero native wheel messages, so `SendInput` wheel automation is no longer being treated as equivalent to the failing hardware path.
+- 2026-05-01: Added `samples/Csxaml.WheelProbe`, a hand-written WinUI comparison app with no `Csxaml.Runtime` host. It contains bare, `Border`-wrapped, and `Csxaml.ExternalControls.FluentCard`-wrapped `ListView` controls plus the same XAML route and native HWND message counters. This gives the remaining wheel investigation a manual A/B path: if hardware wheel works in the hand-written app but not the Feature Gallery, the next suspect is generated hosting/layout; if both fail, the issue is below CSXAML.
+- 2026-05-01: Extended the manual wheel probes with coordinate diagnostics after live testing suggested the wheel target might be shifted by display scaling. Native status now records the last wheel message's screen coordinates, root/child client pixels, DPI-scaled root/child DIPs, and HWND class under the message point; XAML route status records the pointer location seen by `PointerWheelChanged`. The next manual check is to compare the visible cursor location against those reported DIPs when wheeling over each list.
+- 2026-05-01: The coordinate diagnostic showed `GetCursorPos` and the native wheel message `lParam` agree when the mouse is over the title bar, with negative client Y as expected. That means the observed title-bar messages are not a DPI decoding failure; the content-area question is whether WinUI handles the wheel before normal bubbling or sends it through a different native child path. The handwritten wheel probe now removes its outer page `ScrollViewer`, and both probes attach handled-events-too `PointerWheelChanged` diagnostics so handled ListView/ScrollViewer wheel events can be observed.
+- 2026-05-01: Live manual testing of the handwritten probe confirmed content-area wheel events reach XAML through handled-events-too routing even though the root/child HWND wheel counters stay at zero. The probe now displays each test `ListView`'s XAML bounds in the same root coordinate system as the wheel route so the next observation can distinguish a true wrong-target hit test from a visual misunderstanding of where WinUI thinks each list is.
+- 2026-05-01: The bounds readout showed the wheel route coordinate landed inside the Fluent list while the physical cursor was visually over the first list. The affected Feature Gallery, Todo, and WheelProbe manifests were missing the `PerMonitorV2` DPI-awareness declaration already present in the HelloWorld and ExistingWinUI samples; those manifests are now aligned so high-DPI displays should no longer run these unpackaged WinUI samples through DPI-unaware coordinate virtualization.
+- 2026-05-01: After the DPI manifest fix made the non-Fluent probe lists scroll correctly, the remaining Fluent-card probe flicker was traced to diagnostic noise: handled wheel diagnostics were updating CSXAML state during the wheel route, and the sample `FluentCard` still mutated its background on pointer enter/exit. The Feature Gallery wheel probe now writes diagnostic text directly to retained `TextBlock` refs without invalidating the component, is opt-in from the Refs and Events page, and `FluentCard` is passive during pointer movement.
+- 2026-05-01: Sanity-checked the Fluent-list failure against the usual WinUI `ListView` layout traps. The affected Feature Gallery lists are explicitly height constrained (`100` in the probe and `150` in the original Refs/Events section), and the Events page is intentionally outside the shell-level `ScrollViewer`, so the remaining Fluent-only behavior is not the unconstrained-`StackPanel` or nested-`ScrollViewer` case. The sample `FluentCard` now exposes a `Child` content property and hosts it inside an internal native `Border` instead of assigning the app child directly to `ContentControl.Content`.
+- 2026-05-01: Further hover-only testing showed the Fluent-card list path flickers even without wheel input, which points at the card wrapper's pointer/hit-test shape rather than `ListView` scrolling. `FluentCard` no longer derives from `ContentControl`; it is now a plain `Grid` surface with a `Child` content property, removing WinUI `ContentControl` template and pointer-over behavior from the sample card while keeping external-control child-content coverage. The external-control metadata resolver now also honors explicit content-property metadata before inherited panel `Children`, and external projection ignores inherited non-writable collection properties, so generated `FluentCard` registration projects content through `Child` without trying to clear `Grid.ColumnDefinitions` or `Grid.RowDefinitions`.
+- 2026-05-01: Closed the next Fluent-card flicker suspect: default content properties are no longer also emitted or applied as ordinary clearable external properties. This prevents `FluentCard.Child` from being set to `null` during `ApplyProperties` and then reattached during child projection on every retained render.

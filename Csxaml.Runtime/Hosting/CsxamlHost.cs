@@ -11,7 +11,6 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
     private readonly Panel _hostPanel;
     private readonly ComponentTreeCoordinator _treeCoordinator;
     private readonly WinUiNodeRenderer _renderer;
-    private RootPointerWheelBridge? _pointerWheelBridge;
     private bool _isDisposed;
     private UIElement? _rootElement;
 
@@ -75,7 +74,6 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
         _isDisposed = true;
         _treeCoordinator.Dispose();
         _renderer.Dispose();
-        _pointerWheelBridge?.Dispose();
         _hostPanel.Children.Clear();
         _rootElement = null;
     }
@@ -94,7 +92,6 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
         _isDisposed = true;
         await _treeCoordinator.DisposeAsync();
         _renderer.Dispose();
-        _pointerWheelBridge?.Dispose();
         _hostPanel.Children.Clear();
         _rootElement = null;
     }
@@ -106,7 +103,6 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
         {
             _hostPanel.Children.Add(element);
             _rootElement = element;
-            _pointerWheelBridge = RootPointerWheelBridge.Attach(element);
             return;
         }
 
@@ -115,11 +111,9 @@ public sealed class CsxamlHost : IDisposable, IAsyncDisposable
             return;
         }
 
-        _pointerWheelBridge?.Dispose();
         _hostPanel.Children.Clear();
         _hostPanel.Children.Add(element);
         _rootElement = element;
-        _pointerWheelBridge = RootPointerWheelBridge.Attach(element);
     }
 
     private CsxamlHost(

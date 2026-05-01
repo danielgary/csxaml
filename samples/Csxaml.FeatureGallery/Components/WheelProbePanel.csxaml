@@ -1,0 +1,186 @@
+using System;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Windows.Foundation;
+using DemoControls = Csxaml.ExternalControls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element WheelProbePanel {
+    bool HandledWheelDiagnosticsAttached = false;
+
+    ElementRef<StackPanel> ProbeRoot = new ElementRef<StackPanel>();
+    ElementRef<ListView> BareList = new ElementRef<ListView>();
+    ElementRef<Border> BorderWrapper = new ElementRef<Border>();
+    ElementRef<ListView> BorderList = new ElementRef<ListView>();
+    ElementRef<StackPanel> FluentContent = new ElementRef<StackPanel>();
+    ElementRef<ListView> FluentList = new ElementRef<ListView>();
+    ElementRef<TextBlock> WheelStatusText = new ElementRef<TextBlock>();
+    ElementRef<TextBlock> BoundsStatusText = new ElementRef<TextBlock>();
+
+    void ResetWheelStatus()
+    {
+        if (WheelStatusText.Current is not null)
+        {
+            WheelStatusText.Current.Text = "Wheel route: waiting";
+        }
+    }
+
+    void AttachHandledWheelDiagnostics(RoutedEventArgs args)
+    {
+        if (HandledWheelDiagnosticsAttached)
+        {
+            return;
+        }
+
+        HandledWheelDiagnosticsAttached = true;
+        AddHandledWheelDiagnostic(ProbeRoot.Current, "Probe root handled");
+        AddHandledWheelDiagnostic(BareList.Current, "Bare list handled");
+        AddHandledWheelDiagnostic(BorderWrapper.Current, "Border wrapper handled");
+        AddHandledWheelDiagnostic(BorderList.Current, "Border list handled");
+        AddHandledWheelDiagnostic(FluentContent.Current, "Fluent content handled");
+        AddHandledWheelDiagnostic(FluentList.Current, "Fluent list handled");
+        UpdateBoundsStatus();
+    }
+
+    void AddHandledWheelDiagnostic(UIElement? element, string source)
+    {
+        element?.AddHandler(
+            UIElement.PointerWheelChangedEvent,
+            new PointerEventHandler((_, args) => RecordWheel(source, args)),
+            handledEventsToo: true);
+    }
+
+    void RecordWheel(string source, PointerRoutedEventArgs args)
+    {
+        if (WheelStatusText.Current is null)
+        {
+            return;
+        }
+
+        var pointer = args.GetCurrentPoint(null);
+        var detail = $"{source} at ({pointer.Position.X:0.##},{pointer.Position.Y:0.##}) delta={pointer.Properties.MouseWheelDelta}";
+        var status = WheelStatusText.Current.Text;
+
+        if (status == "Wheel route: waiting")
+        {
+            WheelStatusText.Current.Text = $"Wheel route: {detail}";
+            return;
+        }
+
+        if (!status.Contains(source, StringComparison.Ordinal))
+        {
+            WheelStatusText.Current.Text = $"{status} > {detail}";
+        }
+    }
+
+    void UpdateBoundsStatus()
+    {
+        if (ProbeRoot.Current is null ||
+            BareList.Current is null ||
+            BorderList.Current is null ||
+            FluentList.Current is null ||
+            BoundsStatusText.Current is null)
+        {
+            return;
+        }
+
+        BoundsStatusText.Current.Text = string.Join(
+            "; ",
+            "Bounds:",
+            $"root={FormatSize(ProbeRoot.Current)}",
+            $"bare={FormatBounds(BareList.Current)}",
+            $"border={FormatBounds(BorderList.Current)}",
+            $"fluent={FormatBounds(FluentList.Current)}");
+    }
+
+    string FormatBounds(FrameworkElement element)
+    {
+        var bounds = element
+            .TransformToVisual(ProbeRoot.Current)
+            .TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+
+        return $"({bounds.X:0.##},{bounds.Y:0.##},{bounds.Width:0.##},{bounds.Height:0.##})";
+    }
+
+    static string FormatSize(FrameworkElement element)
+    {
+        return $"({element.ActualWidth:0.##},{element.ActualHeight:0.##})";
+    }
+
+    render <StackPanel
+        Ref={ProbeRoot}
+        Spacing={8}
+        AutomationProperties.AutomationId="RefsAndEventsWheelProbe"
+        OnLoaded={AttachHandledWheelDiagnostics}
+        OnPointerWheelChanged={args => RecordWheel("Probe root", args)}>
+        <Grid ColumnDefinitions="*,*,*">
+            <ListView
+                Ref={BareList}
+                Grid.Column={0}
+                AutomationProperties.AutomationId="RefsAndEventsBareWheelList"
+                Height={100}
+                ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
+                ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                ScrollViewer.VerticalScrollMode={ScrollMode.Enabled}
+                ItemsSource={GalleryItems.EventItems}
+                OnPointerWheelChanged={args => RecordWheel("Bare list", args)} />
+            <Border
+                Ref={BorderWrapper}
+                Grid.Column={1}
+                AutomationProperties.AutomationId="RefsAndEventsBorderWheelWrapper"
+                BorderBrush={GalleryColors.Border}
+                BorderThickness={new Thickness(1)}
+                Padding={new Thickness(8)}
+                OnPointerWheelChanged={args => RecordWheel("Border wrapper", args)}>
+                <ListView
+                    Ref={BorderList}
+                    AutomationProperties.AutomationId="RefsAndEventsBorderWheelList"
+                    Height={100}
+                    ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
+                    ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                    ScrollViewer.VerticalScrollMode={ScrollMode.Enabled}
+                    ItemsSource={GalleryItems.EventItems}
+                    OnPointerWheelChanged={args => RecordWheel("Border list", args)} />
+            </Border>
+            <DemoControls:FluentCard
+                Grid.Column={2}
+                AutomationProperties.AutomationId="RefsAndEventsFluentWheelWrapper">
+                <StackPanel
+                    Ref={FluentContent}
+                    AutomationProperties.AutomationId="RefsAndEventsFluentWheelContent"
+                    OnPointerWheelChanged={args => RecordWheel("Fluent content", args)}>
+                    <ListView
+                        Ref={FluentList}
+                        AutomationProperties.AutomationId="RefsAndEventsFluentWheelList"
+                        Height={100}
+                        ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
+                        ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                        ScrollViewer.VerticalScrollMode={ScrollMode.Enabled}
+                        ItemsSource={GalleryItems.EventItems}
+                        OnPointerWheelChanged={args => RecordWheel("Fluent list", args)} />
+                </StackPanel>
+            </DemoControls:FluentCard>
+        </Grid>
+        <StackPanel Orientation={Orientation.Horizontal} Spacing={8}>
+            <Button
+                Content="Reset wheel probe"
+                AutomationProperties.AutomationId="RefsAndEventsResetWheelProbe"
+                OnClick={ResetWheelStatus} />
+            <TextBlock
+                Ref={WheelStatusText}
+                AutomationProperties.AutomationId="RefsAndEventsWheelRouteStatus"
+                Text="Wheel route: waiting"
+                Foreground={GalleryColors.TextMuted}
+                TextWrapping={TextWrapping.Wrap} />
+        </StackPanel>
+        <TextBlock
+            Ref={BoundsStatusText}
+            AutomationProperties.AutomationId="RefsAndEventsWheelBoundsStatus"
+            Text="Bounds: waiting"
+            Foreground={GalleryColors.TextMuted}
+            TextWrapping={TextWrapping.Wrap} />
+    </StackPanel>;
+}

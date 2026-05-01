@@ -23,6 +23,24 @@ internal static class ExternalControlContentMetadataResolver
 
     private static ControlContentMetadata ResolveConvention(Type controlType)
     {
+        var declaredChild = CreateFromDeclaredProperty(
+            controlType,
+            "Child",
+            ControlContentSource.Convention);
+        if (declaredChild.Kind == ControlContentKind.Single)
+        {
+            return declaredChild;
+        }
+
+        var declaredContent = CreateFromDeclaredProperty(
+            controlType,
+            "Content",
+            ControlContentSource.Convention);
+        if (declaredContent.Kind == ControlContentKind.Single)
+        {
+            return declaredContent;
+        }
+
         if (InheritsFrom(controlType, "Microsoft.UI.Xaml.Controls.Panel"))
         {
             return CreateFromProperty(controlType, "Children", ControlContentSource.Convention);
@@ -59,6 +77,19 @@ internal static class ExternalControlContentMetadataResolver
         return content.Kind == ControlContentKind.Single ? content : ControlContentMetadata.None;
     }
 
+    private static ControlContentMetadata CreateFromDeclaredProperty(
+        Type controlType,
+        string propertyName,
+        ControlContentSource source)
+    {
+        return CreateFromProperty(
+            propertyName,
+            controlType.GetProperty(
+                propertyName,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly),
+            source);
+    }
+
     private static ControlContentMetadata CreateFromProperty(
         Type controlType,
         string propertyName,
@@ -67,6 +98,14 @@ internal static class ExternalControlContentMetadataResolver
         var property = controlType.GetProperty(
             propertyName,
             BindingFlags.Instance | BindingFlags.Public);
+        return CreateFromProperty(propertyName, property, source);
+    }
+
+    private static ControlContentMetadata CreateFromProperty(
+        string propertyName,
+        PropertyInfo? property,
+        ControlContentSource source)
+    {
         if (property is null)
         {
             return new ControlContentMetadata(
@@ -135,20 +174,69 @@ internal static class ExternalControlContentMetadataResolver
 
     private static string? ReadContentPropertyAttribute(Type controlType)
     {
-        foreach (var attribute in controlType.GetCustomAttributes(inherit: true))
+        return ReadRuntimeContentPropertyAttribute(controlType) ??
+            ReadMetadataContentPropertyAttribute(controlType);
+    }
+
+    private static string? ReadRuntimeContentPropertyAttribute(Type controlType)
+    {
+        try
         {
-            if (!string.Equals(
-                    attribute.GetType().FullName,
-                    ContentPropertyAttributeTypeName,
-                    StringComparison.Ordinal))
+            foreach (var attribute in controlType.GetCustomAttributes(inherit: true))
             {
-                continue;
+                if (!string.Equals(
+                        attribute.GetType().FullName,
+                        ContentPropertyAttributeTypeName,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                return attribute.GetType().GetProperty("Name")?.GetValue(attribute) as string;
             }
 
-            return attribute.GetType().GetProperty("Name")?.GetValue(attribute) as string;
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? ReadMetadataContentPropertyAttribute(Type controlType)
+    {
+        for (var current = controlType; current is not null; current = current.BaseType)
+        {
+            foreach (var attribute in current.CustomAttributes)
+            {
+                if (!string.Equals(
+                        attribute.AttributeType.FullName,
+                        ContentPropertyAttributeTypeName,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                return ReadContentPropertyName(attribute);
+            }
         }
 
         return null;
+    }
+
+    private static string? ReadContentPropertyName(CustomAttributeData attribute)
+    {
+        foreach (var argument in attribute.NamedArguments)
+        {
+            if (string.Equals(argument.MemberName, "Name", StringComparison.Ordinal))
+            {
+                return argument.TypedValue.Value as string;
+            }
+        }
+
+        return attribute.ConstructorArguments.Count == 1
+            ? attribute.ConstructorArguments[0].Value as string
+            : null;
     }
 
     private static bool InheritsFrom(Type type, string baseTypeName)

@@ -20,7 +20,7 @@ internal sealed class ExternalControlMetadataBuilder
             controlType.BaseType?.FullName,
             content.ToChildKind(),
             content,
-            BuildProperties(controlType, builtInBaseControl),
+            BuildProperties(controlType, builtInBaseControl, content),
             BuildEvents(controlType, builtInBaseControl));
         reason = null;
         return true;
@@ -45,12 +45,14 @@ internal sealed class ExternalControlMetadataBuilder
 
     private static IReadOnlyList<PropertyMetadata> BuildProperties(
         Type controlType,
-        ControlMetadataModel? builtInBaseControl)
+        ControlMetadataModel? builtInBaseControl,
+        ControlContentMetadata content)
     {
         var reflectedProperties = controlType
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .Where(property => property.GetIndexParameters().Length == 0)
             .Where(property => property.SetMethod is not null)
+            .Where(property => !IsDefaultContentProperty(property.Name, content))
             .Select(
                 property => new
                 {
@@ -71,11 +73,24 @@ internal sealed class ExternalControlMetadataBuilder
                     entry.ValueKind))
             .ToList();
 
+        var inheritedProperties = builtInBaseControl?.Properties
+            .Where(property => property.IsWritable)
+            .Where(property => !IsDefaultContentProperty(property.Name, content)) ??
+            Array.Empty<PropertyMetadata>();
+
         return reflectedProperties
-            .Concat(builtInBaseControl?.Properties ?? Array.Empty<PropertyMetadata>())
+            .Concat(inheritedProperties)
             .DistinctBy(property => property.Name, StringComparer.Ordinal)
             .OrderBy(property => property.Name, StringComparer.Ordinal)
             .ToList();
+    }
+
+    private static bool IsDefaultContentProperty(
+        string propertyName,
+        ControlContentMetadata content)
+    {
+        return content.Kind != ControlContentKind.None &&
+            string.Equals(content.DefaultPropertyName, propertyName, StringComparison.Ordinal);
     }
 
     private static bool IsDependencyProperty(Type controlType, string propertyName)

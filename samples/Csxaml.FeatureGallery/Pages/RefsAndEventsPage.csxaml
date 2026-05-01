@@ -13,7 +13,10 @@ component Element RefsAndEventsPage {
     State<string> ListStatus = new State<string>("Choose a ListView item");
     State<double> SliderValue = new State<double>(40);
     State<string> NavigationStatus = new State<string>("Frame has not navigated");
+    State<string> NativeWheelStatus = new State<string>("Native wheel messages: waiting");
+    State<bool> ShowWheelProbe = new State<bool>(false);
 
+    ElementRef<StackPanel> PageRoot = new ElementRef<StackPanel>();
     ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
     ElementRef<Frame> DemoFrame = new ElementRef<Frame>();
 
@@ -24,7 +27,7 @@ component Element RefsAndEventsPage {
 
     void MarkLoaded(RoutedEventArgs args)
     {
-        if (LoadedStatus.Value != "Loaded fired")
+        if (LoadedStatus.Value == "Waiting for Loaded")
         {
             LoadedStatus.Value = "Loaded fired";
         }
@@ -45,7 +48,47 @@ component Element RefsAndEventsPage {
         return $"ValueChanged: {SliderValue.Value:0}";
     }
 
-    render <StackPanel Spacing={14}>
+    void AttachNativeWheelProbe(RoutedEventArgs args)
+    {
+        NativeWheelMessageProbe.Attach(
+            PageRoot.Current?.DispatcherQueue,
+            status => NativeWheelStatus.Value = status);
+    }
+
+    void ResetNativeWheelProbe()
+    {
+        NativeWheelMessageProbe.Reset();
+    }
+
+    void ToggleWheelProbe()
+    {
+        ShowWheelProbe.Value = !ShowWheelProbe.Value;
+    }
+
+    render <StackPanel
+        Ref={PageRoot}
+        Spacing={14}
+        OnLoaded={AttachNativeWheelProbe}>
+        <StackPanel Orientation={Orientation.Horizontal} Spacing={8}>
+            <Button
+                Content={ShowWheelProbe.Value ? "Hide wheel probe" : "Show wheel probe"}
+                AutomationProperties.AutomationId="RefsAndEventsToggleWheelProbe"
+                OnClick={ToggleWheelProbe} />
+            if (ShowWheelProbe.Value) {
+                <Button
+                    Content="Reset native wheel probe"
+                    AutomationProperties.AutomationId="RefsAndEventsResetNativeWheelProbe"
+                    OnClick={ResetNativeWheelProbe} />
+            }
+        </StackPanel>
+        if (ShowWheelProbe.Value) {
+            <WheelProbePanel />
+            <TextBlock
+                AutomationProperties.AutomationId="RefsAndEventsNativeWheelStatus"
+                Text={NativeWheelStatus.Value}
+                Foreground={GalleryColors.TextMuted}
+                TextWrapping={TextWrapping.Wrap} />
+        }
         <GallerySection
             Eyebrow="Imperative interop"
             Title="Refs for focus and navigation"
@@ -55,6 +98,7 @@ component Element RefsAndEventsPage {
                 <Button Content="Navigate frame" Style={GalleryStyles.SubtleButton} OnClick={NavigateFrame} />
             </GallerySection.Actions>
             <TextBox
+                Key="FeatureGallerySearchBox"
                 AutomationProperties.AutomationId="FeatureGallerySearchBox"
                 Ref={SearchBox}
                 Text={SearchText.Value}
@@ -88,6 +132,7 @@ component Element RefsAndEventsPage {
                 <ListView
                     Grid.Row={0}
                     Grid.Column={0}
+                    AutomationProperties.AutomationId="RefsAndEventsEventList"
                     Height={150}
                     ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
                     ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}

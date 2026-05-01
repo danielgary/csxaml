@@ -23,17 +23,19 @@ public sealed class FluentSampleControlAdapterTests
 
             var firstCard = (FluentCard)renderer.RenderProjectedRoot(
                 CreateFluentCardNode("Initial Fluent content"));
-            var firstChild = (TextBlock)firstCard.Content;
+            Assert.IsInstanceOfType<TextBlock>(firstCard.Child);
+            var firstChild = (TextBlock)firstCard.Child!;
             var secondCard = (FluentCard)renderer.RenderProjectedRoot(
                 CreateFluentCardNode("Updated Fluent content"));
-            var secondChild = (TextBlock)secondCard.Content;
+            Assert.IsInstanceOfType<TextBlock>(secondCard.Child);
+            var secondChild = (TextBlock)secondCard.Child!;
 
             Assert.AreSame(firstCard, secondCard);
             Assert.AreSame(firstChild, secondChild);
             Assert.AreEqual("Updated Fluent content", secondChild.Text);
             Assert.IsNotNull(secondCard.Background);
-            Assert.IsNotNull(secondCard.TranslationTransition);
-            Assert.IsNotNull(secondCard.ScaleTransition);
+            Assert.IsNull(secondCard.TranslationTransition);
+            Assert.IsNull(secondCard.ScaleTransition);
             Assert.AreEqual(8, secondCard.CornerRadius.TopLeft);
         });
     }
@@ -55,6 +57,22 @@ public sealed class FluentSampleControlAdapterTests
             Assert.AreEqual("CSXAML", secondPresenter.Title);
             Assert.AreEqual("render <Button Content=\"Run\" />;", secondPresenter.Code);
             Assert.IsInstanceOfType<StackPanel>(secondPresenter.Content);
+        });
+    }
+
+    [TestMethod]
+    public void Render_FluentCard_IgnoresReadOnlyInheritedGridMetadata()
+    {
+        WinUiTestEnvironment.Run(() =>
+        {
+            ExternalControlRegistry.Register(CreateFluentCardDescriptorWithReadOnlyGridMetadata());
+            var renderer = new WinUiNodeRenderer();
+
+            var card = (FluentCard)renderer.RenderProjectedRoot(
+                CreateFluentCardNode("Grid metadata should not be cleared"));
+
+            Assert.IsInstanceOfType<TextBlock>(card.Child);
+            Assert.AreEqual("Grid metadata should not be cleared", ((TextBlock)card.Child!).Text);
         });
     }
 
@@ -99,13 +117,55 @@ public sealed class FluentSampleControlAdapterTests
     private static ExternalControlDescriptor CreateFluentCardDescriptor()
     {
         return new ExternalControlDescriptor(
+                typeof(FluentCard),
+                new Csxaml.ControlMetadata.ControlMetadata(
+                    typeof(FluentCard).FullName!,
+                    typeof(FluentCard).FullName!,
+                    typeof(Grid).FullName,
+                    ControlChildKind.Single,
+                    new ControlContentMetadata(
+                        "Child",
+                        ControlContentKind.Single,
+                        typeof(Microsoft.UI.Xaml.UIElement).FullName!,
+                        null,
+                        ControlContentSource.ContentPropertyAttribute),
+                    Array.Empty<PropertyMetadata>(),
+                    Array.Empty<EventMetadata>()));
+    }
+
+    private static ExternalControlDescriptor CreateFluentCardDescriptorWithReadOnlyGridMetadata()
+    {
+        return new ExternalControlDescriptor(
             typeof(FluentCard),
             new Csxaml.ControlMetadata.ControlMetadata(
                 typeof(FluentCard).FullName!,
                 typeof(FluentCard).FullName!,
-                typeof(ContentControl).FullName,
+                typeof(Grid).FullName,
                 ControlChildKind.Single,
-                Array.Empty<PropertyMetadata>(),
+                new ControlContentMetadata(
+                    "Child",
+                    ControlContentKind.Single,
+                    typeof(Microsoft.UI.Xaml.UIElement).FullName!,
+                    null,
+                    ControlContentSource.ContentPropertyAttribute),
+                [
+                    new PropertyMetadata(
+                        "Child",
+                        typeof(Microsoft.UI.Xaml.UIElement).FullName!,
+                        true,
+                        false,
+                        false,
+                        true,
+                        ValueKindHint.Object),
+                    new PropertyMetadata(
+                        "ColumnDefinitions",
+                        typeof(ColumnDefinitionCollection).FullName!,
+                        false,
+                        false,
+                        false,
+                        true,
+                        ValueKindHint.Object)
+                ],
                 Array.Empty<EventMetadata>()));
     }
 

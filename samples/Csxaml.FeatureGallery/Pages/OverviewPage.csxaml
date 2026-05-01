@@ -27,8 +27,8 @@ component Element OverviewPage {
         </GallerySection>
         <GallerySection
             Eyebrow="Fluent treatment"
-            Title="Motion and material are part of the demo"
-            Description="Cards use a translucent surface, clear borders, reveal-style hover states, and native button motion. Pages keep visual hierarchy calm so the code examples remain the star.">
+            Title="Material and stable surfaces are part of the demo"
+            Description="Cards use a translucent surface, clear borders, and native button motion. Pages keep visual hierarchy calm so the code examples remain the star.">
             <Border
                 AutomationProperties.Name="Reveal Surface"
                 Background={GalleryColors.Reveal}
@@ -36,7 +36,7 @@ component Element OverviewPage {
                 BorderThickness={new Thickness(1)}
                 Padding={new Thickness(14)}>
                 <TextBlock
-                    Text="Move the pointer across the gallery cards to see reveal-style hover state changes; buttons keep their native WinUI hover motion."
+                    Text="Gallery cards use native WinUI layout primitives with stable retained children; buttons keep their native WinUI hover motion."
                     Foreground={GalleryColors.TextPrimary}
                     TextWrapping={TextWrapping.Wrap} />
             </Border>
