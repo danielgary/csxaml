@@ -78,12 +78,33 @@ internal abstract class ControlAdapter<TControl> : INativeControlAdapter
         }
     }
 
+    public void SetPropertyContent(
+        object element,
+        IReadOnlyDictionary<string, IReadOnlyList<object>> propertyContent)
+    {
+        try
+        {
+            foreach (var entry in propertyContent)
+            {
+                NativePropertyContentSetter.Set(element, entry.Key, entry.Value);
+            }
+        }
+        catch (Exception exception)
+        {
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                exception,
+                "property-content assignment",
+                sourceInfo: null,
+                detail: TagName);
+        }
+    }
+
     protected virtual void ApplyEvents(
         TControl control,
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
-        bindingStore.Clear();
+        CommonElementEventBinder.Apply(control, node, bindingStore);
     }
 
     protected abstract void ApplyProperties(TControl control, NativeElementNode node);

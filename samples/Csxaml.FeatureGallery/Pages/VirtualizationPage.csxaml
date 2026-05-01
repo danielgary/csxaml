@@ -1,0 +1,52 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element VirtualizationPage {
+    render <StackPanel Spacing={14}>
+        <GallerySection
+            Eyebrow="List scale"
+            Title="foreach is retained rendering"
+            Description="Use foreach for small visible sets where each child is part of the component tree. Use native virtualized controls for large scrolling collections.">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+                <StackPanel Grid.Row={0} Grid.Column={0} Spacing={8} Margin={new Thickness(0, 0, 10, 0)}>
+                    foreach (var row in GalleryItems.SmallRows) {
+                        <Border
+                            Key={row.Id}
+                            Background={GalleryColors.PanelStrong}
+                            BorderBrush={GalleryColors.Border}
+                            BorderThickness={new Thickness(1)}
+                            Padding={new Thickness(10)}>
+                            <StackPanel>
+                                <TextBlock
+                                    Text={row.Title}
+                                    Foreground={GalleryColors.TextPrimary}
+                                    TextWrapping={TextWrapping.Wrap} />
+                                <TextBlock
+                                    Text={row.Detail}
+                                    Foreground={GalleryColors.TextMuted}
+                                    TextWrapping={TextWrapping.Wrap}
+                                    FontSize={12} />
+                            </StackPanel>
+                        </Border>
+                    }
+                </StackPanel>
+                <ListView
+                    Grid.Row={0}
+                    Grid.Column={1}
+                    Height={220}
+                    ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
+                    ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                    ScrollViewer.VerticalScrollMode={ScrollMode.Enabled}
+                    ItemsSource={GalleryItems.VirtualizedRows}
+                    SelectionMode={ListViewSelectionMode.Single} />
+                <SampleCodePresenter
+                    Grid.Row={1}
+                    Grid.ColumnSpan={2}
+                    Title="Virtualization guidance"
+                    Code={GallerySnippets.Virtualization} />
+            </Grid>
+        </GallerySection>
+    </StackPanel>;
+}

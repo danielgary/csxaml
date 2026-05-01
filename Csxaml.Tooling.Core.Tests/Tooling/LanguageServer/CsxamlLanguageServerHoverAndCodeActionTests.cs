@@ -11,9 +11,9 @@ public sealed class CsxamlLanguageServerHoverAndCodeActionTests
     public async Task Protocol_serves_hover_for_component_tags()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TodoCard />;
@@ -38,7 +38,7 @@ public sealed class CsxamlLanguageServerHoverAndCodeActionTests
 
         var value = response.GetProperty("result").GetProperty("contents").GetProperty("value").GetString();
         StringAssert.Contains(value, "Component tag");
-        StringAssert.Contains(value, "Csxaml.Demo.TodoCard");
+        StringAssert.Contains(value, "Csxaml.Samples.TodoApp.TodoCard");
     }
 
     [TestMethod]
@@ -46,7 +46,7 @@ public sealed class CsxamlLanguageServerHoverAndCodeActionTests
     {
         const string text =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <StakPanel />;
@@ -54,7 +54,7 @@ public sealed class CsxamlLanguageServerHoverAndCodeActionTests
             """;
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             text);
         var documentUri = new Uri(tempFile.FilePath).AbsoluteUri;
         var rangeStart = GetLineAndCharacter(text, text.IndexOf("StakPanel", StringComparison.Ordinal));
@@ -89,7 +89,7 @@ public sealed class CsxamlLanguageServerHoverAndCodeActionTests
     {
         const string text =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe {
                 int NextCount(int value)
@@ -103,7 +103,7 @@ public sealed class CsxamlLanguageServerHoverAndCodeActionTests
             """;
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             text);
         var documentUri = new Uri(tempFile.FilePath).AbsoluteUri;
         var hoverPosition = GetLineAndCharacter(
@@ -132,7 +132,7 @@ public sealed class CsxamlLanguageServerHoverAndCodeActionTests
     {
         const string text =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe {
                 render <TextBlock Text="Hello" />;
@@ -140,7 +140,7 @@ public sealed class CsxamlLanguageServerHoverAndCodeActionTests
             """;
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             text);
         var documentUri = new Uri(tempFile.FilePath).AbsoluteUri;
         var hoverPosition = GetLineAndCharacter(

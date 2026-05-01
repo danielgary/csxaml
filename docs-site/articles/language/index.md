@@ -35,4 +35,7 @@ component Element CounterButton(string Label) {
 }
 ```
 
-The [language specification](specification.md) remains the formal contract.
+The [supported features](supported-features.md) page is the current release
+surface, and [planned features](planned-features.md) summarizes post-v1
+directions without treating them as shipped behavior. The
+[language specification](specification.md) remains the formal contract.

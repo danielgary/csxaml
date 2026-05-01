@@ -41,7 +41,7 @@ Close any existing experimental instance before rerunning the bootstrap script.
 
 In the experimental instance:
 
-1. Open `Csxaml.Demo/Components/TodoCard.csxaml`.
+1. Open `samples/Csxaml.TodoApp/Components/TodoCard.csxaml`.
 2. Confirm semantic coloring is active.
 3. Type `<But` and confirm `Button` completion.
 4. Inside a button tag, type `OnC` and confirm `OnClick` completion.

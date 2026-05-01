@@ -1,0 +1,17 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Page FrameTargetPage {
+    render <Grid
+        AutomationProperties.Name="Frame Navigation Target"
+        Background={GalleryColors.Panel}>
+        <TextBlock
+            Text="Frame target page"
+            Foreground={GalleryColors.TextPrimary}
+            TextWrapping={TextWrapping.Wrap}
+            FontSize={18}
+            Margin={16} />
+    </Grid>;
+}

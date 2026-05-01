@@ -91,6 +91,43 @@ public sealed class ParserTests
     }
 
     [TestMethod]
+    public void Parse_NativeRef_ProducesDedicatedRefNode()
+    {
+        const string sourceText = """
+            component Element SearchPanel {
+                ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
+
+                render <TextBox Ref={SearchBox} Text="Find" />;
+            }
+            """;
+
+        var component = GeneratorTestHarness.Parse("SearchPanel.csxaml", sourceText).Definition;
+        var root = TestAstAssertions.RequireMarkup(component.Root);
+
+        Assert.IsNotNull(root.Ref);
+        Assert.AreEqual("SearchBox", root.Ref.ValueText);
+        Assert.AreEqual(PropertyValueKind.Expression, root.Ref.ValueKind);
+        Assert.IsFalse(root.Properties.Any(property => property.Name == "Ref"));
+    }
+
+    [TestMethod]
+    public void Parse_DuplicateRef_ProducesTargetedDiagnostic()
+    {
+        const string sourceText = """
+            component Element SearchPanel {
+                ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
+
+                render <TextBox Ref={SearchBox} Ref={SearchBox} />;
+            }
+            """;
+
+        var exception = Assert.ThrowsExactly<DiagnosticException>(
+            () => GeneratorTestHarness.Parse("SearchPanel.csxaml", sourceText));
+
+        StringAssert.Contains(exception.Diagnostic.Message, "duplicate attribute name 'Ref'");
+    }
+
+    [TestMethod]
     public void Parse_RenderStatementWithCommentsBeforeMarkup_IsValid()
     {
         const string sourceText = """

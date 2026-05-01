@@ -44,4 +44,58 @@ public sealed class ControlledTextInputStateTests
 
         CollectionAssert.AreEqual(new[] { "Updated" }, invocations);
     }
+
+    [TestMethod]
+    public void InputDeferral_HoldsRenderUntilTextInputCompletes()
+    {
+        var root = new FixedParentComponent();
+        var coordinator = new ComponentTreeCoordinator(root);
+        var updatedTrees = new List<NativeNode>();
+        var state = new ControlledTextInputState();
+        coordinator.TreeUpdated += updatedTrees.Add;
+        coordinator.Render();
+
+        try
+        {
+            state.BeginInput();
+            root.Version.Value = 1;
+            root.Version.Value = 2;
+
+            Assert.HasCount(1, updatedTrees);
+        }
+        finally
+        {
+            state.CompleteInput();
+        }
+
+        Assert.HasCount(2, updatedTrees);
+    }
+
+    [TestMethod]
+    public void ScheduleInputCompletion_ReleasesWithoutDispatcher()
+    {
+        var root = new FixedParentComponent();
+        var coordinator = new ComponentTreeCoordinator(root);
+        var updatedTrees = new List<NativeNode>();
+        var state = new ControlledTextInputState();
+        coordinator.TreeUpdated += updatedTrees.Add;
+        coordinator.Render();
+
+        state.BeginInput();
+        root.Version.Value = 1;
+        state.ScheduleInputCompletion(dispatcher: null);
+
+        Assert.HasCount(2, updatedTrees);
+    }
+
+    [TestMethod]
+    public void ConsumeFocusRestoreRequest_ReturnsPendingInputFocusOnce()
+    {
+        var state = new ControlledTextInputState();
+
+        state.BeginInput(restoreFocusAfterInput: true);
+
+        Assert.IsTrue(state.ConsumeFocusRestoreRequest());
+        Assert.IsFalse(state.ConsumeFocusRestoreRequest());
+    }
 }

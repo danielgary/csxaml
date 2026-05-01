@@ -60,6 +60,12 @@ var saveButton = render.FindByText("Save");
 
 `TryFindBy...` variants are available when absence is part of the test.
 
+Use `AutomationProperties.AutomationId` and `AutomationProperties.Name` as the
+stable semantic hooks for hostless queries. Expanded automation attached
+properties such as `HelpText`, `ItemStatus`, `ItemType`, and `LabeledBy` are
+projected for WinUI accessibility interop; keep live projection coverage when a
+test needs to assert those native values directly.
+
 ## Common interactions
 
 The built-in interaction helpers cover the common logical-tree cases:
@@ -105,5 +111,7 @@ Milestone 13 does not ban structural assertions. It just stops making them the d
 - a visual diff system
 - a replacement for WinUI projection tests
 - a general-purpose UI automation framework
+- the right place to assert live `ElementRef<T>` focus, scrolling, or animation
+  behavior
 
 Keep WinUI projection tests when the behavior depends on native control behavior, focus, selection restoration, or host-specific projection details.

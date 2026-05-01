@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 
 namespace Csxaml.Runtime;
 
@@ -15,6 +16,8 @@ internal sealed class TextBoxControlAdapter : ControlAdapter<TextBox>
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
+        CommonElementEventBinder.Apply(control, node, bindingStore, bindKeyDown: false);
+        BindKeyDown(control, node, bindingStore);
         NativeElementReader.TryGetEventHandler<Action<string>>(node, "OnTextChanged", out var onTextChanged);
         bindingStore.Rebind(
             "OnTextChanged",
@@ -23,21 +26,65 @@ internal sealed class TextBoxControlAdapter : ControlAdapter<TextBox>
             {
                 TextChangedEventHandler typedHandler = (_, _) =>
                 {
-                    GetState(control).Dispatch(control.Text ?? string.Empty, handler);
+                    var state = GetState(control);
+                    try
+                    {
+                        NativeEventDispatchScope.Invoke(
+                            () => state.Dispatch(control.Text ?? string.Empty, handler));
+                    }
+                    finally
+                    {
+                        state.ScheduleInputCompletion(control.DispatcherQueue);
+                    }
                 };
 
                 control.TextChanged += typedHandler;
                 return () => control.TextChanged -= typedHandler;
+        });
+    }
+
+    private static void BindKeyDown(
+        TextBox control,
+        NativeElementNode node,
+        NativeEventBindingStore bindingStore)
+    {
+        NativeEventArgsBinder.Rebind<KeyRoutedEventArgs>(
+            node,
+            bindingStore,
+            "OnKeyDown",
+            handler =>
+            {
+                KeyEventHandler typedHandler = (_, args) =>
+                {
+                    var state = GetState(control);
+                    state.BeginInput(control.FocusState != FocusState.Unfocused);
+                    try
+                    {
+                        handler(args);
+                    }
+                    finally
+                    {
+                        state.ScheduleInputCompletion(control.DispatcherQueue);
+                    }
+                };
+
+                control.AddHandler(UIElement.KeyDownEvent, typedHandler, handledEventsToo: true);
+                return () => control.RemoveHandler(UIElement.KeyDownEvent, typedHandler);
             });
     }
 
     protected override void ApplyProperties(TextBox control, NativeElementNode node)
     {
+        var state = GetState(control);
+        var restoreFocus = state.ConsumeFocusRestoreRequest() ||
+            control.FocusState != FocusState.Unfocused;
+
         ApplyAcceptsReturn(control, node);
         ApplyMinHeight(control, node);
         ApplyPlaceholderText(control, node);
         ApplyText(control, node);
         ApplyTextWrapping(control, node);
+        RestoreFocusAfterRender(control, restoreFocus);
     }
 
     protected override void SetChildren(TextBox control, IReadOnlyList<UIElement> children)
@@ -118,6 +165,24 @@ internal sealed class TextBoxControlAdapter : ControlAdapter<TextBox>
             {
                 control.Text = value;
                 selection.Restore(control, value);
+            });
+    }
+
+    private static void RestoreFocusAfterRender(TextBox control, bool restoreFocus)
+    {
+        if (!restoreFocus)
+        {
+            return;
+        }
+
+        control.DispatcherQueue?.TryEnqueue(
+            Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+            () =>
+            {
+                if (control.FocusState == FocusState.Unfocused && control.XamlRoot is not null)
+                {
+                    control.Focus(FocusState.Programmatic);
+                }
             });
     }
 }

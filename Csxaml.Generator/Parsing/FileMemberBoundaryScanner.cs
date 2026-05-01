@@ -97,7 +97,7 @@ internal sealed class FileMemberBoundaryScanner
         }
 
         var afterWhitespace = CSharpTextScanner.SkipWhitespaceAndComments(_source, afterComponent);
-        if (!CSharpTextScanner.IdentifierEqualsAt(_source, afterWhitespace, "Element", out _))
+        if (!MatchesComponentKind(afterWhitespace))
         {
             return false;
         }
@@ -105,6 +105,15 @@ internal sealed class FileMemberBoundaryScanner
         componentStart = start;
         componentEnd = FindComponentEnd(start);
         return true;
+    }
+
+    private bool MatchesComponentKind(int start)
+    {
+        return CSharpTextScanner.IdentifierEqualsAt(_source, start, "Element", out _) ||
+            CSharpTextScanner.IdentifierEqualsAt(_source, start, "Page", out _) ||
+            CSharpTextScanner.IdentifierEqualsAt(_source, start, "Window", out _) ||
+            CSharpTextScanner.IdentifierEqualsAt(_source, start, "Application", out _) ||
+            CSharpTextScanner.IdentifierEqualsAt(_source, start, "ResourceDictionary", out _);
     }
 
     private int FindComponentEnd(int componentStart)

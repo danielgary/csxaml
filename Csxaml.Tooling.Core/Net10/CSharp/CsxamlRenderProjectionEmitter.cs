@@ -72,8 +72,21 @@ internal sealed class CsxamlRenderProjectionEmitter
     private void EmitMarkupNode(MarkupNode node)
     {
         var resolvedTag = _tagResolver.Resolve(node.TagName, _usingDirectives, _currentNamespace, _workspace);
+        EmitRefExpression(node);
         EmitPropertyExpressions(node.Properties, resolvedTag);
         EmitChildren(node.Children);
+    }
+
+    private void EmitRefExpression(MarkupNode node)
+    {
+        if (node.Ref?.ValueKind != PropertyValueKind.Expression)
+        {
+            return;
+        }
+
+        EmitPropertyExpression(
+            node.Ref.ValueSpan,
+            CsxamlProjectedPropertyType.Plain("Csxaml.Runtime.ElementRef"));
     }
 
     private void EmitSlotOutletNode(SlotOutletNode node)

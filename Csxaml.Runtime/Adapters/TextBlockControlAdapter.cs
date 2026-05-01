@@ -13,6 +13,7 @@ internal sealed class TextBlockControlAdapter : ControlAdapter<TextBlock>
         ApplyFontSize(control, node);
         ApplyForeground(control, node);
         ApplyText(control, node);
+        ApplyTextWrapping(control, node);
     }
 
     protected override void SetChildren(TextBlock control, IReadOnlyList<UIElement> children)
@@ -54,5 +55,16 @@ internal sealed class TextBlockControlAdapter : ControlAdapter<TextBlock>
         }
 
         control.ClearValue(TextBlock.TextProperty);
+    }
+
+    private static void ApplyTextWrapping(TextBlock control, NativeElementNode node)
+    {
+        if (NativeElementReader.TryGetPropertyValue<TextWrapping>(node, "TextWrapping", out var textWrapping))
+        {
+            control.TextWrapping = textWrapping;
+            return;
+        }
+
+        control.ClearValue(TextBlock.TextWrappingProperty);
     }
 }

@@ -14,8 +14,8 @@
   <ItemGroup>
     <ProjectReference Include="..\\Csxaml.ControlMetadata\\Csxaml.ControlMetadata.csproj" />
     <ProjectReference Include="..\\Csxaml.Runtime\\Csxaml.Runtime.csproj" SkipGetTargetFrameworkProperties="true" />
-    <ProjectReference Include="..\\Csxaml.ProjectSystem.Components\\Csxaml.ProjectSystem.Components.csproj" />
-    <ProjectReference Include="..\\Csxaml.ProjectSystem.Consumer\\Csxaml.ProjectSystem.Consumer.csproj" />
+    <ProjectReference Include="..\samples\Csxaml.ProjectSystem.Components\Csxaml.ProjectSystem.Components.csproj" />
+    <ProjectReference Include="..\samples\Csxaml.ProjectSystem.Consumer\Csxaml.ProjectSystem.Consumer.csproj" />
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 </Project>

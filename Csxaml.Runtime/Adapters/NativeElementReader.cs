@@ -33,6 +33,37 @@ internal static class NativeElementReader
         return false;
     }
 
+    public static bool TryGetEventHandler(
+        NativeElementNode node,
+        string name,
+        Type handlerType,
+        out Delegate? handler)
+    {
+        foreach (var eventValue in node.Events)
+        {
+            if (!string.Equals(eventValue.Name, name, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (handlerType.IsInstanceOfType(eventValue.Handler))
+            {
+                handler = eventValue.Handler;
+                return true;
+            }
+
+            throw CsxamlRuntimeExceptionBuilder.Wrap(
+                new InvalidOperationException(
+                    $"Native event '{name}' on '{node.TagName}' expected handler type '{handlerType.Name}'."),
+                "native event read",
+                sourceInfo: eventValue.SourceInfo ?? node.SourceInfo,
+                detail: eventValue.Name);
+        }
+
+        handler = null;
+        return false;
+    }
+
     public static bool TryGetPropertyValue<T>(
         NativeElementNode node,
         string name,

@@ -1,4 +1,4 @@
-using Csxaml.Demo;
+using Csxaml.Samples.TodoApp;
 
 namespace Csxaml.Runtime.Tests.Demo;
 

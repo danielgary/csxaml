@@ -1,0 +1,97 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element GalleryShell {
+    State<string> SelectedPage = new State<string>("Overview");
+
+    void Select(string page)
+    {
+        SelectedPage.Value = page;
+    }
+
+    render <Grid
+        AutomationProperties.Name="CSXAML Feature Gallery"
+        ColumnDefinitions="260,*"
+        Background={GalleryColors.AppBackground}>
+        <Border
+            Grid.Column={0}
+            Background={GalleryColors.Panel}
+            BorderBrush={GalleryColors.Border}
+            BorderThickness={new Thickness(0, 0, 1, 0)}
+            Padding={new Thickness(18)}>
+            <StackPanel Spacing={10}>
+                <TextBlock
+                    Text="CSXAML"
+                    Foreground={GalleryColors.Accent}
+                    FontSize={13} />
+                <TextBlock
+                    Text="Feature Gallery"
+                    Foreground={GalleryColors.TextPrimary}
+                    TextWrapping={TextWrapping.Wrap}
+                    FontSize={26}
+                    Margin={new Thickness(0, 0, 0, 12)} />
+                <Button
+                    Content="Overview"
+                    Style={GalleryStyles.NavButton}
+                    OnClick={() => Select("Overview")} />
+                <Button
+                    Content="Slots and content"
+                    Style={GalleryStyles.NavButton}
+                    OnClick={() => Select("Slots")} />
+                <Button
+                    Content="Refs and events"
+                    Style={GalleryStyles.NavButton}
+                    OnClick={() => Select("Events")} />
+                <Button
+                    Content="Layout and resources"
+                    Style={GalleryStyles.NavButton}
+                    OnClick={() => Select("Layout")} />
+                <Button
+                    Content="Virtualization"
+                    Style={GalleryStyles.NavButton}
+                    OnClick={() => Select("Virtualization")} />
+                <Border
+                    Background={GalleryColors.AccentSoft}
+                    Padding={new Thickness(10)}
+                    Margin={new Thickness(0, 16, 0, 0)}>
+                    <TextBlock
+                        Text={"Selected: " + SelectedPage.Value}
+                        Foreground={GalleryColors.TextMuted}
+                        TextWrapping={TextWrapping.Wrap}
+                        FontSize={12} />
+                </Border>
+            </StackPanel>
+        </Border>
+        if (SelectedPage.Value == "Events") {
+            <StackPanel Grid.Column={1} Margin={new Thickness(24)} Spacing={8}>
+                <RefsAndEventsPage />
+            </StackPanel>
+        }
+        if (SelectedPage.Value != "Events") {
+            <ScrollViewer
+                Grid.Column={1}
+                HorizontalScrollBarVisibility={ScrollBarVisibility.Disabled}
+                HorizontalScrollMode={ScrollMode.Disabled}
+                VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                VerticalScrollMode={ScrollMode.Auto}>
+                <StackPanel Margin={new Thickness(24)} Spacing={8}>
+                    if (SelectedPage.Value == "Overview") {
+                        <OverviewPage />
+                    }
+                    if (SelectedPage.Value == "Slots") {
+                        <SlotsPage />
+                    }
+                    if (SelectedPage.Value == "Layout") {
+                        <LayoutAndResourcesPage />
+                    }
+                    if (SelectedPage.Value == "Virtualization") {
+                        <VirtualizationPage />
+                    }
+                </StackPanel>
+            </ScrollViewer>
+        }
+    </Grid>;
+}

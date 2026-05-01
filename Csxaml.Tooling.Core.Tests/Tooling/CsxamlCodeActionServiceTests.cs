@@ -12,9 +12,9 @@ public sealed class CsxamlCodeActionServiceTests
     public void Code_actions_offer_tag_replacement_for_unambiguous_suggestion()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <StakPanel />;
@@ -37,9 +37,9 @@ public sealed class CsxamlCodeActionServiceTests
     public void Code_actions_offer_native_attribute_replacement_for_unambiguous_suggestion()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <Button Contnet="Save" />;
@@ -62,9 +62,9 @@ public sealed class CsxamlCodeActionServiceTests
     public void Code_actions_offer_component_parameter_replacement_for_unambiguous_suggestion()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TodoCard Ttile="One" />;
@@ -87,9 +87,9 @@ public sealed class CsxamlCodeActionServiceTests
     public void Code_actions_do_not_offer_replacements_without_a_high_confidence_suggestion()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <Zzzzz />;

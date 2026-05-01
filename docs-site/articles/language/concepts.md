@@ -118,10 +118,22 @@ Child content is the markup nested inside a native or component tag. Native
 controls use their supported child-content rule. Components can accept child
 content only when they declare the supported slot shape.
 
+## Property content
+
+Property content is an experimental `<Owner.Property>` child block that assigns
+markup to a metadata-backed native property or component named slot. The block
+is an assignment, not a real native element.
+
 ## Key
 
 `Key` is an identity hint for repeated children. Stable keys let the runtime
 match the same logical child across rerenders.
+
+## Element ref
+
+`ElementRef<T>` is an experimental imperative handle for projected native
+controls. Assign it with `Ref={...}` on a native tag when component code needs
+to call focus, scrolling, animation, or other WinUI APIs directly.
 
 ## Retained identity
 

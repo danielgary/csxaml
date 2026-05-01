@@ -46,4 +46,37 @@ public sealed class AttachedPropertyEmissionTests
         StringAssert.Contains(emitted, "\"Draft plan\"");
         StringAssert.Contains(emitted, "new NativeAttachedPropertyValue[]");
     }
+
+    [TestMethod]
+    public void Emit_ExpandedAttachedProperties_PreserveOwnerPropertyAndHints()
+    {
+        var component = GeneratorTestHarness.Parse(
+            "AttachedSurface.csxaml",
+            """
+            using Microsoft.UI.Xaml.Automation;
+            using Microsoft.UI.Xaml.Controls;
+
+            component Element AttachedSurface {
+                render <Canvas>
+                    <Button
+                        Canvas.Left={20.5}
+                        Canvas.Top={12}
+                        ToolTipService.ToolTip="Move"
+                        AutomationProperties.HelpText="Moves the item"
+                        Content="Move" />
+                </Canvas>;
+            }
+            """);
+
+        var compilation = GeneratorTestHarness.Validate(component);
+        var emitted = new CodeEmitter().Emit(component, compilation);
+
+        StringAssert.Contains(emitted, "\"Canvas\"");
+        StringAssert.Contains(emitted, "\"Left\"");
+        StringAssert.Contains(emitted, "ValueKindHint.Double");
+        StringAssert.Contains(emitted, "\"ToolTipService\"");
+        StringAssert.Contains(emitted, "\"ToolTip\"");
+        StringAssert.Contains(emitted, "\"AutomationProperties\"");
+        StringAssert.Contains(emitted, "\"HelpText\"");
+    }
 }

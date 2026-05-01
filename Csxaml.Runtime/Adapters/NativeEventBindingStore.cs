@@ -2,16 +2,16 @@ namespace Csxaml.Runtime;
 
 internal sealed class NativeEventBindingStore
 {
-    private readonly Dictionary<string, Action> _unbinders = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, EventBinding> _bindings = new(StringComparer.Ordinal);
 
     public void Clear()
     {
-        foreach (var unbind in _unbinders.Values)
+        foreach (var binding in _bindings.Values)
         {
-            unbind();
+            binding.Unbind();
         }
 
-        _unbinders.Clear();
+        _bindings.Clear();
     }
 
     public void Rebind<TDelegate>(
@@ -20,9 +20,15 @@ internal sealed class NativeEventBindingStore
         Func<TDelegate, Action> bind)
         where TDelegate : Delegate
     {
-        if (_unbinders.Remove(name, out var existing))
+        if (_bindings.TryGetValue(name, out var existing))
         {
-            existing();
+            if (handler is not null && existing.Matches(handler))
+            {
+                return;
+            }
+
+            _bindings.Remove(name);
+            existing.Unbind();
         }
 
         if (handler is null)
@@ -30,6 +36,16 @@ internal sealed class NativeEventBindingStore
             return;
         }
 
-        _unbinders[name] = bind(handler);
+        _bindings[name] = new EventBinding(handler, bind(handler));
+    }
+
+    private sealed class EventBinding(Delegate handler, Action unbind)
+    {
+        public Action Unbind { get; } = unbind;
+
+        public bool Matches(Delegate candidate)
+        {
+            return handler.Equals(candidate);
+        }
     }
 }

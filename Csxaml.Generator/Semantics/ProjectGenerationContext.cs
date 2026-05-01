@@ -3,7 +3,8 @@ namespace Csxaml.Generator;
 internal sealed record ProjectGenerationContext(
     string AssemblyName,
     string DefaultComponentNamespace,
-    string InternalGeneratedNamespace)
+    string InternalGeneratedNamespace,
+    CsxamlApplicationMode ApplicationMode = CsxamlApplicationMode.Hybrid)
 {
     public static ProjectGenerationContext CreateDefault()
     {

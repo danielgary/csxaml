@@ -20,7 +20,8 @@ The current extension contributes:
 - `.csxaml` file association
 - a language configuration for comments and core bracket pairs
 - a hybrid TextMate grammar
-- snippets for common CSXAML constructs
+- snippets for common CSXAML constructs, generated roots, refs, property
+  content, and named slots
 - a shared language-server client for completion, hover, diagnostics, formatting, definitions, semantic tokens, and suggestion-based quick fixes
 
 This extension also has a packaged install path:
@@ -39,7 +40,13 @@ The grammar intentionally splits the file into two broad regions:
   - `if (...)` headers
   - `foreach (...)` headers
   - attribute expressions such as `Text={Title}` or `OnClick={() => Save()}`
-- parameterless component declarations such as `component Element TodoBoard { ... }` are recognized directly
+- generated root declarations such as `component Application App { ... }`,
+  `component Window MainWindow { ... }`, and
+  `component ResourceDictionary AppResources { ... }` are recognized directly
+- application declarations such as `startup` and `resources` stay out of the
+  helper-code fallback
+- property-content tags such as `<Button.Flyout>` and native `Ref` attributes
+  use the same markup grammar as the rest of CSXAML
 - ordinary helper-code regions now fall back to `source.cs` scopes when the host has C# grammar support available
 
 The language server adds the semantic/editor layer on top of the grammar:
@@ -52,6 +59,12 @@ The language server adds the semantic/editor layer on top of the grammar:
 - go-to-definition for component tags
 - document formatting
 - semantic tokens produced by the shared tooling stack
+
+The same TextMate grammar is also loaded by the DocFX Shiki post-build
+highlighter, so docs and VS Code should color `csxaml` examples consistently.
+`samples/Csxaml.FeatureGallery` includes an app-hosted `SampleCodePresenter`
+with a deliberately small fallback classifier. That presenter is a sample UI
+control, not a replacement for the shared grammar used by VS Code and DocFX.
 
 ## Why This Approach
 

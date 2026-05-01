@@ -56,6 +56,7 @@ internal sealed class GeneratorScenarioWorkspace : IDisposable
             Scenario.AssemblyName,
             Scenario.DefaultComponentNamespace,
             $"{Scenario.DefaultComponentNamespace}.Generated",
+            CsxamlApplicationMode.Hybrid,
             ReferencePaths: Array.Empty<string>(),
             InputFiles);
     }

@@ -10,6 +10,10 @@ It is not wired into the repo solution. It is a starter sample you can copy into
 - authoring a `.csxaml` component
 - mounting the generated component into a WinUI window with `CsxamlHost`
 
+This sample uses the current supported WinUI shell shape. A generated app mode
+that removes the default `App.xaml`, `App.xaml.cs`, `MainWindow.xaml`, and
+`MainWindow.xaml.cs` files is planned post-v1 work.
+
 ## Before building
 
 Update the package version in `PackageHello.csproj` to the version you want to consume.

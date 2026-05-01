@@ -12,9 +12,9 @@ public sealed class CsxamlHoverServiceTests
     public void Hover_returns_component_tag_details()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TodoCard />;
@@ -26,7 +26,7 @@ public sealed class CsxamlHoverServiceTests
 
         Assert.IsNotNull(hover);
         StringAssert.Contains(hover.Markdown, "Component tag");
-        StringAssert.Contains(hover.Markdown, "Csxaml.Demo.TodoCard");
+        StringAssert.Contains(hover.Markdown, "Csxaml.Samples.TodoApp.TodoCard");
         StringAssert.Contains(hover.Markdown, "Assembly:");
     }
 
@@ -34,9 +34,9 @@ public sealed class CsxamlHoverServiceTests
     public void Hover_returns_native_control_details()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <Button />;
@@ -55,9 +55,9 @@ public sealed class CsxamlHoverServiceTests
     public void Hover_returns_native_property_details()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TextBlock Text="Hello" />;
@@ -76,9 +76,9 @@ public sealed class CsxamlHoverServiceTests
     public void Hover_returns_native_event_details()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <Button OnClick={() => SaveChanges()} />;
@@ -94,12 +94,59 @@ public sealed class CsxamlHoverServiceTests
     }
 
     [TestMethod]
+    public void Hover_returns_typed_event_args_details()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
+            """
+            namespace Csxaml.Samples.TodoApp;
+
+            component Element ToolingProbe() {
+                render <Slider OnValueChanged={args => _ = args.NewValue} />;
+            }
+            """);
+        var position = tempFile.Text.IndexOf("OnValueChanged", StringComparison.Ordinal) + 1;
+
+        var hover = new CsxamlHoverService().GetHover(tempFile.FilePath, tempFile.Text, position);
+
+        Assert.IsNotNull(hover);
+        StringAssert.Contains(hover.Markdown, "Native event");
+        StringAssert.Contains(hover.Markdown, "Slider.OnValueChanged");
+        StringAssert.Contains(hover.Markdown, "EventArgs");
+        StringAssert.Contains(hover.Markdown, "RangeBaseValueChangedEventArgs");
+    }
+
+    [TestMethod]
+    public void Hover_returns_element_ref_details()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
+            """
+            namespace Csxaml.Samples.TodoApp;
+
+            component Element ToolingProbe() {
+                ElementRef<object> SearchBox = new ElementRef<object>();
+
+                render <TextBox Ref={SearchBox} />;
+            }
+            """);
+        var position = tempFile.Text.IndexOf("Ref={", StringComparison.Ordinal) + 1;
+
+        var hover = new CsxamlHoverService().GetHover(tempFile.FilePath, tempFile.Text, position);
+
+        Assert.IsNotNull(hover);
+        StringAssert.Contains(hover.Markdown, "Element reference");
+        StringAssert.Contains(hover.Markdown, "TextBox.Ref");
+        StringAssert.Contains(hover.Markdown, "ElementRef<Microsoft.UI.Xaml.Controls.TextBox>");
+    }
+
+    [TestMethod]
     public void Hover_returns_attached_property_details()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <TextBlock Grid.Row={1} />;
@@ -118,9 +165,9 @@ public sealed class CsxamlHoverServiceTests
     public void Hover_returns_helper_method_details()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe {
                 int NextCount(int value)
@@ -145,9 +192,9 @@ public sealed class CsxamlHoverServiceTests
     public void Hover_returns_injected_service_details_inside_state_initializer()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe {
                 inject ITodoService todoService;

@@ -2,22 +2,42 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Csxaml.Demo",
+      "name": "Sample: Existing WinUI + CSXAML",
       "type": "coreclr",
       "request": "launch",
-      "preLaunchTask": "build-demo",
-      "program": "${workspaceFolder}\\Csxaml.Demo\\bin\\Debug\\net10.0-windows10.0.19041.0\\Csxaml.Demo.exe",
-      "cwd": "${workspaceFolder}\\Csxaml.Demo\\bin\\Debug\\net10.0-windows10.0.19041.0",
+      "preLaunchTask": "build-sample-existing-winui",
+      "program": "${workspaceFolder}\\samples\\Csxaml.ExistingWinUI\\bin\\Debug\\net10.0-windows10.0.19041.0\\Csxaml.ExistingWinUI.exe",
+      "cwd": "${workspaceFolder}\\samples\\Csxaml.ExistingWinUI\\bin\\Debug\\net10.0-windows10.0.19041.0",
       "stopAtEntry": false,
       "console": "internalConsole"
     },
     {
-      "name": "Csxaml.Starter (GreetingCard Sample)",
+      "name": "Sample: Hello World (Generated App)",
       "type": "coreclr",
       "request": "launch",
-      "preLaunchTask": "build-starter",
-      "program": "${workspaceFolder}\\samples\\Csxaml.Starter\\bin\\Debug\\net10.0-windows10.0.19041.0\\Csxaml.Starter.exe",
-      "cwd": "${workspaceFolder}\\samples\\Csxaml.Starter\\bin\\Debug\\net10.0-windows10.0.19041.0",
+      "preLaunchTask": "build-sample-hello-world",
+      "program": "${workspaceFolder}\\samples\\Csxaml.HelloWorld\\bin\\Debug\\net10.0-windows10.0.19041.0\\Csxaml.HelloWorld.exe",
+      "cwd": "${workspaceFolder}\\samples\\Csxaml.HelloWorld\\bin\\Debug\\net10.0-windows10.0.19041.0",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    {
+      "name": "Sample: Todo App (Generated App)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-sample-todo-app",
+      "program": "${workspaceFolder}\\samples\\Csxaml.TodoApp\\bin\\Debug\\net10.0-windows10.0.19041.0\\Csxaml.TodoApp.exe",
+      "cwd": "${workspaceFolder}\\samples\\Csxaml.TodoApp\\bin\\Debug\\net10.0-windows10.0.19041.0",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    {
+      "name": "Sample: Feature Gallery (Generated App)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-sample-feature-gallery",
+      "program": "${workspaceFolder}\\samples\\Csxaml.FeatureGallery\\bin\\Debug\\net10.0-windows10.0.19041.0\\Csxaml.FeatureGallery.exe",
+      "cwd": "${workspaceFolder}\\samples\\Csxaml.FeatureGallery\\bin\\Debug\\net10.0-windows10.0.19041.0",
       "stopAtEntry": false,
       "console": "internalConsole"
     },

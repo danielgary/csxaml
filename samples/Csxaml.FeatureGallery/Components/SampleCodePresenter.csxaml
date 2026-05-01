@@ -1,0 +1,13 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using DemoControls = Csxaml.ExternalControls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element SampleCodePresenter(string Title, string Code) {
+    render <DemoControls:CsxamlCodePresenter
+        AutomationProperties.Name={Title}
+        Title={Title}
+        Code={Code}
+        Margin={new Thickness(0, 8, 0, 0)} />;
+}

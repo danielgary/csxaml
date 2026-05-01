@@ -3,6 +3,7 @@ namespace Csxaml.Generator;
 internal sealed class NativeElementValidator
 {
     private readonly AttachedPropertyValidator _attachedPropertyValidator = new();
+    private readonly NativePropertyContentValidator _propertyContentValidator = new();
 
     public void Validate(
         SourceDocument source,
@@ -13,11 +14,19 @@ internal sealed class NativeElementValidator
     {
         ValidateAttributes(source, node, control, parentTagName, _attachedPropertyValidator, bindingResolver);
         ValidateChildren(source, node, control);
+        _propertyContentValidator.Validate(source, node, control);
     }
 
     private static bool AllowsStringLiteral(PropertyMetadata property)
     {
-        return property.ValueKindHint is ValueKindHint.Object or ValueKindHint.String;
+        return property.ValueKindHint == ValueKindHint.String ||
+            (property.ValueKindHint == ValueKindHint.Object && !IsUiElementProperty(property));
+    }
+
+    private static bool IsUiElementProperty(PropertyMetadata property)
+    {
+        return string.Equals(property.ClrTypeName, "Microsoft.UI.Xaml.UIElement", StringComparison.Ordinal) ||
+            property.ClrTypeName.EndsWith(".UIElement", StringComparison.Ordinal);
     }
 
     private static void ValidateAttributes(
@@ -29,6 +38,7 @@ internal sealed class NativeElementValidator
         AttachedPropertyBindingResolver bindingResolver)
     {
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
+        ValidateRef(source, node);
         foreach (var property in node.Properties)
         {
             if (!seenNames.Add(property.Name))
@@ -74,9 +84,27 @@ internal sealed class NativeElementValidator
                     property.Name,
                     control.Properties.Select(candidate => candidate.Name)
                         .Concat(control.Events.Select(candidate => candidate.ExposedName))
-                        .Concat(["Key"])
+                        .Concat(["Key", "Ref"])
                         .Concat(AttachedPropertyMetadataRegistry.Properties.Select(candidate => candidate.QualifiedName))));
         }
+    }
+
+    private static void ValidateRef(SourceDocument source, MarkupNode node)
+    {
+        if (node.Ref is null)
+        {
+            return;
+        }
+
+        if (node.Ref.ValueKind == PropertyValueKind.Expression)
+        {
+            return;
+        }
+
+        throw DiagnosticFactory.FromSpan(
+            source,
+            node.Ref.Span,
+            $"native ref on '{node.TagName}' requires an expression value");
     }
 
     private static void ValidateChildren(
@@ -84,16 +112,32 @@ internal sealed class NativeElementValidator
         MarkupNode node,
         ControlMetadataModel control)
     {
-        if (control.ChildKind == ControlChildKind.None && node.Children.Count > 0)
+        if (control.Content.Kind == ControlContentKind.None && node.Children.Count > 0)
         {
+            if (control.Content.DefaultPropertyName is not null)
+            {
+                throw DiagnosticFactory.FromSpan(
+                    source,
+                    node.Span,
+                    $"native control '{node.TagName}' content property '{control.Content.DefaultPropertyName}' has unsupported type '{control.Content.PropertyTypeName ?? "unknown"}'");
+            }
+
             throw DiagnosticFactory.FromSpan(
                 source,
                 node.Span,
                 $"native control '{node.TagName}' does not support child content");
         }
 
-        if (control.ChildKind == ControlChildKind.Single && node.Children.Count > 1)
+        if (control.Content.Kind == ControlContentKind.Single && node.Children.Count > 1)
         {
+            if (control.Content.DefaultPropertyName is not null)
+            {
+                throw DiagnosticFactory.FromSpan(
+                    source,
+                    node.Span,
+                    $"native control '{node.TagName}' supports only one child for '{control.Content.DefaultPropertyName}'");
+            }
+
             throw DiagnosticFactory.FromSpan(
                 source,
                 node.Span,

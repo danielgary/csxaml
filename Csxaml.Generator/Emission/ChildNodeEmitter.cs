@@ -1,6 +1,6 @@
 namespace Csxaml.Generator;
 
-internal sealed class ChildNodeEmitter
+internal sealed partial class ChildNodeEmitter
 {
     private readonly CompilationContext _compilation;
     private readonly ParsedComponent _component;
@@ -51,9 +51,9 @@ internal sealed class ChildNodeEmitter
 
         return
             $$"""
-            new {{FormatTypeLiteral(component.PropsTypeName!)}}
+            new {{GeneratedExpressionFormatter.FormatTypeLiteral(component.PropsTypeName!)}}
             (
-            {{FormatArgumentList(arguments)}}
+            {{GeneratedExpressionFormatter.FormatArgumentList(arguments)}}
             )
             """;
     }
@@ -90,6 +90,7 @@ internal sealed class ChildNodeEmitter
     {
         var propsExpression = BuildComponentPropsExpression(markupNode, component);
         var childContentExpression = BuildChildContentExpression(markupNode.Children);
+        var namedSlotContentExpression = BuildNamedSlotContentExpression(markupNode.PropertyContent);
         var attachedPropertiesExpression = _nativeAttributeEmitter.BuildAttachedPropertiesExpression(markupNode);
         var keyExpression = _nativeAttributeEmitter.BuildKeyExpression(markupNode);
         var renderPositionId = _renderPositionIdGenerator.Next();
@@ -102,11 +103,12 @@ internal sealed class ChildNodeEmitter
         var declaration =
             $$"""
             var {{variableName}} = new ComponentNode(
-            {{FormatArgumentList(
+            {{GeneratedExpressionFormatter.FormatArgumentList(
                 [
-                    $"typeof({FormatTypeLiteral(component.ComponentTypeName)})",
+                    $"typeof({GeneratedExpressionFormatter.FormatTypeLiteral(component.ComponentTypeName)})",
                     propsExpression,
                     childContentExpression,
+                    namedSlotContentExpression,
                     attachedPropertiesExpression,
                     $"\"{renderPositionId}\"",
                     keyExpression,
@@ -176,6 +178,17 @@ internal sealed class ChildNodeEmitter
 
     private void EmitSlotOutlet(SlotOutletNode slotOutlet, string listName)
     {
+        if (slotOutlet.TryGetName(out var name))
+        {
+            _writer.WriteMappedLine(
+                $"{listName}.AddRange(GetNamedSlotContent(\"{EscapeString(name)}\"));",
+                _component.Source,
+                slotOutlet.Span,
+                "slot-outlet",
+                "Slot");
+            return;
+        }
+
         _writer.WriteMappedLine(
             $"{listName}.AddRange(ChildContent);",
             _component.Source,
@@ -215,7 +228,9 @@ internal sealed class ChildNodeEmitter
         var keyExpression = _nativeAttributeEmitter.BuildKeyExpression(markupNode);
         var propertiesExpression = _nativeAttributeEmitter.BuildPropertiesExpression(markupNode, control);
         var attachedPropertiesExpression = _nativeAttributeEmitter.BuildAttachedPropertiesExpression(markupNode);
+        var refExpression = _nativeAttributeEmitter.BuildRefExpression(markupNode);
         var eventsExpression = _nativeAttributeEmitter.BuildEventsExpression(markupNode, control);
+        var propertyContentExpression = BuildNativePropertyContentExpression(markupNode.PropertyContent);
         var childrenExpression = "Array.Empty<Node>()";
 
         if (markupNode.Children.Count > 0)
@@ -234,13 +249,15 @@ internal sealed class ChildNodeEmitter
         var declaration =
             $$"""
             var {{variableName}} = new NativeElementNode(
-            {{FormatArgumentList(
+            {{GeneratedExpressionFormatter.FormatArgumentList(
                 [
                     $"\"{runtimeTagName}\"",
                     keyExpression,
                     propertiesExpression,
                     attachedPropertiesExpression,
+                    refExpression,
                     eventsExpression,
+                    propertyContentExpression,
                     childrenExpression,
                     sourceInfoExpression
                 ])}}
@@ -255,19 +272,6 @@ internal sealed class ChildNodeEmitter
             markupNode.TagName);
     }
 
-    private string BuildChildContentExpression(IReadOnlyList<ChildNode> childNodes)
-    {
-        if (childNodes.Count == 0)
-        {
-            return "Array.Empty<Node>()";
-        }
-
-        var childContentName = _localNameGenerator.Next("childContent");
-        _writer.WriteLine($"var {childContentName} = new List<Node>();");
-        EmitChildStatements(childNodes, childContentName);
-        return childContentName;
-    }
-
     private string FormatComponentArgument(PropertyNode property)
     {
         return property.ValueKind == PropertyValueKind.StringLiteral
@@ -280,30 +284,6 @@ internal sealed class ChildNodeEmitter
         return value
             .Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("\"", "\\\"", StringComparison.Ordinal);
-    }
-
-    private static string FormatTypeLiteral(string clrTypeName)
-    {
-        return $"global::{clrTypeName.Replace("+", ".", StringComparison.Ordinal)}";
-    }
-
-    private static string FormatArgumentList(IReadOnlyList<string> arguments)
-    {
-        if (arguments.Count == 0)
-        {
-            return string.Empty;
-        }
-
-        var lines = new List<string>(arguments.Count);
-        for (var index = 0; index < arguments.Count; index++)
-        {
-            lines.Add(
-                index == arguments.Count - 1
-                    ? CodeBlockFormatter.FormatLastArgument(arguments[index], 4)
-                    : CodeBlockFormatter.FormatArgument(arguments[index], 4));
-        }
-
-        return string.Join(Environment.NewLine, lines);
     }
 
     private static PropertyNode GetRequiredProperty(MarkupNode node, string propertyName)

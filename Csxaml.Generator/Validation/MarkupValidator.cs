@@ -12,6 +12,7 @@ internal sealed class MarkupValidator
         MarkupNode node,
         CompilationContext compilation)
     {
+        ValidateRoot(source, node);
         var bindingResolver = new AttachedPropertyBindingResolver(component);
         Validate(source, component, node, compilation, null, bindingResolver);
     }
@@ -28,6 +29,14 @@ internal sealed class MarkupValidator
         foreach (var child in node.Children)
         {
             ValidateChildNode(source, component, child, compilation, node.TagName, bindingResolver);
+        }
+
+        foreach (var propertyContent in node.PropertyContent)
+        {
+            foreach (var child in propertyContent.Children)
+            {
+                ValidateChildNode(source, component, child, compilation, node.TagName, bindingResolver);
+            }
         }
     }
 
@@ -62,6 +71,19 @@ internal sealed class MarkupValidator
             case SlotOutletNode:
                 break;
         }
+    }
+
+    private static void ValidateRoot(SourceDocument source, MarkupNode node)
+    {
+        if (!PropertyContentName.TrySplit(node.TagName, out _, out _))
+        {
+            return;
+        }
+
+        throw DiagnosticFactory.FromSpan(
+            source,
+            node.Span,
+            "property content cannot be the component root");
     }
 
     private void ValidateCurrentNode(

@@ -45,7 +45,7 @@ public class ControlLookupBenchmarks
         return AttachedPropertyReferenceResolver.Resolve(
             "AutomationProperties",
             "Name",
-            currentNamespace: "Csxaml.Demo.Components",
+            currentNamespace: "Csxaml.Samples.TodoApp.Components",
             ImportedNamespaces,
             Array.Empty<KeyValuePair<string, string>>());
     }

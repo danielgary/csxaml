@@ -11,7 +11,9 @@ The compiler/runtime path is broad enough for a credible v1 slice, and the remai
 Current productization state:
 
 - public package boundary: `Csxaml` and `Csxaml.Runtime`
-- starter sample and template work exist in the repo
+- consolidated sample apps and template work exist in the repo
+- experimental post-v1 feature work exists for deeper WinUI interop and
+  generated app roots
 - benchmark and performance documentation exist for Milestone 14
 - VS Code and Visual Studio extension packaging paths exist
 - XML API documentation is enabled on developer-facing assemblies
@@ -30,8 +32,11 @@ The repo is organized around four main layers:
   `Csxaml.Benchmarks`
 - tooling and editor integration:
   `Csxaml.Tooling.Core`, `Csxaml.LanguageServer`, `Csxaml.VisualStudio`, `VSCodeExtension/`
-- demo and build fixtures:
-  `Csxaml.Demo`, `Csxaml.ExternalControls`, `Csxaml.ProjectSystem.Components`, `Csxaml.ProjectSystem.Consumer`
+- samples and build fixtures:
+  `samples/Csxaml.ExistingWinUI`, `samples/Csxaml.HelloWorld`,
+  `samples/Csxaml.TodoApp`, `samples/Csxaml.FeatureGallery`,
+  `samples/Csxaml.ProjectSystem.Components`, `samples/Csxaml.ProjectSystem.Consumer`,
+  `Csxaml.ExternalControls`
 
 ## Project Guide
 
@@ -69,19 +74,35 @@ The repo is organized around four main layers:
 - `VSCodeExtension/`  
   VS Code extension assets, snippets, grammar, and extension host code.
 
-### Demo and fixture apps
+### Samples and fixture apps
 
-- `Csxaml.Demo`  
-  Main demo WinUI app showing the current CSXAML authoring model.
+- `samples/Csxaml.ExistingWinUI`
+  Existing WinUI shell sample that mounts CSXAML through `CsxamlHost`.
 
-- `Csxaml.ExternalControls`  
+- `samples/Csxaml.HelloWorld`
+  Minimal generated-app sample that starts from `App.csxaml`.
+
+- `samples/Csxaml.TodoApp`
+  Advanced generated-app Todo sample showing state, DI, child components,
+  external controls, and generated app resources without source XAML shell
+  files.
+
+- `samples/Csxaml.FeatureGallery`
+  Generated-app feature gallery for the experimental post-v1 surface: named
+  slots, refs, typed events, property content, expanded attached properties,
+  resources guidance, virtualization guidance, app-hosted code presentation,
+  and WinUI Fluent resources, controls, and hover surfaces.
+
+- `Csxaml.ExternalControls`
   Sample external controls used to prove external-control interop.
 
-- `Csxaml.ProjectSystem.Components`  
+- `samples/Csxaml.ProjectSystem.Components`
   Fixture component library for project-reference validation.
 
-- `Csxaml.ProjectSystem.Consumer`  
-  Fixture consumer app that references the generated component library.
+- `samples/Csxaml.ProjectSystem.Consumer`
+  Generated-app fixture consumer that references the generated component
+  library and verifies generated app/window/page roots through a normal project
+  reference build.
 
 ### Test projects
 
@@ -100,7 +121,7 @@ These projects provide regression coverage for metadata generation, parsing, val
 - `docs/` - supporting documentation
 - `docs-site/` - DocFX documentation site source
 - `scripts/` - helper scripts
-- `samples/` - outside-consumer and starter examples
+- `samples/` - launchable samples, package examples, and project-system fixtures
 - `templates/` - template package sources
 - `artifacts/` - build outputs and packaged artifacts
 
@@ -112,7 +133,7 @@ If you are new to the repo, this reading order works well:
 2. `docs-site/index.md`
 3. `Csxaml.Generator/`
 4. `Csxaml.Runtime/`
-5. `Csxaml.Demo/`
+5. `samples/Csxaml.TodoApp/`
 6. `Csxaml.Tooling.Core/`
 
 ## Key Docs
@@ -122,6 +143,7 @@ If you are new to the repo, this reading order works well:
 - [Roadmap](ROADMAP.md)
 - [Package Installation](docs/package-installation.md)
 - [Native Props And Events](docs/native-props-and-events.md)
+- [Resources And Templates](docs-site/articles/guides/resources-and-templates.md)
 - [Performance And Scale](docs/performance-and-scale.md)
 - [Release And Versioning](docs/release-and-versioning.md)
 - [Component Testing](docs/component-testing.md)
@@ -131,6 +153,8 @@ If you are new to the repo, this reading order works well:
 ## Documentation Site
 
 The DocFX documentation site lives under `docs-site/` and generates API reference pages from XML documentation comments at build time.
+The full docs script also requires Node.js 20.18.1 or newer with `npm` on
+`PATH` for CSXAML code-fence highlighting.
 
 Build it locally from the repo root:
 
@@ -177,8 +201,19 @@ These areas remain intentionally outside the current v1 promise:
 
 - named slots and slot fallback content
 - broader external attached-property owner discovery
-- richer event-argument projection beyond the current supported slice
-- virtualization and very large visible-list strategies
+- open-ended event-argument projection beyond the documented experimental typed
+  event set
+- component refs and `x:Name` symbolic lookup; use experimental native
+  `ElementRef<T>` plus `Ref={...}` when an imperative handle is needed
+- stable-v1 generated `Application`, `Window`, `Page`, and
+  `ResourceDictionary` roots
+- stable-v1 generated app mode without source `App.xaml`, `App.xaml.cs`,
+  `MainWindow.xaml`, or `MainWindow.xaml.cs`
+- CSXAML-authored `DataTemplate`, `ControlTemplate`, `StaticResource`, and
+  `ThemeResource` semantics; keep deep resource/template work in XAML
+  dictionaries
+- first-class CSXAML virtualization abstractions; use the performance guide and
+  native virtualized controls for very large visible-list strategies
 - `DataContext`-heavy third-party control interop
 - dedicated source-level lifecycle or cancellation syntax
 

@@ -62,4 +62,24 @@ public sealed class ComponentTreeCoordinatorStateTests
 
         Assert.HasCount(2, updatedTrees);
     }
+
+    [TestMethod]
+    public void NativeEventRenderDeferral_CoalescesStateInvalidations()
+    {
+        var root = new FixedParentComponent();
+        var coordinator = new ComponentTreeCoordinator(root);
+        var updatedTrees = new List<NativeNode>();
+        coordinator.TreeUpdated += updatedTrees.Add;
+
+        coordinator.Render();
+        using (NativeEventRenderDeferral.Begin())
+        {
+            root.Version.Value = 1;
+            root.Version.Value = 2;
+
+            Assert.HasCount(1, updatedTrees);
+        }
+
+        Assert.HasCount(2, updatedTrees);
+    }
 }

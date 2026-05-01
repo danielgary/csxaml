@@ -5,5 +5,6 @@ internal sealed record GeneratorOptions(
     string AssemblyName,
     string DefaultComponentNamespace,
     string InternalGeneratedNamespace,
+    CsxamlApplicationMode ApplicationMode,
     IReadOnlyList<string> ReferencePaths,
     IReadOnlyList<string> InputFiles);

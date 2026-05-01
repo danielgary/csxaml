@@ -1,6 +1,8 @@
 using Csxaml.ControlMetadata;
 using Csxaml.Generator;
 using Csxaml.Tooling.Core.Markup;
+using GeneratorComponentKind = Csxaml.Generator.ComponentKind;
+using MetadataComponentKind = Csxaml.ControlMetadata.ComponentKind;
 
 namespace Csxaml.Tooling.Core.Projects;
 
@@ -86,6 +88,10 @@ internal sealed class CsxamlWorkspaceComponentCache
                     .Select(parameter => new ComponentParameterMetadata(parameter.Name, parameter.TypeName))
                     .ToList(),
                 definition.SupportsDefaultSlot,
+                definition.NamedSlots
+                    .Select(name => new ComponentSlotMetadata(name))
+                    .ToList(),
+                ToMetadataKind(definition.Kind),
                 definition.Span.Start,
                 definition.Name.Length);
             return true;
@@ -108,6 +114,8 @@ internal sealed class CsxamlWorkspaceComponentCache
                     .Select(parameter => new ComponentParameterMetadata(parameter.Name, parameter.TypeName))
                     .ToList(),
                 supportsDefaultSlot: false,
+                namedSlots: Array.Empty<ComponentSlotMetadata>(),
+                kind: MetadataComponentKind.Element,
                 declaration.NameStart,
                 declaration.NameLength);
             return true;
@@ -121,6 +129,8 @@ internal sealed class CsxamlWorkspaceComponentCache
         string name,
         IReadOnlyList<ComponentParameterMetadata> parameters,
         bool supportsDefaultSlot,
+        IReadOnlyList<ComponentSlotMetadata> namedSlots,
+        MetadataComponentKind kind,
         int nameStart,
         int nameLength)
     {
@@ -131,8 +141,23 @@ internal sealed class CsxamlWorkspaceComponentCache
             $"{namespaceName}.{name}Component",
             parameters.Count == 0 ? null : $"{namespaceName}.{name}Props",
             parameters,
-            supportsDefaultSlot);
+            supportsDefaultSlot,
+            namedSlots,
+            kind);
         return new CsxamlWorkspaceComponentSymbol(metadata, filePath, nameStart, nameLength);
+    }
+
+    private static MetadataComponentKind ToMetadataKind(GeneratorComponentKind kind)
+    {
+        return kind switch
+        {
+            GeneratorComponentKind.Element => MetadataComponentKind.Element,
+            GeneratorComponentKind.Page => MetadataComponentKind.Page,
+            GeneratorComponentKind.Window => MetadataComponentKind.Window,
+            GeneratorComponentKind.Application => MetadataComponentKind.Application,
+            GeneratorComponentKind.ResourceDictionary => MetadataComponentKind.ResourceDictionary,
+            _ => MetadataComponentKind.Element
+        };
     }
 
     private static bool IsIgnoredPath(string filePath)

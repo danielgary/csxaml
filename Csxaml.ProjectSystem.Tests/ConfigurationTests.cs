@@ -31,26 +31,96 @@ public sealed class ConfigurationTests
     {
         AssertProjectPlatformTarget("Csxaml.Runtime", "Csxaml.Runtime.csproj");
         AssertProjectPlatformTarget("Csxaml.ExternalControls", "Csxaml.ExternalControls.csproj");
-        AssertProjectPlatformTarget("Csxaml.ProjectSystem.Components", "Csxaml.ProjectSystem.Components.csproj");
-        AssertProjectPlatformTarget("Csxaml.ProjectSystem.Consumer", "Csxaml.ProjectSystem.Consumer.csproj");
+        AssertProjectPlatformTarget("samples", "Csxaml.ProjectSystem.Components", "Csxaml.ProjectSystem.Components.csproj");
+        AssertProjectPlatformTarget("samples", "Csxaml.ProjectSystem.Consumer", "Csxaml.ProjectSystem.Consumer.csproj");
     }
 
     [TestMethod]
-    public void DemoLaunch_UsesDefaultMachineArchitecture()
+    public void SampleLaunches_UseDefaultMachineArchitecture()
     {
         using var launchJson = JsonDocument.Parse(File.ReadAllText(GetRepoPath(".vscode", "launch.json")));
         using var tasksJson = JsonDocument.Parse(File.ReadAllText(GetRepoPath(".vscode", "tasks.json")));
 
-        var launch = FindObject(
+        AssertLaunchUsesDefaultMachineArchitecture(
             launchJson.RootElement.GetProperty("configurations"),
-            "name",
-            "Csxaml.Demo");
-        var task = FindObject(
             tasksJson.RootElement.GetProperty("tasks"),
-            "label",
-            "build-demo");
+            "Sample: Existing WinUI + CSXAML",
+            "build-sample-existing-winui");
+        AssertLaunchUsesDefaultMachineArchitecture(
+            launchJson.RootElement.GetProperty("configurations"),
+            tasksJson.RootElement.GetProperty("tasks"),
+            "Sample: Hello World (Generated App)",
+            "build-sample-hello-world");
+        AssertLaunchUsesDefaultMachineArchitecture(
+            launchJson.RootElement.GetProperty("configurations"),
+            tasksJson.RootElement.GetProperty("tasks"),
+            "Sample: Todo App (Generated App)",
+            "build-sample-todo-app");
+        AssertLaunchUsesDefaultMachineArchitecture(
+            launchJson.RootElement.GetProperty("configurations"),
+            tasksJson.RootElement.GetProperty("tasks"),
+            "Sample: Feature Gallery (Generated App)",
+            "build-sample-feature-gallery");
+    }
 
-        Assert.AreEqual("build-demo", launch.GetProperty("preLaunchTask").GetString());
+    [TestMethod]
+    public void GeneratedApplicationMode_UsesHiddenGeneratedXamlCompanions()
+    {
+        var targets = XDocument.Load(GetRepoPath("build", "Csxaml.targets"));
+
+        var constants = targets.Root?
+            .Elements("PropertyGroup")
+            .Elements("DefineConstants")
+            .SingleOrDefault();
+        Assert.IsNotNull(constants);
+        StringAssert.Contains((string?)constants.Attribute("Condition"), "CsxamlApplicationMode");
+        StringAssert.Contains(constants.Value, "DISABLE_XAML_GENERATED_MAIN");
+
+        var application = targets.Root?
+            .Elements("ItemGroup")
+            .Elements("ApplicationDefinition")
+            .SingleOrDefault();
+        Assert.IsNotNull(application);
+        Assert.AreEqual(@"$(CsxamlGeneratedDirectory)\App.xaml", (string?)application.Attribute("Include"));
+        Assert.AreEqual("true", (string?)application.Attribute("CsxamlGenerated"));
+        Assert.AreEqual("false", (string?)application.Attribute("Visible"));
+
+        Assert.IsTrue(
+            targets.Descendants("FileWrites").Any(
+                element => string.Equals(
+                    (string?)element.Attribute("Include"),
+                    @"$(CsxamlGeneratedDirectory)\**\*.xaml",
+                    StringComparison.Ordinal)));
+
+        var generatedPage = targets.Root?
+            .Elements("Target")
+            .Where(target => string.Equals(
+                (string?)target.Attribute("Name"),
+                "IncludeCsxamlGeneratedCompileItems",
+                StringComparison.Ordinal))
+            .Elements("ItemGroup")
+            .Elements("Page")
+            .SingleOrDefault();
+
+        Assert.IsNotNull(generatedPage);
+        Assert.AreEqual(@"$(CsxamlGeneratedDirectory)\**\*.xaml", (string?)generatedPage.Attribute("Include"));
+        Assert.AreEqual(@"$(CsxamlGeneratedDirectory)\App.xaml", (string?)generatedPage.Attribute("Exclude"));
+        Assert.AreEqual("true", (string?)generatedPage.Attribute("CsxamlGenerated"));
+        Assert.AreEqual(
+            "WinUI",
+            generatedPage.Elements("XamlRuntime").SingleOrDefault()?.Value);
+    }
+
+    private static void AssertLaunchUsesDefaultMachineArchitecture(
+        JsonElement launchItems,
+        JsonElement taskItems,
+        string launchName,
+        string taskLabel)
+    {
+        var launch = FindObject(launchItems, "name", launchName);
+        var task = FindObject(taskItems, "label", taskLabel);
+
+        Assert.AreEqual(taskLabel, launch.GetProperty("preLaunchTask").GetString());
         AssertPathDoesNotContainX64(launch.GetProperty("program").GetString());
         AssertPathDoesNotContainX64(launch.GetProperty("cwd").GetString());
 
@@ -60,15 +130,15 @@ public sealed class ConfigurationTests
         CollectionAssert.DoesNotContain(args, "-p:Platform=x64");
     }
 
-    private static void AssertProjectPlatformTarget(string projectDirectory, string projectFileName)
+    private static void AssertProjectPlatformTarget(params string[] pathParts)
     {
-        var project = XDocument.Load(GetRepoPath(projectDirectory, projectFileName));
+        var project = XDocument.Load(GetRepoPath(pathParts));
         var platformTarget = project.Root?
             .Elements("PropertyGroup")
             .Elements("PlatformTarget")
             .SingleOrDefault();
 
-        Assert.IsNotNull(platformTarget, $"{projectDirectory} must declare PlatformTarget.");
+        Assert.IsNotNull(platformTarget, $"{string.Join("\\", pathParts)} must declare PlatformTarget.");
         Assert.AreEqual("AnyCPU", platformTarget.Value);
     }
 

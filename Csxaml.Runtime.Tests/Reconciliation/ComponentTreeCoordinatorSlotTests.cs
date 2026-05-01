@@ -70,6 +70,16 @@ public sealed class ComponentTreeCoordinatorSlotTests
         Assert.AreEqual("Alpha:1", RuntimeTreeHelpers.CardHeader(RuntimeTreeHelpers.ChildCard(updatedRoot, 1)));
     }
 
+    [TestMethod]
+    public void Render_NamedSlotChildren_RenderInsideNamedOutlet()
+    {
+        var root = RuntimeTreeHelpers.RootStackPanel(
+            new ComponentTreeCoordinator(new NamedSlotHostComponent()).Render());
+
+        Assert.AreEqual("Header Child", RuntimeTreeHelpers.GetProperty<string>(RuntimeTreeHelpers.GetChildElement(root, 0), "Text"));
+        Assert.AreEqual("Default Child", RuntimeTreeHelpers.GetProperty<string>(RuntimeTreeHelpers.GetChildElement(root, 1), "Text"));
+    }
+
     private sealed class WrapperVersionHostComponent : ComponentInstance
     {
         public WrapperVersionHostComponent()
@@ -114,5 +124,49 @@ public sealed class ComponentTreeCoordinatorSlotTests
                 "wrapper",
                 null);
         }
+    }
+
+    private sealed class NamedSlotHostComponent : ComponentInstance
+    {
+        public override Node Render()
+        {
+            return new ComponentNode(
+                typeof(NamedSlotWrapperComponent),
+                null,
+                [CreateTextBlock("Default Child")],
+                new Dictionary<string, IReadOnlyList<Node>>(StringComparer.Ordinal)
+                {
+                    ["Header"] = [CreateTextBlock("Header Child")]
+                },
+                Array.Empty<NativeAttachedPropertyValue>(),
+                "wrapper",
+                null);
+        }
+    }
+
+    private sealed class NamedSlotWrapperComponent : ComponentInstance
+    {
+        public override Node Render()
+        {
+            var children = new List<Node>();
+            children.AddRange(GetNamedSlotContent("Header"));
+            children.AddRange(ChildContent);
+            return new NativeElementNode(
+                "StackPanel",
+                null,
+                Array.Empty<NativePropertyValue>(),
+                Array.Empty<NativeEventValue>(),
+                children);
+        }
+    }
+
+    private static NativeElementNode CreateTextBlock(string text)
+    {
+        return new NativeElementNode(
+            "TextBlock",
+            null,
+            [new NativePropertyValue("Text", text)],
+            Array.Empty<NativeEventValue>(),
+            Array.Empty<Node>());
     }
 }

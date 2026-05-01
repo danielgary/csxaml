@@ -53,6 +53,14 @@ public static partial class CsxamlMarkupScanner
         var separatorIndex = tagName.IndexOf(':');
         var prefix = separatorIndex >= 0 ? tagName[..separatorIndex] : null;
         var localName = separatorIndex >= 0 ? tagName[(separatorIndex + 1)..] : tagName;
+        var propertySeparatorIndex = tagName.LastIndexOf('.');
+        var propertyOwner = propertySeparatorIndex > 0 ? tagName[..propertySeparatorIndex] : null;
+        var propertyName = propertySeparatorIndex > 0 && propertySeparatorIndex < tagName.Length - 1
+            ? tagName[(propertySeparatorIndex + 1)..]
+            : null;
+        var propertyNameStart = propertyName is null
+            ? -1
+            : tagNameStart + propertySeparatorIndex + 1;
 
         return new CsxamlMarkupElementReference(
             tagName,
@@ -65,7 +73,13 @@ public static partial class CsxamlMarkupScanner
             isClosing,
             isClosing
                 ? Array.Empty<CsxamlMarkupAttributeReference>()
-                : ReadAttributes(text, tagNameStart + tagName.Length, tagEnd));
+                : ReadAttributes(text, tagNameStart + tagName.Length, tagEnd),
+            propertyOwner,
+            propertyName,
+            propertyOwner is null ? -1 : tagNameStart,
+            propertyOwner?.Length ?? 0,
+            propertyNameStart,
+            propertyName?.Length ?? 0);
     }
 
     private static IReadOnlyList<CsxamlMarkupAttributeReference> ReadAttributes(

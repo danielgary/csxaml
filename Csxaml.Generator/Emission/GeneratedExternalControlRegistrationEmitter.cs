@@ -64,12 +64,29 @@ internal sealed class GeneratedExternalControlRegistrationEmitter
         _writer.WriteLine($"{FormatStringLiteral(control.ClrTypeName)},");
         _writer.WriteLine($"{FormatNullableStringLiteral(control.BaseTypeName)},");
         _writer.WriteLine($"global::Csxaml.ControlMetadata.ControlChildKind.{control.ChildKind},");
+        _writer.WriteLine($"{BuildContentExpression(control.Content)},");
         _writer.WriteLine($"{BuildPropertiesExpression(control.Properties)},");
         _writer.WriteLine($"{BuildEventsExpression(control.Events)})");
         _writer.PopIndent();
         _writer.WriteLine("));");
         _writer.PopIndent();
         _writer.PopIndent();
+    }
+
+    private static string BuildContentExpression(ControlContentMetadata content)
+    {
+        return string.Concat(
+            "new global::Csxaml.ControlMetadata.ControlContentMetadata(",
+            FormatNullableStringLiteral(content.DefaultPropertyName),
+            ", global::Csxaml.ControlMetadata.ControlContentKind.",
+            content.Kind,
+            ", ",
+            FormatNullableStringLiteral(content.PropertyTypeName),
+            ", ",
+            FormatNullableStringLiteral(content.ItemTypeName),
+            ", global::Csxaml.ControlMetadata.ControlContentSource.",
+            content.Source,
+            ")");
     }
 
     private static string BuildEventsExpression(IReadOnlyList<EventMetadata> events)

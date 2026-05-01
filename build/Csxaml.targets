@@ -13,7 +13,18 @@
     <CsxamlGeneratorMode Condition="'$(CsxamlGeneratorMode)' == '' and Exists('$(CsxamlGeneratorProject)')">project</CsxamlGeneratorMode>
     <CsxamlGeneratorCommand Condition="'$(CsxamlGeneratorCommand)' == '' and '$(CsxamlGeneratorMode)' == 'project'">dotnet run --project &quot;$(CsxamlGeneratorProject)&quot; --</CsxamlGeneratorCommand>
     <CsxamlGeneratorCommand Condition="'$(CsxamlGeneratorCommand)' == '' and '$(CsxamlGeneratorMode)' == 'packaged'">dotnet exec &quot;$(CsxamlGeneratorDll)&quot;</CsxamlGeneratorCommand>
+    <DefineConstants Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlApplicationMode)' == 'Generated'">$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlApplicationMode)' == 'Generated'">
+    <ApplicationDefinition
+      Include="$(CsxamlGeneratedDirectory)\App.xaml"
+      Link="App.xaml"
+      Visible="false"
+      CsxamlGenerated="true">
+      <XamlRuntime>WinUI</XamlRuntime>
+    </ApplicationDefinition>
+  </ItemGroup>
 
   <ItemGroup Condition="'$(EnableCsxaml)' == 'true' and '$(CsxamlGeneratorMode)' == 'project'">
     <CsxamlGeneratorInput Include="$(CsxamlGeneratorProject)" />
@@ -37,6 +48,17 @@
     <Error
       Condition="'$(CsxamlGeneratorCommand)' == ''"
       Text="CSXAML generation is enabled, but no generator command could be resolved. Set CsxamlGeneratorProject/CsxamlGeneratorDll explicitly or reference the Csxaml package." />
+    <Error
+      Condition="'$(CsxamlApplicationMode)' != 'Hybrid' and '$(CsxamlApplicationMode)' != 'Generated'"
+      Text="Invalid CsxamlApplicationMode '$(CsxamlApplicationMode)'. Expected 'Hybrid' or 'Generated'." />
+    <ItemGroup>
+      <_CsxamlUserApplicationDefinition
+        Include="@(ApplicationDefinition)"
+        Condition="'%(ApplicationDefinition.CsxamlGenerated)' != 'true'" />
+    </ItemGroup>
+    <Error
+      Condition="'$(CsxamlApplicationMode)' == 'Generated' and '@(_CsxamlUserApplicationDefinition)' != ''"
+      Text="Generated CSXAML application mode cannot be used while App.xaml is included as ApplicationDefinition." />
   </Target>
 
   <Target
@@ -63,7 +85,7 @@
       WriteOnlyWhenDifferent="true" />
     <WriteLinesToFile
       File="$(CsxamlProjectContextFile)"
-      Lines="$(AssemblyName);$(CsxamlDefaultNamespace);$(CsxamlInternalGeneratedNamespace)"
+      Lines="$(AssemblyName);$(CsxamlDefaultNamespace);$(CsxamlInternalGeneratedNamespace);$(CsxamlApplicationMode)"
       Overwrite="true"
       WriteOnlyWhenDifferent="true" />
   </Target>
@@ -76,7 +98,7 @@
     Outputs="$(CsxamlStampFile)"
     Condition="'$(EnableCsxaml)' == 'true' and '@(CsxamlSource)' != ''">
     <Exec
-      Command="$(CsxamlGeneratorCommand) --out &quot;$(CsxamlGeneratedDirectory)&quot; --assembly-name &quot;$(AssemblyName)&quot; --default-namespace &quot;$(CsxamlDefaultNamespace)&quot; --generated-namespace &quot;$(CsxamlInternalGeneratedNamespace)&quot; --references-file &quot;$(CsxamlReferenceManifestFile)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
+      Command="$(CsxamlGeneratorCommand) --out &quot;$(CsxamlGeneratedDirectory)&quot; --assembly-name &quot;$(AssemblyName)&quot; --default-namespace &quot;$(CsxamlDefaultNamespace)&quot; --generated-namespace &quot;$(CsxamlInternalGeneratedNamespace)&quot; --application-mode &quot;$(CsxamlApplicationMode)&quot; --references-file &quot;$(CsxamlReferenceManifestFile)&quot; @(CsxamlSource->'&quot;%(FullPath)&quot;', ' ')"
       WorkingDirectory="$(MSBuildProjectDirectory)" />
     <Touch Files="$(CsxamlStampFile)" AlwaysCreate="true" />
   </Target>
@@ -87,12 +109,20 @@
     BeforeTargets="MarkupCompilePass1;CoreCompile"
     Condition="'$(EnableCsxaml)' == 'true' and '@(CsxamlSource)' != ''">
     <ItemGroup>
+      <Page
+        Include="$(CsxamlGeneratedDirectory)\**\*.xaml"
+        Exclude="$(CsxamlGeneratedDirectory)\App.xaml"
+        Visible="false"
+        CsxamlGenerated="true">
+        <XamlRuntime>WinUI</XamlRuntime>
+      </Page>
       <Compile Include="$(CsxamlGeneratedDirectory)\**\*.g.cs" Visible="false" />
       <FileWrites Include="$(CsxamlSourceManifestFile)" />
       <FileWrites Include="$(CsxamlReferenceManifestFile)" />
       <FileWrites Include="$(CsxamlProjectContextFile)" />
       <FileWrites Include="$(CsxamlStampFile)" />
       <FileWrites Include="$(CsxamlGeneratedDirectory)\**\*.g.cs" Condition="Exists('$(CsxamlGeneratedDirectory)')" />
+      <FileWrites Include="$(CsxamlGeneratedDirectory)\**\*.xaml" Condition="Exists('$(CsxamlGeneratedDirectory)')" />
       <FileWrites Include="$(CsxamlIntermediateRoot)\Maps\**\*.json" Condition="Exists('$(CsxamlIntermediateRoot)\Maps')" />
     </ItemGroup>
   </Target>

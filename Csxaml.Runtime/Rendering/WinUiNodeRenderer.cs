@@ -5,7 +5,7 @@ namespace Csxaml.Runtime;
 /// <summary>
 /// Projects CSXAML native runtime nodes into retained WinUI elements.
 /// </summary>
-public sealed class WinUiNodeRenderer : IDisposable
+public sealed partial class WinUiNodeRenderer : IDisposable
 {
     private readonly ControlAdapterRegistry _registry;
     private RenderedNativeElement? _root;
@@ -173,17 +173,19 @@ public sealed class WinUiNodeRenderer : IDisposable
         ApplyAttachedProperties(rendered, node);
         rendered.Adapter.ApplyEvents(rendered.Element, node, rendered.EventBindings);
         UpdateChildren(rendered, node);
+        UpdatePropertyContent(rendered, node);
+        rendered.ApplyRef(node.Ref);
     }
 
     private static void ApplyAttachedProperties(RenderedNativeElement rendered, NativeElementNode node)
     {
-        if (node.AttachedProperties.Count == 0)
-        {
-            return;
-        }
-
         if (rendered.Element is not FrameworkElement frameworkElement)
         {
+            if (node.AttachedProperties.Count == 0)
+            {
+                return;
+            }
+
             throw new InvalidOperationException(
                 $"Projected element for '{node.TagName}' must be a FrameworkElement.");
         }

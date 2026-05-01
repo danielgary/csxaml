@@ -18,5 +18,10 @@ public enum EventBindingKind
     /// <summary>
     /// The event carries a Boolean value change from a toggle control.
     /// </summary>
-    BoolValueChanged
+    BoolValueChanged,
+
+    /// <summary>
+    /// The event carries the native WinUI event-args value without the sender.
+    /// </summary>
+    EventArgs
 }

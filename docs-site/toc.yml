@@ -39,6 +39,8 @@ items:
         href: articles/language/lifecycle.md
       - name: Supported Features
         href: articles/language/supported-features.md
+      - name: Planned Features
+        href: articles/language/planned-features.md
       - name: Language Specification
         href: articles/language/specification.md
   - name: Guides
@@ -51,6 +53,8 @@ items:
         href: articles/guides/native-props-and-events.md
       - name: External Control Interop
         href: articles/guides/external-control-interop.md
+      - name: Resources and Templates
+        href: articles/guides/resources-and-templates.md
       - name: Component Testing
         href: articles/guides/component-testing.md
       - name: Lifecycle and Async

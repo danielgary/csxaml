@@ -13,13 +13,15 @@ internal sealed class ButtonControlAdapter : ControlAdapter<Button>
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
+        CommonElementEventBinder.Apply(control, node, bindingStore);
         NativeElementReader.TryGetEventHandler<Action>(node, "OnClick", out var onClick);
         bindingStore.Rebind(
             "OnClick",
             onClick,
             handler =>
             {
-                RoutedEventHandler routedHandler = (_, _) => handler();
+                RoutedEventHandler routedHandler = (_, _) =>
+                    NativeEventDispatchScope.Invoke(handler);
                 control.Click += routedHandler;
                 return () => control.Click -= routedHandler;
             });

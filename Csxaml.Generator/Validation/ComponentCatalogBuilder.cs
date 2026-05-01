@@ -39,7 +39,7 @@ internal static class ComponentCatalogBuilder
             definition.Name,
             namespaceName,
             project.AssemblyName,
-            $"{namespaceName}.{definition.Name}Component",
+            GetComponentTypeName(namespaceName, definition),
             definition.Parameters.Count == 0 ? null : $"{namespaceName}.{definition.Name}Props",
             definition.Parameters
                 .Select(
@@ -47,6 +47,30 @@ internal static class ComponentCatalogBuilder
                         parameter.Name,
                         parameter.TypeName))
                 .ToList(),
-            definition.SupportsDefaultSlot);
+            definition.SupportsDefaultSlot,
+            definition.NamedSlots
+                .Select(name => new Csxaml.ControlMetadata.ComponentSlotMetadata(name))
+                .ToList(),
+            ToMetadataKind(definition.Kind));
+    }
+
+    private static string GetComponentTypeName(string namespaceName, ComponentDefinition definition)
+    {
+        return definition.Kind is ComponentKind.Application or ComponentKind.ResourceDictionary
+            ? $"{namespaceName}.{definition.Name}"
+            : $"{namespaceName}.{definition.Name}Component";
+    }
+
+    private static Csxaml.ControlMetadata.ComponentKind ToMetadataKind(ComponentKind kind)
+    {
+        return kind switch
+        {
+            ComponentKind.Element => Csxaml.ControlMetadata.ComponentKind.Element,
+            ComponentKind.Page => Csxaml.ControlMetadata.ComponentKind.Page,
+            ComponentKind.Window => Csxaml.ControlMetadata.ComponentKind.Window,
+            ComponentKind.Application => Csxaml.ControlMetadata.ComponentKind.Application,
+            ComponentKind.ResourceDictionary => Csxaml.ControlMetadata.ComponentKind.ResourceDictionary,
+            _ => throw new InvalidOperationException($"Unsupported component kind '{kind}'.")
+        };
     }
 }

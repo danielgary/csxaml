@@ -1,0 +1,10 @@
+namespace Csxaml.Samples.FeatureGallery;
+
+component Window MainWindow {
+    Title = "CSXAML Feature Gallery";
+    Width = 1180;
+    Height = 780;
+    Backdrop = "Mica";
+
+    render <GalleryShell />;
+}

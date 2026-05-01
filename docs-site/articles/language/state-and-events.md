@@ -79,6 +79,25 @@ Inline lambdas are also supported:
 <Button Content="Increment" OnClick={() => Count.Value++} />
 ```
 
+Some experimental native events expose senderless WinUI event args:
+
+```csxaml
+<Slider OnValueChanged={args => Volume.Value = args.NewValue} />
+<TextBox OnKeyDown={args => SubmitOnEnter(args)} />
+```
+
+The handler receives the event args value, not the sender. Use the delegate
+shape listed in the native props and events guide for each event. If component
+code needs the sender element, use a native `ElementRef<T>`:
+
+```csxaml
+ElementRef<TextBox> SearchBox = new ElementRef<TextBox>();
+
+render <TextBox
+    Ref={SearchBox}
+    OnLoaded={_ => SearchBox.Current?.Focus(FocusState.Programmatic)} />;
+```
+
 ## Controlled inputs
 
 Controlled input keeps state ownership in the component:

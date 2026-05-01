@@ -1,8 +1,7 @@
 using Csxaml.ExternalControls;
-using Csxaml.Demo;
+using Csxaml.Samples.TodoApp;
 using Csxaml.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Csxaml.Runtime.Tests.Demo;
 
@@ -29,10 +28,11 @@ public sealed class TodoDemoTests
         Assert.AreEqual("Grid", tree.TagName);
         Assert.IsNotNull(render.FindByAutomationName("Todo Board Title"));
         Assert.IsNotNull(render.FindByAutomationName("Selection Status Button"));
-        Assert.IsNotNull(render.FindByAutomationName("External WinUI Proof"));
+        Assert.IsNotNull(render.FindByAutomationName("Generated App Proof"));
         Assert.IsNotNull(render.FindByAutomationName("Todo List"));
         Assert.IsNotNull(render.FindByAutomationName("Task Editor"));
         Assert.IsNotNull(render.FindByAutomationId("SelectedTodoTitle"));
+        Assert.IsNotNull(render.FindByText("Generated app mode"));
         Assert.IsNotNull(render.FindByText("Draft plan"));
         Assert.AreEqual(
             1,
@@ -49,12 +49,12 @@ public sealed class TodoDemoTests
 
         var tree = (NativeElementNode)new ComponentTreeCoordinator(component, CreateServices()).Render();
         var statusButton = RuntimeTreeHelpers.FindByAutomationName(tree, "Selection Status Button");
-        var infoBar = RuntimeTreeHelpers.FindByAutomationName(tree, "External WinUI Proof");
+        var generatedProof = RuntimeTreeHelpers.FindByAutomationName(tree, "Generated App Proof");
 
         Assert.IsNotNull(statusButton);
-        Assert.IsNotNull(infoBar);
+        Assert.IsNotNull(generatedProof);
         Assert.AreEqual(typeof(StatusButton).FullName, statusButton!.TagName);
-        Assert.AreEqual(typeof(InfoBar).FullName, infoBar!.TagName);
+        Assert.AreEqual("Border", generatedProof!.TagName);
         Assert.AreEqual("todo-1", RuntimeTreeHelpers.GetProperty<string>(statusButton, "BadgeText"));
     }
 
@@ -65,10 +65,8 @@ public sealed class TodoDemoTests
 
         var tree = (NativeElementNode)new ComponentTreeCoordinator(component, CreateServices()).Render();
         var statusButton = RuntimeTreeHelpers.FindByAutomationName(tree, "Selection Status Button");
-        var infoBar = RuntimeTreeHelpers.FindByAutomationName(tree, "External WinUI Proof");
 
         AssertDeferredStyle(statusButton!);
-        AssertDeferredStyle(infoBar!);
         AssertDeferredStyle(GetSelectButton(tree, 0));
         AssertDeferredStyle(GetToggleButton(tree, 0));
     }

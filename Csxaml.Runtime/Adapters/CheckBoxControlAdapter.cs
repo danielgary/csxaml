@@ -16,6 +16,7 @@ internal sealed class CheckBoxControlAdapter : ControlAdapter<CheckBox>
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
+        CommonElementEventBinder.Apply(control, node, bindingStore);
         NativeElementReader.TryGetEventHandler<Action<bool>>(node, "OnCheckedChanged", out var onCheckedChanged);
         bindingStore.Rebind(
             "OnCheckedChanged",
@@ -82,7 +83,8 @@ internal sealed class CheckBoxControlAdapter : ControlAdapter<CheckBox>
 
     private static void InvokeHandler(CheckBox control, Action<bool> handler)
     {
-        GetState(control).Dispatch(Normalize(control.IsChecked), handler);
+        NativeEventDispatchScope.Invoke(
+            () => GetState(control).Dispatch(Normalize(control.IsChecked), handler));
     }
 
     private static bool Normalize(bool? value)

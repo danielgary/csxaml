@@ -1,0 +1,19 @@
+using Csxaml.ProjectSystem.Components;
+using Admin = Csxaml.ProjectSystem.Components.Admin;
+using Microsoft.UI.Xaml.Automation;
+
+namespace Csxaml.ProjectSystem.Consumer;
+
+component Element ConsumerBoard {
+    render <PanelSurface HeaderText="Imported Components">
+        <StackPanel AutomationProperties.Name="Consumer Stack">
+            <GreetingCard Title="Hello from project references" />
+            <Admin:AdminBadge Label="Verified alias import" />
+        </StackPanel>
+        <PanelSurface.Footer>
+            <TextBlock
+                AutomationProperties.Name="Panel Footer"
+                Text="Referenced named slot" />
+        </PanelSurface.Footer>
+    </PanelSurface>;
+}

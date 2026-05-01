@@ -11,7 +11,7 @@ public sealed class CsxamlSemanticTokenRegressionTests
     [TestMethod]
     public void Semantic_tokens_for_todo_board_do_not_overlap_and_classify_helper_return_types()
     {
-        var filePath = Path.Combine(RepoRoot, "Csxaml.Demo", "Components", "TodoBoard.csxaml");
+        var filePath = Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components", "TodoBoard.csxaml");
         var text = File.ReadAllText(filePath);
 
         var tokens = new CsxamlSemanticTokenService()
@@ -36,6 +36,46 @@ public sealed class CsxamlSemanticTokenRegressionTests
                 token.Start == returnTypeStart &&
                 token.Length == "TodoItemModel".Length &&
                 token.Type == CsxamlSemanticTokenType.Class),
+            string.Join(", ", tokens.Select(token => $"{token.Type}@{token.Start}:{token.Length}")));
+    }
+
+    [TestMethod]
+    public void Semantic_tokens_classify_generated_root_keywords()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
+            """
+            namespace Csxaml.Samples.TodoApp;
+
+            component Application App {
+                startup MainWindow;
+                resources AppResources;
+            }
+
+            component ResourceDictionary AppResources {
+                render <ResourceDictionary />;
+            }
+            """);
+
+        var tokens = new CsxamlSemanticTokenService().GetTokens(tempFile.FilePath, tempFile.Text);
+
+        AssertHasKeyword(tokens, tempFile.Text, "Application");
+        AssertHasKeyword(tokens, tempFile.Text, "startup");
+        AssertHasKeyword(tokens, tempFile.Text, "resources");
+        AssertHasKeyword(tokens, tempFile.Text, "ResourceDictionary");
+    }
+
+    private static void AssertHasKeyword(
+        IReadOnlyList<CsxamlSemanticToken> tokens,
+        string text,
+        string word)
+    {
+        var start = text.IndexOf(word, StringComparison.Ordinal);
+        Assert.IsTrue(
+            tokens.Any(token =>
+                token.Start == start &&
+                token.Length == word.Length &&
+                token.Type == CsxamlSemanticTokenType.Keyword),
             string.Join(", ", tokens.Select(token => $"{token.Type}@{token.Start}:{token.Length}")));
     }
 }

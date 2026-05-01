@@ -26,6 +26,11 @@ Current boundaries:
 
 - normal using imports and aliases are supported
 - deterministic referenced-assembly metadata discovery is supported
+- default child content can flow through experimental content-property metadata,
+  including `[ContentProperty]`, inherited content attributes, WinUI content
+  conventions, and `UIElementCollection` children
+- experimental property-content syntax can target metadata-backed named
+  `UIElement` properties
 - richer `DataContext`-heavy interop is outside the v1 promise
 - broader attached-property owner discovery remains intentionally limited
 

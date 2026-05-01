@@ -2,12 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build-demo",
+      "label": "build-sample-existing-winui",
       "type": "process",
       "command": "dotnet",
       "args": [
         "build",
-        "${workspaceFolder}\\Csxaml.Demo\\Csxaml.Demo.csproj",
+        "${workspaceFolder}\\samples\\Csxaml.ExistingWinUI\\Csxaml.ExistingWinUI.csproj",
         "-nr:false",
         "-p:UseSharedCompilation=false"
       ],
@@ -21,12 +21,44 @@
       }
     },
     {
-      "label": "build-starter",
+      "label": "build-sample-hello-world",
       "type": "process",
       "command": "dotnet",
       "args": [
         "build",
-        "${workspaceFolder}\\samples\\Csxaml.Starter\\Csxaml.Starter.csproj",
+        "${workspaceFolder}\\samples\\Csxaml.HelloWorld\\Csxaml.HelloWorld.csproj",
+        "-nr:false",
+        "-p:UseSharedCompilation=false"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "build-sample-todo-app",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}\\samples\\Csxaml.TodoApp\\Csxaml.TodoApp.csproj",
+        "-nr:false",
+        "-p:UseSharedCompilation=false"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "build-sample-feature-gallery",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}\\samples\\Csxaml.FeatureGallery\\Csxaml.FeatureGallery.csproj",
         "-nr:false",
         "-p:UseSharedCompilation=false"
       ],

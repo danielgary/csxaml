@@ -18,13 +18,13 @@ This tutorial builds a small Todo board using the supported CSXAML v1 surface:
 
 The repo demo is the reference implementation for this tutorial:
 
-- [`Csxaml.Demo`](https://github.com/danielgary/csxaml/tree/develop/Csxaml.Demo)
-- [`TodoBoard.csxaml`](https://github.com/danielgary/csxaml/blob/develop/Csxaml.Demo/Components/TodoBoard.csxaml)
-- [`TodoCard.csxaml`](https://github.com/danielgary/csxaml/blob/develop/Csxaml.Demo/Components/TodoCard.csxaml)
-- [`TodoEditor.csxaml`](https://github.com/danielgary/csxaml/blob/develop/Csxaml.Demo/Components/TodoEditor.csxaml)
+- [`samples/Csxaml.TodoApp`](https://github.com/danielgary/csxaml/tree/develop/samples/Csxaml.TodoApp)
+- [`TodoBoard.csxaml`](https://github.com/danielgary/csxaml/blob/develop/samples/Csxaml.TodoApp/Components/TodoBoard.csxaml)
+- [`TodoCard.csxaml`](https://github.com/danielgary/csxaml/blob/develop/samples/Csxaml.TodoApp/Components/TodoCard.csxaml)
+- [`TodoEditor.csxaml`](https://github.com/danielgary/csxaml/blob/develop/samples/Csxaml.TodoApp/Components/TodoEditor.csxaml)
 
 You can copy the tutorial code into a new app that has the `Csxaml` package, or
-compare it against `Csxaml.Demo` when you want to see the repository's richer
+compare it against `samples/Csxaml.TodoApp` when you want to see the repository's richer
 demo implementation. The snippets below use `MyApp` namespaces so they can drop
 into a new project.
 
@@ -204,6 +204,11 @@ component Element TodoBoard {
 ```
 
 `State<T>` invalidates the component when `Value` changes. In-place collection mutation does not automatically rerender; assign a new value or call `Touch()` after a deliberate in-place update.
+
+This tutorial intentionally renders a small visible task list with `foreach`.
+That shape keeps the component easy to read and test, but it is not a
+virtualized list. For large scrolling item surfaces, wrap a native virtualized
+control and pass the data into that control instead.
 
 Expected result: the app shows two task cards on the left and an editor on the
 right. Selecting the second task updates the editor. Editing the title updates

@@ -7,9 +7,6 @@
       "include": "#comments"
     },
     {
-      "include": "#componentDeclarationWithoutParameters"
-    },
-    {
       "include": "#componentDeclaration"
     },
     {
@@ -83,22 +80,8 @@
         }
       ]
     },
-    "componentDeclarationWithoutParameters": {
-      "match": "\\b(component)\\b\\s+(Element)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*\\{)",
-      "captures": {
-        "1": {
-          "name": "keyword.declaration.component.csxaml"
-        },
-        "2": {
-          "name": "storage.type.component-kind.csxaml"
-        },
-        "3": {
-          "name": "entity.name.type.class.csxaml"
-        }
-      }
-    },
     "componentDeclaration": {
-      "begin": "\\b(component)\\b\\s+(Element)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
+      "begin": "\\b(component)\\b\\s+(Element|Page|Window|Application|ResourceDictionary)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
       "beginCaptures": {
         "1": {
           "name": "keyword.declaration.component.csxaml"
@@ -127,7 +110,7 @@
       ]
     },
     "parameterlessComponentDeclaration": {
-      "match": "\\b(component)\\b\\s+(Element)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\{)",
+      "match": "\\b(component)\\b\\s+(Element|Page|Window|Application|ResourceDictionary)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\{)",
       "captures": {
         "1": {
           "name": "keyword.declaration.component.csxaml"
@@ -193,8 +176,8 @@
       ]
     },
     "helperCode": {
-      "begin": "^(?=\\s*\\S)(?!\\s*(?:component\\b|render\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_]))",
-      "end": "(?=^\\s*(?:component\\b|render\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_])|\\z)",
+      "begin": "^(?=\\s*\\S)(?!\\s*(?:component\\b|render\\b|startup\\b|resources\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_]))",
+      "end": "(?=^\\s*(?:component\\b|render\\b|startup\\b|resources\\b|if\\b\\s*\\(|foreach\\b\\s*\\(|inject\\b|State\\b|</?[A-Za-z_])|\\z)",
       "patterns": [
         {
           "include": "source.cs"
@@ -225,7 +208,7 @@
       "patterns": [
         {
           "name": "keyword.control.render.csxaml",
-          "match": "\\brender\\b"
+          "match": "\\b(render|startup|resources)\\b"
         },
         {
           "name": "keyword.control.loop.csxaml",

@@ -13,7 +13,7 @@ public sealed class CsxamlWorkspaceLoaderTests
     {
         const string initialText =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingCacheCurrentOne() {
                 render <TextBlock Text="One" />;
@@ -21,7 +21,7 @@ public sealed class CsxamlWorkspaceLoaderTests
             """;
         const string updatedText =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingCacheCurrentTwo() {
                 render <TextBlock Text="Two" />;
@@ -29,15 +29,15 @@ public sealed class CsxamlWorkspaceLoaderTests
             """;
 
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             initialText);
 
         var loader = new CsxamlWorkspaceLoader();
 
         var updatedWorkspace = loader.Load(tempFile.FilePath, updatedText);
 
-        Assert.IsTrue(updatedWorkspace.FindComponents("Csxaml.Demo", "ToolingCacheCurrentTwo").Any());
-        Assert.IsFalse(updatedWorkspace.FindComponents("Csxaml.Demo", "ToolingCacheCurrentOne").Any());
+        Assert.IsTrue(updatedWorkspace.FindComponents("Csxaml.Samples.TodoApp", "ToolingCacheCurrentTwo").Any());
+        Assert.IsFalse(updatedWorkspace.FindComponents("Csxaml.Samples.TodoApp", "ToolingCacheCurrentOne").Any());
     }
 
     [TestMethod]
@@ -45,7 +45,7 @@ public sealed class CsxamlWorkspaceLoaderTests
     {
         const string currentText =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingCacheHost() {
                 render <TextBlock Text="Host" />;
@@ -53,7 +53,7 @@ public sealed class CsxamlWorkspaceLoaderTests
             """;
         const string siblingInitialText =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingCacheSiblingOne() {
                 render <TextBlock Text="Sibling One" />;
@@ -61,7 +61,7 @@ public sealed class CsxamlWorkspaceLoaderTests
             """;
         const string siblingUpdatedText =
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingCacheSiblingTwo() {
                 render <TextBlock Text="Sibling Two" />;
@@ -69,22 +69,22 @@ public sealed class CsxamlWorkspaceLoaderTests
             """;
 
         using var currentFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             currentText);
         using var siblingFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             siblingInitialText);
 
         var loader = new CsxamlWorkspaceLoader();
 
         var initialWorkspace = loader.Load(currentFile.FilePath, currentText);
-        Assert.IsTrue(initialWorkspace.FindComponents("Csxaml.Demo", "ToolingCacheSiblingOne").Any());
+        Assert.IsTrue(initialWorkspace.FindComponents("Csxaml.Samples.TodoApp", "ToolingCacheSiblingOne").Any());
 
         File.WriteAllText(siblingFile.FilePath, siblingUpdatedText);
 
         var updatedWorkspace = loader.Load(currentFile.FilePath, currentText);
 
-        Assert.IsTrue(updatedWorkspace.FindComponents("Csxaml.Demo", "ToolingCacheSiblingTwo").Any());
-        Assert.IsFalse(updatedWorkspace.FindComponents("Csxaml.Demo", "ToolingCacheSiblingOne").Any());
+        Assert.IsTrue(updatedWorkspace.FindComponents("Csxaml.Samples.TodoApp", "ToolingCacheSiblingTwo").Any());
+        Assert.IsFalse(updatedWorkspace.FindComponents("Csxaml.Samples.TodoApp", "ToolingCacheSiblingOne").Any());
     }
 }

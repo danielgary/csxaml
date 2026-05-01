@@ -11,6 +11,14 @@ CSXAML is added to a normal WinUI app. The documented public path starts with
 Visual Studio's WinUI project templates, then adds the `Csxaml` package and a
 first `.csxaml` component.
 
+Experimental generated application mode now exists. It can build an app from
+`component Application`, `component Window`, `component Page`, and limited
+`component ResourceDictionary` files with no `App.xaml`, no `App.xaml.cs`, no
+`MainWindow.xaml`, and no `MainWindow.xaml.cs`.
+
+The v1-safe public path still starts with the normal WinUI shell. Use generated
+mode when you are deliberately exploring post-v1 app-shell behavior.
+
 ## 1. Create the WinUI app
 
 In Visual Studio, create a WinUI 3 desktop app from a blank WinUI template. Use
@@ -58,16 +66,65 @@ Then continue with the [Quick Start](quick-start.md). It adds a first
 `HelloCard.csxaml` component, mounts it from `MainWindow`, and shows where
 generated C# appears under `obj`.
 
-## Repository Starter Sample
+## Experimental generated mode
 
-If you are working inside this repository and want a small running example,
-build the starter sample:
+Generated mode is selected in the project file:
 
-```powershell
-dotnet restore .\samples\Csxaml.Starter\Csxaml.Starter.csproj
-dotnet build .\samples\Csxaml.Starter\Csxaml.Starter.csproj --no-restore
+```xml
+<CsxamlApplicationMode>Generated</CsxamlApplicationMode>
 ```
 
-The sample demonstrates one root component, one child component, state
-invalidation, a button event, a controlled `TextBox`, and an attached property.
-It is repo-local validation, not the public package install path.
+In that mode, remove the template `App.xaml` and `MainWindow.xaml` files and
+author the app shell in CSXAML:
+
+```csxaml
+component Application App {
+    startup MainWindow;
+    resources AppResources;
+}
+
+component ResourceDictionary AppResources {
+    render <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <XamlControlsResources />
+        </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>;
+}
+
+component Window MainWindow {
+    Title = "CSXAML Starter";
+    Width = 960;
+    Height = 640;
+
+    render <HomePage />;
+}
+```
+
+The repository samples `samples/Csxaml.HelloWorld`, `samples/Csxaml.TodoApp`,
+and `samples/Csxaml.FeatureGallery` are the current proof for this shape.
+Generated mode is experimental and intentionally smaller than the normal WinUI
+app lifecycle surface. Generated mode should use `component ResourceDictionary`
+for its experimental app resource path rather than reintroducing source
+`App.xaml`. The build still emits a hidden intermediate `App.xaml` so WinUI can
+load default control resources normally. Keep deep templates, theme
+dictionaries, and
+`StaticResource`/`ThemeResource` graphs in XAML dictionaries; see
+[Resources and Templates](../guides/resources-and-templates.md).
+
+## Repository Samples
+
+If you are working inside this repository and want running examples, use the
+consolidated samples:
+
+```powershell
+dotnet build .\samples\Csxaml.ExistingWinUI\Csxaml.ExistingWinUI.csproj
+dotnet build .\samples\Csxaml.HelloWorld\Csxaml.HelloWorld.csproj
+dotnet build .\samples\Csxaml.TodoApp\Csxaml.TodoApp.csproj
+dotnet build .\samples\Csxaml.FeatureGallery\Csxaml.FeatureGallery.csproj
+```
+
+`Csxaml.ExistingWinUI` demonstrates the supported existing-shell host path.
+`Csxaml.HelloWorld` is the smallest generated app. `Csxaml.TodoApp` is the
+advanced generated-app sample. `Csxaml.FeatureGallery` demonstrates the
+experimental post-v1 feature surface in one app. These are repo-local
+validation samples, not the public package install path.

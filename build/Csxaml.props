@@ -4,6 +4,7 @@
     <CsxamlImportedFromPackage Condition="'$(CsxamlImportedFromPackage)' == '' and '$(CsxamlToolRoot)' != ''">true</CsxamlImportedFromPackage>
     <EnableCsxaml Condition="'$(EnableCsxaml)' == '' and '$(CsxamlImportedFromPackage)' == 'true'">true</EnableCsxaml>
     <EnableCsxaml Condition="'$(EnableCsxaml)' == ''">false</EnableCsxaml>
+    <CsxamlApplicationMode Condition="'$(CsxamlApplicationMode)' == ''">Hybrid</CsxamlApplicationMode>
     <CsxamlEnableDefaultSourceGlob Condition="'$(CsxamlEnableDefaultSourceGlob)' == ''">true</CsxamlEnableDefaultSourceGlob>
     <CsxamlGeneratorProjectCandidate>$(MSBuildThisFileDirectory)..\Csxaml.Generator\Csxaml.Generator.csproj</CsxamlGeneratorProjectCandidate>
     <CsxamlGeneratorProject Condition="'$(CsxamlGeneratorProject)' == '' and Exists('$(CsxamlGeneratorProjectCandidate)')">$(CsxamlGeneratorProjectCandidate)</CsxamlGeneratorProject>

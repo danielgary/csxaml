@@ -1,0 +1,58 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+using DemoControls = Csxaml.ExternalControls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element SlotsPage {
+    render <StackPanel Spacing={14}>
+        <GallerySection
+            Eyebrow="Composition"
+            Title="Default and named slots"
+            Description="GallerySection itself uses a default slot for body content and a named Actions slot for command surfaces.">
+            <GallerySection.Actions>
+                <Button
+                    Content="Named action"
+                    Style={GalleryStyles.SubtleButton}
+                    ToolTipService.ToolTip="This button was passed through GallerySection.Actions." />
+            </GallerySection.Actions>
+            <TextBlock
+                AutomationProperties.Name="Default Slot Body"
+                Text="This body is caller-provided default slot content."
+                Foreground={GalleryColors.TextPrimary}
+                TextWrapping={TextWrapping.Wrap} />
+            <SampleCodePresenter Title="Named slots" Code={GallerySnippets.NamedSlots} />
+        </GallerySection>
+        <GallerySection
+            Eyebrow="Property content"
+            Title="Native and external property-content syntax"
+            Description="Property-content keeps XAML-familiar owner.property blocks without turning those blocks into real elements.">
+            <Border
+                AutomationProperties.Name="Border Child Property Content"
+                Background={GalleryColors.AccentSoft}
+                BorderBrush={GalleryColors.Border}
+                BorderThickness={new Thickness(1)}
+                Padding={new Thickness(12)}>
+                <Border.Child>
+                    <TextBlock
+                        Text="This TextBlock was assigned through Border.Child property content."
+                        Foreground={GalleryColors.TextPrimary}
+                        TextWrapping={TextWrapping.Wrap} />
+                </Border.Child>
+            </Border>
+            <DemoControls:ControlExample
+                AutomationProperties.Name="External Control Property Content"
+                Content="External content-property target"
+                Margin={new Thickness(0, 10, 0, 0)}>
+                <DemoControls:ControlExample.Example>
+                    <TextBlock Text="Example property content" TextWrapping={TextWrapping.Wrap} />
+                </DemoControls:ControlExample.Example>
+                <DemoControls:ControlExample.Options>
+                    <CheckBox Content="Options property content" />
+                </DemoControls:ControlExample.Options>
+            </DemoControls:ControlExample>
+            <SampleCodePresenter Title="External property content" Code={GallerySnippets.PropertyContent} />
+        </GallerySection>
+    </StackPanel>;
+}

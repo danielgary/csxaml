@@ -13,9 +13,9 @@ public sealed class CsxamlCSharpToolingServiceTests
     public void Completion_suggests_helper_symbols_inside_component_code()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 State<string> SelectedId = new State<string>("todo-1");
@@ -38,9 +38,9 @@ public sealed class CsxamlCSharpToolingServiceTests
     public void Completion_suggests_members_inside_expression_islands()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 State<string> SelectedId = new State<string>("todo-1");
@@ -61,9 +61,9 @@ public sealed class CsxamlCSharpToolingServiceTests
     public void Diagnostics_surface_csharp_errors_from_projected_regions()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 var current = MissingSymbol;
@@ -83,9 +83,9 @@ public sealed class CsxamlCSharpToolingServiceTests
     public void Diagnostics_allow_valid_csxaml_brush_style_and_thickness_coercions()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe() {
                 render <Border
@@ -107,16 +107,62 @@ public sealed class CsxamlCSharpToolingServiceTests
     }
 
     [TestMethod]
+    public void Diagnostics_allow_valid_element_ref_expression()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
+            """
+            using Microsoft.UI.Xaml.Controls;
+
+            namespace Csxaml.Samples.TodoApp;
+
+            component Element ToolingProbe() {
+                ElementRef<Control> SearchBox = new ElementRef<Control>();
+
+                render <TextBox Ref={SearchBox} />;
+            }
+            """);
+
+        var diagnostics = new CsxamlDiagnosticService().GetDiagnostics(tempFile.FilePath, tempFile.Text);
+
+        Assert.IsFalse(
+            diagnostics.Any(),
+            $"Diagnostics: {string.Join(" | ", diagnostics.Select(diagnostic => diagnostic.Message))}");
+    }
+
+    [TestMethod]
+    public void Diagnostics_report_non_element_ref_expression()
+    {
+        using var tempFile = TemporaryCsxamlFile.Create(
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
+            """
+            namespace Csxaml.Samples.TodoApp;
+
+            component Element ToolingProbe() {
+                string SearchBox = "bad";
+
+                render <TextBox Ref={SearchBox} />;
+            }
+            """);
+
+        var diagnostics = new CsxamlDiagnosticService().GetDiagnostics(tempFile.FilePath, tempFile.Text);
+
+        Assert.IsTrue(
+            diagnostics.Any(diagnostic => diagnostic.Message.Contains("ElementRef", StringComparison.Ordinal)),
+            $"Diagnostics: {string.Join(" | ", diagnostics.Select(diagnostic => diagnostic.Message))}");
+    }
+
+    [TestMethod]
     public void Diagnostics_allow_alias_imported_external_controls_in_demo_workspace()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
             using Microsoft.UI.Xaml;
             using DemoControls = Csxaml.ExternalControls;
             using WinUi = Microsoft.UI.Xaml.Controls;
 
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe {
                 render <Grid>
@@ -143,9 +189,9 @@ public sealed class CsxamlCSharpToolingServiceTests
     public void Diagnostics_allow_csxaml_state_constructor_shape_in_helper_code()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe {
                 State<List<string>> Items = new State<List<string>>(new List<string> { "A", "B" });
@@ -169,9 +215,9 @@ public sealed class CsxamlCSharpToolingServiceTests
     public void Diagnostics_allow_state_initializers_to_reference_injected_services_and_prior_state_fields()
     {
         using var tempFile = TemporaryCsxamlFile.Create(
-            Path.Combine(RepoRoot, "Csxaml.Demo", "Components"),
+            Path.Combine(RepoRoot, "samples", "Csxaml.TodoApp", "Components"),
             """
-            namespace Csxaml.Demo;
+            namespace Csxaml.Samples.TodoApp;
 
             component Element ToolingProbe {
                 inject ITodoService todoService;

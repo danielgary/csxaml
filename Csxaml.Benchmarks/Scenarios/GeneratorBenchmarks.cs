@@ -49,6 +49,7 @@ public class GeneratorBenchmarks
             "Csxaml.BenchmarkInput",
             "Csxaml.BenchmarkInput",
             "Csxaml.BenchmarkInput.__CsxamlGenerated",
+            CsxamlApplicationMode.Hybrid,
             Array.Empty<string>(),
             _inputFiles);
 

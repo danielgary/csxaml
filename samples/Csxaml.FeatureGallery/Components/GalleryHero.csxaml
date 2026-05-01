@@ -1,0 +1,52 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+using DemoControls = Csxaml.ExternalControls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element GalleryHero {
+    render <DemoControls:FluentCard
+        AutomationProperties.Name="Feature Gallery Hero"
+        Margin={new Thickness(0, 0, 0, 18)}>
+        <Grid ColumnDefinitions="*,260">
+            <StackPanel Spacing={10}>
+                <TextBlock
+                    Text="CSXAML Feature Gallery"
+                    Foreground={GalleryColors.TextPrimary}
+                    TextWrapping={TextWrapping.Wrap}
+                    FontSize={34} />
+                <TextBlock
+                    Text="A generated WinUI app that demonstrates the current CSXAML feature surface with WinUI Fluent resources, transparency, and practical examples."
+                    Foreground={GalleryColors.TextMuted}
+                    TextWrapping={TextWrapping.Wrap}
+                    FontSize={16} />
+                <StackPanel Orientation={Orientation.Horizontal} Spacing={8}>
+                    <FeatureBadge Text="Generated app" />
+                    <FeatureBadge Text="Typed events" />
+                    <FeatureBadge Text="Refs" />
+                    <FeatureBadge Text="Named slots" />
+                </StackPanel>
+            </StackPanel>
+            <Border
+                Grid.Column={1}
+                Background={GalleryColors.Reveal}
+                BorderBrush={GalleryColors.Border}
+                BorderThickness={new Thickness(1)}
+                Padding={new Thickness(16)}
+                Margin={new Thickness(24, 0, 0, 0)}>
+                <StackPanel Spacing={8}>
+                    <TextBlock
+                        Text="Design posture"
+                        Foreground={GalleryColors.TextPrimary}
+                        TextWrapping={TextWrapping.Wrap}
+                        FontSize={18} />
+                    <TextBlock
+                        Text="Native controls first, one backdrop layer, acrylic-like surfaces, and stable retained children."
+                        Foreground={GalleryColors.TextMuted}
+                        TextWrapping={TextWrapping.Wrap} />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DemoControls:FluentCard>;
+}

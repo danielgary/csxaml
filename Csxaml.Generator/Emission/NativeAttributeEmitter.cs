@@ -35,6 +35,22 @@ internal sealed class NativeAttributeEmitter
         return key is null ? "null" : FormatArgumentValue(key);
     }
 
+    public string BuildRefExpression(MarkupNode markupNode)
+    {
+        if (markupNode.Ref is null)
+        {
+            return "null";
+        }
+
+        return
+            $$"""
+            new NativeElementRefValue(
+            {{CodeBlockFormatter.Indent(FormatRefExpressionValue(markupNode.Ref), 4)}}
+                ,
+                {{FormatSourceInfo(markupNode.Ref, "Ref")}})
+            """;
+    }
+
     public string BuildPropertiesExpression(MarkupNode markupNode, ControlMetadataModel control)
     {
         var properties = markupNode.Properties
@@ -148,9 +164,37 @@ internal sealed class NativeAttributeEmitter
 
     private static string FormatHandlerType(string handlerTypeName)
     {
-        return handlerTypeName.StartsWith("global::", StringComparison.Ordinal)
-            ? handlerTypeName
-            : $"global::{handlerTypeName}";
+        if (handlerTypeName.StartsWith("global::", StringComparison.Ordinal))
+        {
+            return handlerTypeName;
+        }
+
+        var genericStart = handlerTypeName.IndexOf('<', StringComparison.Ordinal);
+        if (genericStart < 0)
+        {
+            return QualifyTypeName(handlerTypeName);
+        }
+
+        var genericEnd = handlerTypeName.LastIndexOf('>');
+        var genericTypeName = handlerTypeName[..genericStart];
+        var argumentText = handlerTypeName.Substring(genericStart + 1, genericEnd - genericStart - 1);
+        var arguments = argumentText
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(QualifyTypeName);
+        return $"{QualifyTypeName(genericTypeName)}<{string.Join(", ", arguments)}>";
+    }
+
+    private static string QualifyTypeName(string typeName)
+    {
+        return IsKeywordTypeName(typeName) || typeName.StartsWith("global::", StringComparison.Ordinal)
+            ? typeName
+            : $"global::{typeName}";
+    }
+
+    private static bool IsKeywordTypeName(string typeName)
+    {
+        return typeName is "bool" or "byte" or "char" or "decimal" or "double" or "float" or "int" or "long" or
+            "object" or "sbyte" or "short" or "string" or "uint" or "ulong" or "ushort";
     }
 
     private static string EscapeString(string value)
@@ -178,6 +222,20 @@ internal sealed class NativeAttributeEmitter
             _source,
             _componentName,
             property.Span,
+            memberName: memberName);
+    }
+
+    private string FormatRefExpressionValue(ElementRefNode refNode)
+    {
+        return LineDirectiveFormatter.Wrap(_source, refNode.ValueSpan, refNode.ValueText);
+    }
+
+    private string FormatSourceInfo(ElementRefNode refNode, string memberName)
+    {
+        return SourceInfoEmitter.Emit(
+            _source,
+            _componentName,
+            refNode.Span,
             memberName: memberName);
     }
 }

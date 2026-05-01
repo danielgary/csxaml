@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace Csxaml.Runtime;
 
@@ -10,7 +9,7 @@ internal sealed class GridControlAdapter : ControlAdapter<Grid>
 
     protected override void ApplyProperties(Grid control, NativeElementNode node)
     {
-        ApplyBackground(control, node);
+        PanelBackgroundPropertyApplicator.Apply(control, node);
         ApplyColumnDefinitions(control, node);
         ApplyRowDefinitions(control, node);
     }
@@ -18,17 +17,6 @@ internal sealed class GridControlAdapter : ControlAdapter<Grid>
     protected override void SetChildren(Grid control, IReadOnlyList<UIElement> children)
     {
         UiElementCollectionPatcher.Update(control.Children, children);
-    }
-
-    private static void ApplyBackground(Grid control, NativeElementNode node)
-    {
-        if (NativeElementReader.TryGetPropertyValue<object?>(node, "Background", out var background))
-        {
-            control.Background = BrushValueConverter.Convert(background);
-            return;
-        }
-
-        control.ClearValue(Panel.BackgroundProperty);
     }
 
     private static void ApplyColumnDefinitions(Grid control, NativeElementNode node)

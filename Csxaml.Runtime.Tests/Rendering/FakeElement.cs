@@ -13,5 +13,7 @@ internal sealed class FakeElement
 
     public Dictionary<string, object?> Properties { get; } = new(StringComparer.Ordinal);
 
+    public Dictionary<string, List<FakeElement>> PropertyContent { get; } = new(StringComparer.Ordinal);
+
     public string TagName { get; }
 }

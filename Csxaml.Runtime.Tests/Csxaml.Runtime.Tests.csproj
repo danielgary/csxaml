@@ -24,11 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <CsxamlSource Include="..\\Csxaml.Demo\\Components\\*.csxaml" />
-    <Compile Include="..\\Csxaml.Demo\\Models\\TodoItemModel.cs" Link="Demo\\TodoItemModel.cs" />
-    <Compile Include="..\\Csxaml.Demo\\Services\\ITodoService.cs" Link="Demo\\Services\\ITodoService.cs" />
-    <Compile Include="..\\Csxaml.Demo\\Services\\InMemoryTodoService.cs" Link="Demo\\Services\\InMemoryTodoService.cs" />
-    <Compile Include="..\\Csxaml.Demo\\Support\\TodoColors.cs" Link="Demo\\TodoColors.cs" />
-    <Compile Include="..\\Csxaml.Demo\\Support\\TodoStyles.cs" Link="Demo\\TodoStyles.cs" />
+    <CsxamlSource Include="..\samples\Csxaml.TodoApp\Components\*.csxaml" />
+    <Compile Include="..\samples\Csxaml.TodoApp\Models\TodoItemModel.cs" Link="Demo\TodoItemModel.cs" />
+    <Compile Include="..\samples\Csxaml.TodoApp\Services\ITodoService.cs" Link="Demo\Services\ITodoService.cs" />
+    <Compile Include="..\samples\Csxaml.TodoApp\Services\InMemoryTodoService.cs" Link="Demo\Services\InMemoryTodoService.cs" />
+    <Compile Include="..\samples\Csxaml.TodoApp\Support\TodoColors.cs" Link="Demo\TodoColors.cs" />
+    <Compile Include="..\samples\Csxaml.TodoApp\Support\TodoStyles.cs" Link="Demo\TodoStyles.cs" />
   </ItemGroup>
 </Project>

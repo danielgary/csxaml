@@ -1,0 +1,9 @@
+namespace Csxaml.Samples.TodoApp;
+
+component Window MainWindow {
+    Title = "CSXAML Todo Board";
+    Width = 1180;
+    Height = 780;
+
+    render <HomePage />;
+}

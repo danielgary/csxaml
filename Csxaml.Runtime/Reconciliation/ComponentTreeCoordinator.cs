@@ -3,7 +3,7 @@ namespace Csxaml.Runtime;
 /// <summary>
 /// Coordinates component rendering, state invalidation, and child component reconciliation.
 /// </summary>
-public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
+public sealed partial class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
 {
     private const string StateWriteDuringRenderMessage =
         "Component state writes during render are not allowed. Move the update into an event handler, effect, or other post-render path.";
@@ -11,6 +11,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
     private readonly ComponentContext _context;
     private readonly ComponentInstance _rootComponent;
     private bool _isDisposed;
+    private bool _isRenderQueued;
     private int _renderDepth;
 
     /// <summary>
@@ -137,6 +138,68 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
         }
 
         ValidateStateWrite();
+        if (TryQueueNativeEventRender())
+        {
+            return;
+        }
+
+        Render();
+    }
+
+    private bool TryQueueNativeEventRender()
+    {
+        if (NativeEventRenderDeferral.IsActive)
+        {
+            QueueDeferredRender();
+            return true;
+        }
+
+        if (!NativeEventDispatchScope.IsActive)
+        {
+            return false;
+        }
+
+        var dispatcher = DispatcherQueueAccessor.GetForCurrentThread();
+        if (dispatcher is null)
+        {
+            return false;
+        }
+
+        if (_isRenderQueued)
+        {
+            return true;
+        }
+
+        _isRenderQueued = true;
+        if (dispatcher.TryEnqueue(
+            Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+            ProcessQueuedRender))
+        {
+            return true;
+        }
+
+        _isRenderQueued = false;
+        return false;
+    }
+
+    private void QueueDeferredRender()
+    {
+        if (_isRenderQueued)
+        {
+            return;
+        }
+
+        _isRenderQueued = true;
+        NativeEventRenderDeferral.Queue(ProcessQueuedRender);
+    }
+
+    private void ProcessQueuedRender()
+    {
+        _isRenderQueued = false;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         Render();
     }
@@ -184,6 +247,7 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
             child.StateWriteValidator = ValidateStateWrite;
             child.SetProps(componentNode.Props);
             child.SetChildContent(componentNode.ChildContent);
+            child.SetNamedSlotContent(componentNode.NamedSlotContent);
             return MergeAttachedProperties(RenderComponent(child), componentNode.AttachedProperties);
         }
         catch (Exception exception)
@@ -195,26 +259,6 @@ public sealed class ComponentTreeCoordinator : IDisposable, IAsyncDisposable
                 componentNode.SourceInfo,
                 $"while rendering '{componentNode.ComponentType.Name}'");
         }
-    }
-
-    private NativeElementNode ExpandNativeElement(
-        ComponentInstance owner,
-        NativeElementNode nativeElementNode)
-    {
-        var children = new List<Node>(nativeElementNode.Children.Count);
-        foreach (var child in nativeElementNode.Children)
-        {
-            children.Add(ExpandNode(owner, child));
-        }
-
-        return new NativeElementNode(
-            nativeElementNode.TagName,
-            nativeElementNode.Key,
-            nativeElementNode.Properties,
-            nativeElementNode.AttachedProperties,
-            nativeElementNode.Events,
-            children,
-            nativeElementNode.SourceInfo);
     }
 
     private static NativeElementNode MergeAttachedProperties(

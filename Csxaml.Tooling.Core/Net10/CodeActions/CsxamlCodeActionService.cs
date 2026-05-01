@@ -171,6 +171,7 @@ public sealed class CsxamlCodeActionService
         var names = new List<string>();
         if (resolvedTag.Control is not null)
         {
+            names.Add("Ref");
             names.AddRange(resolvedTag.Control.Properties.Select(property => property.Name));
             names.AddRange(resolvedTag.Control.Events.Select(@event => @event.ExposedName));
         }

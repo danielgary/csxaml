@@ -1,0 +1,48 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+using WinUi = Microsoft.UI.Xaml.Controls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element OverviewPage {
+    render <StackPanel Spacing={14}>
+        <GalleryHero />
+        <GallerySection
+            Eyebrow="Feature map"
+            Title="One sample for the full current surface"
+            Description="The gallery is organized by how developers learn CSXAML: composition, imperative interop, typed WinUI events, attached metadata, resources, and list scale.">
+            <WinUi:InfoBar
+                AutomationProperties.Name="Fluent InfoBar"
+                IsOpen={true}
+                Severity={WinUi.InfoBarSeverity.Informational}
+                Title="Fluent-ready"
+                Message="This generated app loads WinUI default resources through its hidden App.xaml and hosts package Fluent controls." />
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" Margin={new Thickness(0, 4, 0, 0)}>
+                <FeatureBadge Grid.Row={0} Grid.Column={0} Text="Application roots" />
+                <FeatureBadge Grid.Row={0} Grid.Column={1} Text="Resource dictionaries" />
+                <FeatureBadge Grid.Row={1} Grid.Column={0} Text="External controls" />
+                <FeatureBadge Grid.Row={1} Grid.Column={1} Text="Sample code presenter" />
+            </Grid>
+        </GallerySection>
+        <GallerySection
+            Eyebrow="Fluent treatment"
+            Title="Material and stable surfaces are part of the demo"
+            Description="Cards use a translucent surface, clear borders, and native button motion. Pages keep visual hierarchy calm so the code examples remain the star.">
+            <Border
+                AutomationProperties.Name="Reveal Surface"
+                Background={GalleryColors.Reveal}
+                BorderBrush={GalleryColors.Border}
+                BorderThickness={new Thickness(1)}
+                Padding={new Thickness(14)}>
+                <TextBlock
+                    Text="Gallery cards use native WinUI layout primitives with stable retained children; buttons keep their native WinUI hover motion."
+                    Foreground={GalleryColors.TextPrimary}
+                    TextWrapping={TextWrapping.Wrap} />
+            </Border>
+        </GallerySection>
+        <SampleCodePresenter
+            Title="Generated app roots"
+            Code={"component Application App { startup MainWindow; resources AppResources; }"} />
+    </StackPanel>;
+}

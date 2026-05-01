@@ -6,62 +6,91 @@ namespace Csxaml.Runtime;
 
 internal sealed class ExternalChildSetter
 {
-    private readonly ControlChildKind _childKind;
+    private readonly ControlContentMetadata _content;
     private readonly PropertyInfo? _childrenProperty;
     private readonly PropertyInfo? _contentProperty;
 
     private ExternalChildSetter(
-        ControlChildKind childKind,
+        ControlContentMetadata content,
         PropertyInfo? contentProperty,
         PropertyInfo? childrenProperty)
     {
-        _childKind = childKind;
+        _content = content;
         _contentProperty = contentProperty;
         _childrenProperty = childrenProperty;
     }
 
     public void Set(FrameworkElement element, IReadOnlyList<UIElement> children)
     {
-        switch (_childKind)
+        switch (_content.Kind)
         {
-            case ControlChildKind.None:
+            case ControlContentKind.None:
                 SetNoChildren(children);
                 return;
-            case ControlChildKind.Single:
+            case ControlContentKind.Single:
                 SetSingleChild(element, children);
                 return;
-            case ControlChildKind.Multiple:
+            case ControlContentKind.Collection:
                 SetMultipleChildren(element, children);
                 return;
             default:
                 throw new InvalidOperationException(
-                    $"Unsupported child kind '{_childKind}'.");
+                    $"Unsupported content kind '{_content.Kind}'.");
         }
     }
 
     public static ExternalChildSetter Create(ExternalControlDescriptor descriptor)
     {
         return new ExternalChildSetter(
-            descriptor.Metadata.ChildKind,
-            FindContentProperty(descriptor.ControlType),
-            FindChildrenProperty(descriptor.ControlType));
+            descriptor.Metadata.Content,
+            FindSingleChildProperty(descriptor.ControlType, descriptor.Metadata.Content),
+            FindCollectionChildProperty(descriptor.ControlType, descriptor.Metadata.Content));
     }
 
-    private static PropertyInfo? FindChildrenProperty(Type controlType)
+    private static PropertyInfo? FindCollectionChildProperty(
+        Type controlType,
+        ControlContentMetadata content)
     {
-        return controlType.GetProperty("Children", BindingFlags.Instance | BindingFlags.Public);
+        if (content.Kind != ControlContentKind.Collection)
+        {
+            return null;
+        }
+
+        return FindNamedProperty(controlType, content.DefaultPropertyName) ??
+            FindNamedProperty(controlType, "Children");
     }
 
-    private static PropertyInfo? FindContentProperty(Type controlType)
+    private static PropertyInfo? FindSingleChildProperty(
+        Type controlType,
+        ControlContentMetadata content)
     {
-        return controlType.GetProperty("Child", BindingFlags.Instance | BindingFlags.Public) ??
-            controlType.GetProperty("Content", BindingFlags.Instance | BindingFlags.Public);
+        if (content.Kind != ControlContentKind.Single)
+        {
+            return null;
+        }
+
+        return FindNamedProperty(controlType, content.DefaultPropertyName) ??
+            FindNamedProperty(controlType, "Child") ??
+            FindNamedProperty(controlType, "Content");
     }
 
-    private static void SetNoChildren(IReadOnlyList<UIElement> children)
+    private static PropertyInfo? FindNamedProperty(Type controlType, string? propertyName)
+    {
+        return string.IsNullOrWhiteSpace(propertyName)
+            ? null
+            : controlType.GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
+    }
+
+    private void SetNoChildren(IReadOnlyList<UIElement> children)
     {
         if (children.Count > 0)
         {
+            if (_content.DefaultPropertyName is not null)
+            {
+                throw new InvalidOperationException(
+                    $"External control content property '{_content.DefaultPropertyName}' has unsupported type '{_content.PropertyTypeName ?? "unknown"}'.");
+            }
+
             throw new InvalidOperationException("External control does not support child content.");
         }
     }
@@ -70,22 +99,31 @@ internal sealed class ExternalChildSetter
     {
         if (_contentProperty is null)
         {
-            throw new InvalidOperationException("External control is missing a single-child property.");
+            throw new InvalidOperationException(
+                $"External control is missing single-child property '{_content.DefaultPropertyName ?? "Child/Content"}'.");
         }
 
         if (children.Count > 1)
         {
-            throw new InvalidOperationException("External control supports only one child.");
+            throw new InvalidOperationException(
+                $"External control supports only one child for '{_contentProperty.Name}'.");
         }
 
-        _contentProperty.SetValue(element, children.SingleOrDefault());
+        var nextChild = children.SingleOrDefault();
+        if (ReferenceEquals(_contentProperty.GetValue(element), nextChild))
+        {
+            return;
+        }
+
+        _contentProperty.SetValue(element, nextChild);
     }
 
     private void SetMultipleChildren(FrameworkElement element, IReadOnlyList<UIElement> children)
     {
         if (_childrenProperty?.GetValue(element) is not UIElementCollection collection)
         {
-            throw new InvalidOperationException("External control is missing a UIElementCollection children property.");
+            throw new InvalidOperationException(
+                $"External control is missing UIElementCollection property '{_content.DefaultPropertyName ?? "Children"}'.");
         }
 
         UiElementCollectionPatcher.Update(collection, children);

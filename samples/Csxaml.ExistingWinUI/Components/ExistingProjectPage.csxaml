@@ -1,0 +1,47 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+
+namespace Csxaml.Samples.ExistingWinUI;
+
+component Element ExistingProjectPage {
+    State<int> Count = new State<int>(0);
+    State<string> Name = new State<string>("CSXAML");
+
+    void IncrementCount()
+    {
+        Count.Value += 1;
+    }
+
+    void ClearName()
+    {
+        Name.Value = string.Empty;
+    }
+
+    var greetingName = string.IsNullOrWhiteSpace(Name.Value)
+        ? "friend"
+        : Name.Value.Trim();
+
+    render <Border
+        AutomationProperties.Name="Existing WinUI sample page"
+        Padding={24}>
+        <StackPanel Spacing={12}>
+            <TextBlock Text="Existing WinUI + CSXAML" FontSize={28} />
+            <TextBlock Text="A normal WinUI shell hosting CSXAML components." />
+            <GreetingCard Name={greetingName} Count={Count.Value} />
+            <TextBox
+                AutomationProperties.Name="Display name"
+                Text={Name.Value}
+                PlaceholderText="Name"
+                OnTextChanged={value => Name.Value = value}
+                Width={320} />
+            <Button
+                AutomationProperties.Name="Increment counter"
+                Content="Increment counter"
+                OnClick={() => IncrementCount()} />
+            <Button
+                AutomationProperties.Name="Clear display name"
+                Content="Clear name"
+                OnClick={() => ClearName()} />
+        </StackPanel>
+    </Border>;
+}

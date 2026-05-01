@@ -1,0 +1,23 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+
+namespace Csxaml.Samples.HelloWorld;
+
+component Window MainWindow {
+    Title = "CSXAML Hello World";
+    Width = 720;
+    Height = 480;
+
+    render <Border Padding={24}>
+        <StackPanel Spacing={12}>
+            <TextBlock
+                AutomationProperties.Name="Hello World Title"
+                Text="Hello from CSXAML"
+                FontSize={28} />
+            <TextBlock Text="This app starts from App.csxaml and has no XAML app shell." />
+            <Button
+                AutomationProperties.Name="Ready Button"
+                Content="Ready" />
+        </StackPanel>
+    </Border>;
+}

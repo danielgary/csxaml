@@ -1,0 +1,112 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+
+namespace Csxaml.Samples.FeatureGallery;
+
+component Element LayoutAndResourcesPage {
+    render <StackPanel Spacing={14}>
+        <GallerySection
+            Eyebrow="Attached metadata"
+            Title="Canvas, RelativePanel, tooltips, automation"
+            Description="The gallery keeps attached properties explicit so generated output remains easy to inspect.">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+                <Canvas
+                    Grid.Row={0}
+                    Grid.Column={0}
+                    Height={160}
+                    Background={GalleryColors.AccentSoft}
+                    Margin={new Thickness(0, 0, 10, 0)}>
+                    <Border
+                        AutomationProperties.Name="Canvas Card One"
+                        Canvas.Left={18.0}
+                        Canvas.Top={18.0}
+                        Canvas.ZIndex={1}
+                        Background={GalleryColors.PanelStrong}
+                        BorderBrush={GalleryColors.Border}
+                        BorderThickness={new Thickness(1)}
+                        Padding={new Thickness(12)}
+                        ToolTipService.ToolTip="Canvas.Left and Canvas.Top place this surface.">
+                        <TextBlock Text="Canvas.Left/Top" Foreground={GalleryColors.TextPrimary} TextWrapping={TextWrapping.Wrap} />
+                    </Border>
+                    <Border
+                        AutomationProperties.Name="Canvas Card Two"
+                        Canvas.Left={96.0}
+                        Canvas.Top={72.0}
+                        Canvas.ZIndex={2}
+                        Background={GalleryColors.Reveal}
+                        Padding={new Thickness(12)}>
+                        <TextBlock Text="ZIndex 2" Foreground={GalleryColors.TextPrimary} TextWrapping={TextWrapping.Wrap} />
+                    </Border>
+                </Canvas>
+                <RelativePanel
+                    Grid.Row={0}
+                    Grid.Column={1}
+                    Height={160}
+                    Background={GalleryColors.Panel}
+                    Margin={new Thickness(10, 0, 0, 0)}>
+                    <Border
+                        AutomationProperties.Name="RelativePanel Anchor"
+                        RelativePanel.AlignLeftWithPanel={true}
+                        RelativePanel.AlignTopWithPanel={true}
+                        Background={GalleryColors.PanelStrong}
+                        BorderBrush={GalleryColors.Border}
+                        BorderThickness={new Thickness(1)}
+                        Padding={new Thickness(12)}
+                        Margin={new Thickness(16)}>
+                        <TextBlock Text="Aligned with panel" Foreground={GalleryColors.TextPrimary} TextWrapping={TextWrapping.Wrap} />
+                    </Border>
+                </RelativePanel>
+                <SampleCodePresenter
+                    Grid.Row={1}
+                    Grid.ColumnSpan={2}
+                    Title="Attached properties"
+                    Code={GallerySnippets.AttachedProperties} />
+            </Grid>
+        </GallerySection>
+        <GallerySection
+            Eyebrow="Resources"
+            Title="Generated dictionaries stay intentionally small"
+            Description="The sample uses AppResources for WinUI default resources and C# style helpers for simple reusable surfaces. Deep templates still belong in XAML dictionaries.">
+            <StackPanel Orientation={Orientation.Horizontal} Spacing={10}>
+                <Button Content="Primary" Style={GalleryStyles.PrimaryButton} />
+                <Button Content="Subtle" Style={GalleryStyles.SubtleButton} />
+                <FeatureBadge Text="XamlControlsResources" />
+            </StackPanel>
+        </GallerySection>
+        <GallerySection
+            Eyebrow="Wrap layout"
+            Title="VariableSizedWrapGrid spans"
+            Description="The attached span properties prove expanded owner metadata without inventing a new layout language.">
+            <VariableSizedWrapGrid
+                Background={GalleryColors.AccentSoft}
+                Height={160}
+                Margin={new Thickness(0, 4, 0, 0)}>
+                <Border
+                    VariableSizedWrapGrid.ColumnSpan={2}
+                    VariableSizedWrapGrid.RowSpan={1}
+                    Background={GalleryColors.PanelStrong}
+                    Padding={new Thickness(12)}
+                    Margin={new Thickness(6)}>
+                    <TextBlock Text="ColumnSpan 2" Foreground={GalleryColors.TextPrimary} TextWrapping={TextWrapping.Wrap} />
+                </Border>
+                <Border
+                    VariableSizedWrapGrid.ColumnSpan={1}
+                    VariableSizedWrapGrid.RowSpan={1}
+                    Background={GalleryColors.PanelStrong}
+                    Padding={new Thickness(12)}
+                    Margin={new Thickness(6)}>
+                    <TextBlock Text="1 x 1" Foreground={GalleryColors.TextPrimary} TextWrapping={TextWrapping.Wrap} />
+                </Border>
+                <Border
+                    VariableSizedWrapGrid.ColumnSpan={1}
+                    VariableSizedWrapGrid.RowSpan={2}
+                    Background={GalleryColors.Reveal}
+                    Padding={new Thickness(12)}
+                    Margin={new Thickness(6)}>
+                    <TextBlock Text="RowSpan 2" Foreground={GalleryColors.TextPrimary} TextWrapping={TextWrapping.Wrap} />
+                </Border>
+            </VariableSizedWrapGrid>
+        </GallerySection>
+    </StackPanel>;
+}
