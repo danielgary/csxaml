@@ -109,7 +109,13 @@ internal sealed class ExternalChildSetter
                 $"External control supports only one child for '{_contentProperty.Name}'.");
         }
 
-        _contentProperty.SetValue(element, children.SingleOrDefault());
+        var nextChild = children.SingleOrDefault();
+        if (ReferenceEquals(_contentProperty.GetValue(element), nextChild))
+        {
+            return;
+        }
+
+        _contentProperty.SetValue(element, nextChild);
     }
 
     private void SetMultipleChildren(FrameworkElement element, IReadOnlyList<UIElement> children)

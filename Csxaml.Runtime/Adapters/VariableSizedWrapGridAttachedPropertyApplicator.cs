@@ -27,6 +27,22 @@ internal static class VariableSizedWrapGridAttachedPropertyApplicator
         element.ClearValue(VariableSizedWrapGrid.RowSpanProperty);
     }
 
+    public static void Clear(FrameworkElement element, string propertyName)
+    {
+        switch (propertyName)
+        {
+            case "ColumnSpan":
+                element.ClearValue(VariableSizedWrapGrid.ColumnSpanProperty);
+                break;
+            case "RowSpan":
+                element.ClearValue(VariableSizedWrapGrid.RowSpanProperty);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported VariableSizedWrapGrid attached property '{propertyName}'.");
+        }
+    }
+
     private static int ReadInt(NativeAttachedPropertyValue property)
     {
         if (NativeAttachedPropertyValueConverter.TryConvert<int>(property, out var value))

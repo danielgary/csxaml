@@ -31,6 +31,25 @@ internal static class CanvasAttachedPropertyApplicator
         element.ClearValue(Canvas.ZIndexProperty);
     }
 
+    public static void Clear(FrameworkElement element, string propertyName)
+    {
+        switch (propertyName)
+        {
+            case "Left":
+                element.ClearValue(Canvas.LeftProperty);
+                break;
+            case "Top":
+                element.ClearValue(Canvas.TopProperty);
+                break;
+            case "ZIndex":
+                element.ClearValue(Canvas.ZIndexProperty);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported Canvas attached property '{propertyName}'.");
+        }
+    }
+
     private static double ReadDouble(NativeAttachedPropertyValue property)
     {
         if (NativeAttachedPropertyValueConverter.TryConvert<double>(property, out var value))

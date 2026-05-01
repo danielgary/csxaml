@@ -89,6 +89,9 @@ component Element RefsAndEventsPage {
                     Grid.Row={0}
                     Grid.Column={0}
                     Height={150}
+                    ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
+                    ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                    ScrollViewer.VerticalScrollMode={ScrollMode.Enabled}
                     ItemsSource={GalleryItems.EventItems}
                     IsItemClickEnabled={true}
                     SelectionMode={ListViewSelectionMode.Single}

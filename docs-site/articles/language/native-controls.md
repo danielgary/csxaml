@@ -69,6 +69,6 @@ Attached properties use dotted owner syntax:
 
 The current supported attached-property surface is intentionally bounded. The
 experimental expanded owner set covers `Grid`, `Canvas`, `RelativePanel`,
-`ToolTipService`, `VariableSizedWrapGrid`, and a practical
+`ScrollViewer`, `ToolTipService`, `VariableSizedWrapGrid`, and a practical
 `AutomationProperties` surface. See [supported features](supported-features.md)
 for the exact release posture.

@@ -1,10 +1,13 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using System.Runtime.CompilerServices;
 
 namespace Csxaml.Runtime;
 
 internal sealed class ListViewControlAdapter : ControlAdapter<ListView>
 {
+    private static readonly ConditionalWeakTable<ListView, ListViewWheelScrollState> WheelScrollStates = new();
+
     public override string TagName => "ListView";
 
     protected override void ApplyEvents(
@@ -12,6 +15,7 @@ internal sealed class ListViewControlAdapter : ControlAdapter<ListView>
         NativeElementNode node,
         NativeEventBindingStore bindingStore)
     {
+        WheelScrollStates.GetValue(control, _ => new ListViewWheelScrollState()).EnsureAttached(control);
         CommonElementEventBinder.Apply(control, node, bindingStore);
         BindItemClick(control, node, bindingStore);
         BindSelectionChanged(control, node, bindingStore);
@@ -70,18 +74,33 @@ internal sealed class ListViewControlAdapter : ControlAdapter<ListView>
     {
         if (NativeElementReader.TryGetPropertyValue<bool>(node, "IsItemClickEnabled", out var isItemClickEnabled))
         {
+            if (control.IsItemClickEnabled == isItemClickEnabled)
+            {
+                return;
+            }
+
             control.IsItemClickEnabled = isItemClickEnabled;
             return;
         }
 
-        control.ClearValue(ListViewBase.IsItemClickEnabledProperty);
+        ClearLocalValue(control, ListViewBase.IsItemClickEnabledProperty);
     }
 
     private static void ApplyItemsSource(ListView control, NativeElementNode node)
     {
         if (NativeElementReader.TryGetPropertyValue<object?>(node, "ItemsSource", out var itemsSource))
         {
+            if (ReferenceEquals(control.ItemsSource, itemsSource))
+            {
+                return;
+            }
+
             control.ItemsSource = itemsSource;
+            return;
+        }
+
+        if (control.ItemsSource is null)
+        {
             return;
         }
 
@@ -92,10 +111,25 @@ internal sealed class ListViewControlAdapter : ControlAdapter<ListView>
     {
         if (NativeElementReader.TryGetPropertyValue<ListViewSelectionMode>(node, "SelectionMode", out var selectionMode))
         {
+            if (control.SelectionMode == selectionMode)
+            {
+                return;
+            }
+
             control.SelectionMode = selectionMode;
             return;
         }
 
-        control.ClearValue(ListView.SelectionModeProperty);
+        ClearLocalValue(control, ListView.SelectionModeProperty);
+    }
+
+    private static void ClearLocalValue(ListView control, DependencyProperty property)
+    {
+        if (control.ReadLocalValue(property) == DependencyProperty.UnsetValue)
+        {
+            return;
+        }
+
+        control.ClearValue(property);
     }
 }

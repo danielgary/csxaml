@@ -24,6 +24,10 @@ public sealed class ExpandedAttachedPropertyValidationTests
                         <Border VariableSizedWrapGrid.ColumnSpan={2} VariableSizedWrapGrid.RowSpan={3} />
                     </VariableSizedWrapGrid>
                     <Border ToolTipService.ToolTip="Saved" />
+                    <ListView
+                        ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
+                        ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                        ScrollViewer.VerticalScrollMode={ScrollMode.Enabled} />
                 </Grid>;
             }
             """);

@@ -71,6 +71,37 @@ viewport:
 </ScrollViewer>
 ```
 
+`ListView` remains the recommended native virtualization surface for larger
+collections. Keep lists out of parent `ScrollViewer` surfaces when the list
+itself owns vertical scrolling. When a list needs explicit native scroll
+configuration, use WinUI's `ScrollViewer.*` attached properties on the
+`ListView`:
+
+```csxaml
+<ListView
+    Height={220}
+    ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
+    ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+    ScrollViewer.VerticalScrollMode={ScrollMode.Enabled}
+    ItemsSource={Rows} />
+```
+
+The built-in `ListView` adapter preserves native list state across rerenders
+and includes a wheel fallback for cases where a wheel event reaches the
+`ListView` but the templated native scroller has not already moved.
+Generated window roots also install a host-level mouse-wheel bridge over the
+top-level window, WinUI child HWNDs, and the window UI thread's wheel-message
+path. The child-window bridge covers direct wheel delivery to the XAML island;
+the thread hook covers physical wheel input that Windows routes through the
+focused window instead of the HWND under the pointer. The bridge refreshes
+after retained root rerenders so native windows created by a later component
+branch are covered. WinUI gets native wheel messages first; if no targeted
+`ScrollViewer` moves, CSXAML converts the physical wheel coordinates into WinUI
+effective pixels and scrolls the nearest vertically scrollable target whose
+transformed bounds contain the pointer.
+The same target lookup is used as a routed pointer fallback for components
+hosted inside an existing WinUI panel.
+
 Events use normalized CSXAML names:
 
 ```csxaml
@@ -153,6 +184,7 @@ Supported attached properties:
 | `Canvas` | `Left`, `Top`, `ZIndex` |
 | `Grid` | `Column`, `ColumnSpan`, `Row`, `RowSpan` |
 | `RelativePanel` | `AlignLeftWithPanel`, `AlignTopWithPanel`, `Below`, `RightOf` |
+| `ScrollViewer` | `HorizontalScrollBarVisibility`, `HorizontalScrollMode`, `VerticalScrollBarVisibility`, `VerticalScrollMode` |
 | `ToolTipService` | `ToolTip` |
 | `VariableSizedWrapGrid` | `ColumnSpan`, `RowSpan` |
 

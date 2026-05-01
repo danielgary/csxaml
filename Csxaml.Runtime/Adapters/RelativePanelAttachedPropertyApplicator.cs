@@ -35,6 +35,28 @@ internal static class RelativePanelAttachedPropertyApplicator
         element.ClearValue(RelativePanel.RightOfProperty);
     }
 
+    public static void Clear(FrameworkElement element, string propertyName)
+    {
+        switch (propertyName)
+        {
+            case "AlignLeftWithPanel":
+                element.ClearValue(RelativePanel.AlignLeftWithPanelProperty);
+                break;
+            case "AlignTopWithPanel":
+                element.ClearValue(RelativePanel.AlignTopWithPanelProperty);
+                break;
+            case "Below":
+                element.ClearValue(RelativePanel.BelowProperty);
+                break;
+            case "RightOf":
+                element.ClearValue(RelativePanel.RightOfProperty);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported RelativePanel attached property '{propertyName}'.");
+        }
+    }
+
     private static bool ReadBool(NativeAttachedPropertyValue property)
     {
         if (NativeAttachedPropertyValueConverter.TryConvert<bool>(property, out var value))

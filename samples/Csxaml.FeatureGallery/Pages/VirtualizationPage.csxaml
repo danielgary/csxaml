@@ -36,6 +36,9 @@ component Element VirtualizationPage {
                     Grid.Row={0}
                     Grid.Column={1}
                     Height={220}
+                    ScrollViewer.HorizontalScrollMode={ScrollMode.Disabled}
+                    ScrollViewer.VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                    ScrollViewer.VerticalScrollMode={ScrollMode.Enabled}
                     ItemsSource={GalleryItems.VirtualizedRows}
                     SelectionMode={ListViewSelectionMode.Single} />
                 <SampleCodePresenter

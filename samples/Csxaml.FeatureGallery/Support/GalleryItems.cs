@@ -24,7 +24,14 @@ public static class GalleryItems
         "ItemClick",
         "ValueChanged",
         "QuerySubmitted",
-        "PointerEntered"
+        "SuggestionChosen",
+        "PointerEntered",
+        "PointerPressed",
+        "PointerExited",
+        "KeyDown",
+        "Loaded",
+        "Frame.Navigating",
+        "Frame.Navigated"
     ];
 
     public static IReadOnlyList<string> VirtualizedRows { get; } =

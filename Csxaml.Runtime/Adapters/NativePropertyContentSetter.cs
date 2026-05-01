@@ -88,6 +88,11 @@ internal static class NativePropertyContentSetter
                 $"Property '{property.Name}' cannot receive '{child.GetType().Name}'.");
         }
 
+        if (ReferenceEquals(property.GetValue(element), child))
+        {
+            return;
+        }
+
         property.SetValue(element, child);
     }
 }

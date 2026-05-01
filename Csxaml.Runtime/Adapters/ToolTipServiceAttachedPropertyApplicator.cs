@@ -20,4 +20,15 @@ internal static class ToolTipServiceAttachedPropertyApplicator
     {
         element.ClearValue(ToolTipService.ToolTipProperty);
     }
+
+    public static void Clear(FrameworkElement element, string propertyName)
+    {
+        if (!string.Equals(propertyName, "ToolTip", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Unsupported ToolTipService attached property '{propertyName}'.");
+        }
+
+        element.ClearValue(ToolTipService.ToolTipProperty);
+    }
 }

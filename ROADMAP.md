@@ -52,6 +52,10 @@ The project currently has implemented proof points in these areas:
   surfaces
 - `ScrollViewer` scroll-mode and scroll-bar visibility support for finite-width
   text surfaces and native horizontal gesture interop
+- `ScrollViewer` attached-property support for native list scrolling
+  configuration, with `ListView` rerenders preserving stable native
+  `ItemsSource`, item-click, and selection-mode state plus a wheel fallback for
+  routed events that reach the list before its templated scroller moves
 - Todo demo styling through CSXAML props for done/not-done state
 - metadata, generator, and runtime regression coverage for the Milestone 3 path
 - controlled `TextBox` and `CheckBox` support through metadata-driven validation and runtime adapters
@@ -1131,8 +1135,9 @@ quickly:
   element refs for native controls
 - external controls with content properties are awkward
 - named property content and named slots are deferred
-- attached-property coverage now includes the planned built-in layout, tooltip,
-  and automation owner set, while external owner discovery remains deferred
+- attached-property coverage now includes the planned built-in layout,
+  `ScrollViewer`, tooltip, and automation owner set, while external owner
+  discovery remains deferred
 - new apps still need `App.xaml`, but generated `Page` and `Window` roots now
   cover the first shell-boilerplate slice experimentally
 - resource/template guidance now explicitly explains generated app resources
@@ -1206,8 +1211,8 @@ component Window MainWindow {
   slots
 - generated `Page` and `Window` roots host retained CSXAML bodies and generated
   application mode can replace the default WinUI app/window shell files
-- attached-property metadata covers the agreed layout, tooltip, and automation
-  owner set
+- attached-property metadata covers the agreed layout, `ScrollViewer`, tooltip,
+  and automation owner set
 - generated application mode builds and runs without source `App.xaml`,
   `App.xaml.cs`, `MainWindow.xaml`, or `MainWindow.xaml.cs`
 - generated `ResourceDictionary` roots cover app-owned resources while deep
@@ -1487,6 +1492,24 @@ Use this section to capture milestone-specific discoveries that affect future pl
   slider pointer drags defer controlled value projection until release, and
   `ScrollViewer` now exposes scroll mode/bar visibility so the gallery disables
   horizontal scrolling for wrapping and native horizontal gestures.
+- 2026-04-30: Tightened native `ListView` scrolling behavior in the Feature
+  Gallery. The runtime now leaves stable `ItemsSource`, item-click, and
+  selection-mode values alone during rerenders, attached-property application
+  only clears properties previously owned by CSXAML, `ScrollViewer.*` attached
+  properties are supported for native list scroll configuration, and `ListView`
+  has a wheel fallback for routed wheel events that reach the list before its
+  templated scroller moves. Generated `Window` roots now also install a native
+  wheel bridge over the top-level window, WinUI child HWNDs, and the window UI
+  thread's physical-wheel message path. The bridge refreshes after
+  retained-root rerenders, handles native mouse and pointer wheel messages,
+  lets WinUI handle the message first, converts physical screen coordinates to
+  WinUI effective pixels, and then scrolls the nearest vertical `ScrollViewer`
+  whose transformed bounds contain the pointer only when native handling did
+  not move it. This keeps wrapper controls such as Fluent cards from causing
+  a broad root/card hit-test candidate to select an unrelated scroll viewer;
+  hosted roots get the same target lookup as a routed pointer fallback. The
+  gallery keeps `RefsAndEventsPage` outside the
+  shell-level page `ScrollViewer` while its list owns vertical scrolling.
 - 2026-04-29: Began Phase 01 of the post-v1 WinUI interop and app-shell breadth track. This pass records planned direction only, not shipped behavior: typed event-argument projection, explicit `ElementRef<T>` handles, content-property/property-content expansion, generated `Application`/`Window`/`Page`/`ResourceDictionary` roots with `CsxamlApplicationMode=Generated`, broader attached-property metadata, resource/template guidance, virtualization guidance, and highlighting alignment. The work is tracked through `FEATURE_PLAN.md` and execution packages under `plans/FEATURE_PLAN/`.
 - 2026-04-10: Milestone 3 core implementation completed. Metadata-driven native props/events, generic native node emission, runtime control adapters, and Todo demo red/green styling are all in place. Remaining demo launch/build friction is being treated as project-system maturity work under Milestone 10.
 - 2026-04-10: Added a draft language specification focused on C# compatibility, XAML familiarity, parseability, and developer experience. This is real progress toward Milestone 15, but it does not close the broader documentation and release-preparation work.

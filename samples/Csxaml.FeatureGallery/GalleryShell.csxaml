@@ -65,29 +65,33 @@ component Element GalleryShell {
                 </Border>
             </StackPanel>
         </Border>
-        <ScrollViewer
-            Grid.Column={1}
-            HorizontalScrollBarVisibility={ScrollBarVisibility.Disabled}
-            HorizontalScrollMode={ScrollMode.Disabled}
-            VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
-            VerticalScrollMode={ScrollMode.Auto}>
-            <StackPanel Margin={new Thickness(24)} Spacing={8}>
-                if (SelectedPage.Value == "Overview") {
-                    <OverviewPage />
-                }
-                if (SelectedPage.Value == "Slots") {
-                    <SlotsPage />
-                }
-                if (SelectedPage.Value == "Events") {
-                    <RefsAndEventsPage />
-                }
-                if (SelectedPage.Value == "Layout") {
-                    <LayoutAndResourcesPage />
-                }
-                if (SelectedPage.Value == "Virtualization") {
-                    <VirtualizationPage />
-                }
+        if (SelectedPage.Value == "Events") {
+            <StackPanel Grid.Column={1} Margin={new Thickness(24)} Spacing={8}>
+                <RefsAndEventsPage />
             </StackPanel>
-        </ScrollViewer>
+        }
+        if (SelectedPage.Value != "Events") {
+            <ScrollViewer
+                Grid.Column={1}
+                HorizontalScrollBarVisibility={ScrollBarVisibility.Disabled}
+                HorizontalScrollMode={ScrollMode.Disabled}
+                VerticalScrollBarVisibility={ScrollBarVisibility.Auto}
+                VerticalScrollMode={ScrollMode.Auto}>
+                <StackPanel Margin={new Thickness(24)} Spacing={8}>
+                    if (SelectedPage.Value == "Overview") {
+                        <OverviewPage />
+                    }
+                    if (SelectedPage.Value == "Slots") {
+                        <SlotsPage />
+                    }
+                    if (SelectedPage.Value == "Layout") {
+                        <LayoutAndResourcesPage />
+                    }
+                    if (SelectedPage.Value == "Virtualization") {
+                        <VirtualizationPage />
+                    }
+                </StackPanel>
+            </ScrollViewer>
+        }
     </Grid>;
 }

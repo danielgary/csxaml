@@ -222,6 +222,10 @@ public sealed class SupportedControlFilterTests
                 "RelativePanel.AlignTopWithPanel",
                 "RelativePanel.Below",
                 "RelativePanel.RightOf",
+                "ScrollViewer.HorizontalScrollBarVisibility",
+                "ScrollViewer.HorizontalScrollMode",
+                "ScrollViewer.VerticalScrollBarVisibility",
+                "ScrollViewer.VerticalScrollMode",
                 "ToolTipService.ToolTip",
                 "VariableSizedWrapGrid.ColumnSpan",
                 "VariableSizedWrapGrid.RowSpan"
@@ -240,6 +244,9 @@ public sealed class SupportedControlFilterTests
         Assert.AreEqual(
             ValueKindHint.Bool,
             AttachedPropertyMetadataRegistry.GetProperty("RelativePanel", "AlignTopWithPanel").ValueKindHint);
+        Assert.AreEqual(
+            ValueKindHint.Enum,
+            AttachedPropertyMetadataRegistry.GetProperty("ScrollViewer", "VerticalScrollMode").ValueKindHint);
         Assert.AreEqual(
             "VariableSizedWrapGrid",
             AttachedPropertyMetadataRegistry.GetProperty("VariableSizedWrapGrid", "RowSpan").RequiredParentTagName);

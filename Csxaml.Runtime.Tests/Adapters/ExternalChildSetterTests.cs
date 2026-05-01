@@ -19,6 +19,23 @@ public sealed class ExternalChildSetterTests
         StringAssert.Contains(exception.Message, "unsupported type");
     }
 
+    [TestMethod]
+    public void Set_SingleContent_SkipsSameChildInstance()
+    {
+        WinUiTestEnvironment.Run(() =>
+        {
+            var setter = ExternalChildSetter.Create(CreateSingleContentDescriptor());
+            var control = new CountingContentControl();
+            var child = new TextBlock();
+
+            setter.Set(control, [child]);
+            setter.Set(control, [child]);
+
+            Assert.AreEqual(1, control.ContentSetCount);
+            Assert.AreSame(child, control.Content);
+        });
+    }
+
     private static ExternalControlDescriptor CreateUnsupportedContentDescriptor()
     {
         return new ExternalControlDescriptor(
@@ -36,5 +53,39 @@ public sealed class ExternalChildSetterTests
                     ControlContentSource.ContentPropertyAttribute),
                 Array.Empty<Csxaml.ControlMetadata.PropertyMetadata>(),
                 Array.Empty<EventMetadata>()));
+    }
+
+    private static ExternalControlDescriptor CreateSingleContentDescriptor()
+    {
+        return new ExternalControlDescriptor(
+            typeof(CountingContentControl),
+            new Csxaml.ControlMetadata.ControlMetadata(
+                "CountingContentControl",
+                typeof(CountingContentControl).FullName!,
+                typeof(ContentControl).FullName,
+                ControlChildKind.Single,
+                new ControlContentMetadata(
+                    "Content",
+                    ControlContentKind.Single,
+                    typeof(object).FullName!,
+                    null,
+                    ControlContentSource.BuiltInMetadata),
+                Array.Empty<Csxaml.ControlMetadata.PropertyMetadata>(),
+                Array.Empty<EventMetadata>()));
+    }
+
+    private sealed class CountingContentControl : ContentControl
+    {
+        public int ContentSetCount { get; private set; }
+
+        public new object? Content
+        {
+            get => base.Content;
+            set
+            {
+                ContentSetCount++;
+                base.Content = value;
+            }
+        }
     }
 }

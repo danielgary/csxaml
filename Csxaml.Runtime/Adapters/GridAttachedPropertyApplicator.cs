@@ -35,6 +35,28 @@ internal static class GridAttachedPropertyApplicator
         Grid.SetRowSpan(element, 1);
     }
 
+    public static void Clear(FrameworkElement element, string propertyName)
+    {
+        switch (propertyName)
+        {
+            case "Column":
+                element.ClearValue(Grid.ColumnProperty);
+                break;
+            case "ColumnSpan":
+                element.ClearValue(Grid.ColumnSpanProperty);
+                break;
+            case "Row":
+                element.ClearValue(Grid.RowProperty);
+                break;
+            case "RowSpan":
+                element.ClearValue(Grid.RowSpanProperty);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported Grid attached property '{propertyName}'.");
+        }
+    }
+
     private static int ReadInt(NativeAttachedPropertyValue property)
     {
         if (NativeAttachedPropertyValueConverter.TryConvert<int>(property, out var value))

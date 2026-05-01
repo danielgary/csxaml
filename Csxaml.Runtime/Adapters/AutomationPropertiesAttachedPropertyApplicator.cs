@@ -43,6 +43,34 @@ internal static class AutomationPropertiesAttachedPropertyApplicator
         AutomationProperties.SetName(element, string.Empty);
     }
 
+    public static void Clear(FrameworkElement element, string propertyName)
+    {
+        switch (propertyName)
+        {
+            case "AutomationId":
+                element.ClearValue(AutomationProperties.AutomationIdProperty);
+                break;
+            case "HelpText":
+                element.ClearValue(AutomationProperties.HelpTextProperty);
+                break;
+            case "ItemStatus":
+                element.ClearValue(AutomationProperties.ItemStatusProperty);
+                break;
+            case "ItemType":
+                element.ClearValue(AutomationProperties.ItemTypeProperty);
+                break;
+            case "LabeledBy":
+                element.ClearValue(AutomationProperties.LabeledByProperty);
+                break;
+            case "Name":
+                element.ClearValue(AutomationProperties.NameProperty);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported AutomationProperties attached property '{propertyName}'.");
+        }
+    }
+
     private static UIElement? ReadElement(NativeAttachedPropertyValue property)
     {
         if (property.Value is null)
